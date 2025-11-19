@@ -122,15 +122,17 @@
         // --- COMPONENTE PRINCIPAL ---
         function App() {
             const [books, setBooks] = useState([]);
-            const [settings, setSettings] = useState({ 
-                apiKey: DEFAULT_API_KEY, 
+            const [settings, setSettings] = useState({
+                apiKey: DEFAULT_API_KEY,
                 model: DEFAULT_MODEL,
-                prompts: { ...DEFAULT_PROMPTS } 
+                prompts: { ...DEFAULT_PROMPTS }
             });
-            const [view, setView] = useState('home'); 
+            const [view, setView] = useState('home');
             const [activeBookId, setActiveBookId] = useState(null);
             const [activeChapterId, setActiveChapterId] = useState(null);
             const [loading, setLoading] = useState(false);
+            const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
+            const [testMsg, setTestMsg] = useState("");
 
             useEffect(() => {
                 const savedBooks = localStorage.getItem('voiceNotes_books');
@@ -189,9 +191,6 @@
 
             // --- VISTA: SETTINGS (Mejorada) ---
             if (view === 'settings') {
-                const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
-                const [testMsg, setTestMsg] = useState("");
-
                 const testConnection = async () => {
                     setTestStatus('loading');
                     try {
