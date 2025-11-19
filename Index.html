@@ -77,8 +77,7 @@
         };
 
         // --- CONFIGURACIÓN INICIAL Y HELPERS ---
-        // NOTA: Esta key es de EJEMPLO. Debes poner la tuya en la configuración de la App.
-        const DEFAULT_API_KEY = ""; 
+        const DEFAULT_API_KEY = ""; // El usuario debe ponerla
         
         const DEFAULT_PROMPTS = {
             merge: "Combina las siguientes notas en un único texto coherente, bien estructurado y resumido. Usa Markdown para dar formato si es necesario.",
@@ -87,32 +86,45 @@
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-        // --- API GEMINI ---
+        // --- API GEMINI (CORREGIDA: MEJOR MANEJO DE MODELOS) ---
         async function callGemini(apiKey, prompt, content) {
             if (!apiKey || apiKey.length < 10) {
                 throw new Error("Falta la API Key. Ve a Configuración (⚙️) e introduce una válida.");
             }
 
-            // CAMBIO IMPORTANTE: Usamos 'gemini-1.5-flash-latest' que es más robusto, o 'gemini-pro' como fallback
-            const modelVersion = 'gemini-1.5-flash-latest';
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelVersion}:generateContent?key=${apiKey}`;
-            
-            const fullText = `${prompt}\n\n--- CONTENIDO ---\n${content}`;
-            const payload = { contents: [{ parts: [{ text: fullText }] }] };
-
-            try {
+            // Función interna para intentar hacer fetch
+            const tryFetch = async (model) => {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                const fullText = `${prompt}\n\n--- CONTENIDO ---\n${content}`;
+                const payload = { contents: [{ parts: [{ text: fullText }] }] };
+                
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                return { response, data: await response.json() };
+            };
 
-                const data = await response.json();
+            try {
+                // 1. Intentar con el modelo estándar más común
+                let result = await tryFetch('gemini-1.5-flash');
                 
+                // 2. Si falla con 404 (Not Found), intentar con gemini-pro (Fallback)
+                if (!result.response.ok && (result.data.error?.code === 404 || result.data.error?.message?.includes('not found'))) {
+                    console.warn("Modelo Flash falló, intentando con Gemini Pro...");
+                    result = await tryFetch('gemini-pro');
+                }
+
+                const { response, data } = result;
+
                 if (!response.ok) {
-                    // Mensaje de error más amigable
-                    if (data.error?.message?.includes("not found") || data.error?.code === 404) {
-                        throw new Error("Error de autenticación: La API Key no es válida o no tiene permisos para este modelo. Verifica tu clave en Configuración.");
+                    // Mensajes de error específicos
+                    if (data.error?.message?.includes("API key not valid")) {
+                        throw new Error("Error: La API Key es incorrecta. Revisa que la copiaste bien.");
+                    }
+                    if (data.error?.code === 404) {
+                        throw new Error("Error: No se encuentra el modelo. Tu API Key podría ser válida pero no tiene acceso a Gemini.");
                     }
                     throw new Error(data.error?.message || 'Error desconocido en la API de Gemini');
                 }
@@ -240,7 +252,7 @@
                                     value={settings.apiKey}
                                     onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
                                     className="w-full p-2 border rounded-md bg-gray-50 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="Pega aquí tu API Key (empieza por AIza...)"
+                                    placeholder="AIzaSy..."
                                 />
                             </div>
                             <div className="bg-white p-4 rounded-lg shadow">
