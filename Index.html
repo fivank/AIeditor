@@ -1,2489 +1,541 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gestor de Libros, Capítulos y Notas</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- React + ReactDOM desde CDN -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <!-- Babel 7 para compilar JSX/ESNext en el navegador -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <style>
-    :root {
-      --bg: #050816;
-      --bg-elevated: #0b1020;
-      --accent: #6366f1;
-      --accent-soft: rgba(99, 102, 241, 0.15);
-      --accent-strong: rgba(99, 102, 241, 0.9);
-      --border: #1f2937;
-      --text-main: #e5e7eb;
-      --text-soft: #9ca3af;
-      --danger: #f97373;
-      --success: #22c55e;
-      --radius-lg: 1.25rem;
-      --radius-md: 0.9rem;
-      --radius-pill: 999px;
-      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.75);
-      --shadow-chip: 0 10px 25px rgba(15, 23, 42, 0.7);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #111827 0, #020617 45%, #020617 100%);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 12px;
-    }
-
-    #root {
-      width: 100%;
-      max-width: 780px;
-      display: flex;
-      justify-content: center;
-    }
-
-    .app-shell {
-      width: 100%;
-      background: linear-gradient(140deg, rgba(15,23,42,0.98), rgba(15,23,42,0.9), rgba(17,24,39,0.94));
-      border-radius: 1.7rem;
-      box-shadow: var(--shadow-soft);
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .blobs {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-      opacity: 0.7;
-    }
-
-    .blob {
-      position: absolute;
-      border-radius: 999px;
-      filter: blur(30px);
-      transform: translate3d(0,0,0);
-    }
-
-    .blob-1 {
-      width: 260px; height: 260px;
-      top: -60px; left: -40px;
-      background: radial-gradient(circle, rgba(129, 140, 248, 0.42), transparent 70%);
-      opacity: 0.7;
-    }
-
-    .blob-2 {
-      width: 280px; height: 280px;
-      top: -90px; right: -80px;
-      background: radial-gradient(circle, rgba(236, 72, 153, 0.32), transparent 70%);
-      opacity: 0.7;
-    }
-
-    .blob-3 {
-      width: 260px; height: 260px;
-      bottom: -110px; left: 10%;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.33), transparent 70%);
-      opacity: 0.6;
-    }
-
-    .blob-4 {
-      width: 250px; height: 250px;
-      bottom: -140px; right: -30px;
-      background: radial-gradient(circle, rgba(52, 211, 153, 0.32), transparent 70%);
-      opacity: 0.5;
-    }
-
-    .app-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      max-height: 100vh;
-    }
-
-    header.app-header {
-      padding: 12px 14px 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-      backdrop-filter: blur(16px);
-      background: linear-gradient(to bottom, rgba(15,23,42,0.95), rgba(15,23,42,0.9));
-      position: sticky;
-      top: 0;
-      z-index: 3;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .back-btn {
-      border: none;
-      outline: none;
-      background: rgba(15,23,42,0.7);
-      border-radius: 999px;
-      width: 34px;
-      height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-soft);
-      font-size: 18px;
-      cursor: pointer;
-      border: 1px solid rgba(148, 163, 184, 0.30);
-      box-shadow: 0 10px 25px rgba(15,23,42,0.9);
-      transition: all 0.16s ease;
-    }
-
-    .back-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 14px 30px rgba(15,23,42,0.95);
-      border-color: rgba(129, 140, 248, 0.65);
-      color: var(--accent);
-    }
-
-    .app-title-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    h1.app-title {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .title-pill {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(129, 140, 248, 0.55);
-      background: radial-gradient(circle at top left, rgba(129,140,248,0.38), rgba(15,23,42,0.9));
-      color: #e5e7eb;
-    }
-
-    .title-accent {
-      background: linear-gradient(135deg, #a5b4fc, #38bdf8);
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
-    .app-subtitle {
-      margin: 0;
-      font-size: 11px;
-      color: var(--text-soft);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .app-subtitle span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .subtitle-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #22c55e 0, rgba(34,197,94,0.2) 60%);
-      box-shadow: 0 0 12px rgba(34, 197, 94, 0.9);
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .pill-indicator {
-      font-size: 10px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(148, 163, 184, 0.36);
-      color: var(--text-soft);
-      display: none;
-    }
-
-    @media (min-width: 450px) {
-      .pill-indicator {
-        display: inline-flex;
-      }
-    }
-
-    .settings-btn {
-      border: none;
-      outline: none;
-      border-radius: 999px;
-      padding: 7px 11px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,64,175,0.9));
-      color: #e5e7eb;
-      font-size: 12px;
-      cursor: pointer;
-      box-shadow: var(--shadow-chip);
-      border: 1px solid rgba(129, 140, 248, 0.65);
-      transition: all 0.16s ease;
-    }
-
-    .settings-btn span.icon {
-      font-size: 16px;
-    }
-
-    .settings-btn span.label {
-      display: none;
-    }
-
-    @media (min-width: 420px) {
-      .settings-btn span.label {
-        display: inline;
-      }
-    }
-
-    .settings-btn.active {
-      background: linear-gradient(135deg, rgba(15,23,42,1), rgba(17,24,39,0.96));
-      border-color: rgba(248, 250, 252, 0.45);
-    }
-
-    .settings-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 14px 30px rgba(15,23,42,1);
-    }
-
-    main.app-main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 10px 12px 12px 12px;
-      overflow: hidden;
-    }
-
-    .content-card {
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.96), rgba(15,23,42,0.98));
-      border-radius: 1.35rem;
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.95);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      overflow: hidden;
-      position: relative;
-    }
-
-    @media (min-width: 640px) {
-      .content-card {
-        padding: 14px;
-      }
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      gap: 10px;
-    }
-
-    .section-title-group {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      min-width: 0;
-    }
-
-    .section-title {
-      font-size: 15px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-
-    .section-title span.emoji {
-      font-size: 17px;
-    }
-
-    .section-subtitle {
-      font-size: 11px;
-      color: var(--text-soft);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .section-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: nowrap;
-    }
-
-    .btn-primary,
-    .btn-outline,
-    .btn-ghost {
-      border-radius: 999px;
-      padding: 7px 12px;
-      font-size: 12px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: inherit;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-      transition: all 0.15s ease;
-    }
-
-    .btn-primary {
-      background: radial-gradient(circle at top left, var(--accent-strong), #1d4ed8);
-      border-color: rgba(191, 219, 254, 0.9);
-      color: #e5e7eb;
-      box-shadow: var(--shadow-chip);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 16px 40px rgba(15,23,42,0.95);
-    }
-
-    .btn-outline {
-      border-color: rgba(148, 163, 184, 0.6);
-      background: rgba(15,23,42,0.9);
-      box-shadow: 0 10px 24px rgba(15,23,42,0.85);
-      color: var(--text-soft);
-    }
-
-    .btn-outline:hover {
-      border-color: rgba(129, 140, 248, 0.75);
-      color: #e5e7eb;
-      transform: translateY(-1px);
-    }
-
-    .btn-ghost {
-      border-color: transparent;
-      background: rgba(15, 23, 42, 0.7);
-      color: var(--text-soft);
-    }
-
-    .btn-ghost:hover {
-      background: rgba(31, 41, 55, 0.9);
-      color: #e5e7eb;
-    }
-
-    .btn-icon-only {
-      padding-inline: 8px;
-      font-size: 16px;
-      width: 32px;
-      justify-content: center;
-    }
-
-    .btn-sm {
-      padding: 5px 9px;
-      font-size: 11px;
-    }
-
-    .list {
-      border-radius: 1rem;
-      border: 1px solid rgba(31, 41, 55, 0.95);
-      background: linear-gradient(150deg, rgba(15,23,42,0.96), rgba(15,23,42,0.99));
-      padding: 4px;
-      margin-top: 6px;
-      flex: 1;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(148, 163, 184, 0.65) transparent;
-    }
-
-    .list::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .list::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .list::-webkit-scrollbar-thumb {
-      background: rgba(148, 163, 184, 0.6);
-      border-radius: 999px;
-    }
-
-    .list-empty {
-      padding: 14px 10px 14px 10px;
-      font-size: 12px;
-      color: var(--text-soft);
-      text-align: left;
-    }
-
-    .pill-helper {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--text-soft);
-      border-radius: var(--radius-pill);
-      padding: 3px 8px 3px 5px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px dashed rgba(148, 163, 184, 0.6);
-      margin-top: 4px;
-    }
-
-    .pill-helper-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(129, 140, 248, 0.9), rgba(129, 140, 248, 0.2));
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      background: rgba(15,23,42,0.95);
-      border: 1px solid rgba(148, 163, 184, 0.65);
-      color: var(--text-soft);
-      margin-top: 2px;
-    }
-
-    .chip span.dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(52, 211, 153, 0.9), rgba(52, 211, 153, 0.18));
-    }
-
-    .chip span.dot-red {
-      background: radial-gradient(circle, rgba(248, 113, 113, 0.9), rgba(248, 113, 113, 0.18));
-    }
-
-    .list-item {
-      border-radius: 0.9rem;
-      padding: 9px 9px;
-      margin: 3px 0;
-      border: 1px solid rgba(31, 41, 55, 0.95);
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.96), rgba(15,23,42,0.98));
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      position: relative;
-    }
-
-    .list-item:hover {
-      border-color: rgba(129, 140, 248, 0.75);
-      box-shadow: 0 10px 26px rgba(15,23,42,0.9);
-      transform: translateY(-1px);
-    }
-
-    .item-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 12px;
-      background: radial-gradient(circle at top left, rgba(129,140,248,0.3), rgba(15,23,42,0.9));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      border: 1px solid rgba(129, 140, 248, 0.6);
-      box-shadow: 0 10px 26px rgba(15,23,42,1);
-      flex-shrink: 0;
-    }
-
-    .item-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .item-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
-
-    .item-title {
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .item-meta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 3px;
-    }
-
-    .item-badge {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.85);
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      color: var(--text-soft);
-    }
-
-    .item-subtitle {
-      font-size: 11px;
-      color: var(--text-soft);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .item-arrow {
-      font-size: 14px;
-      color: var(--text-soft);
-      flex-shrink: 0;
-    }
-
-    .inline-form {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 4px;
-      flex-wrap: nowrap;
-    }
-
-    .inline-input {
-      flex: 1;
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15, 23, 42, 0.95);
-      padding: 7px 10px;
-      font-size: 12px;
-      color: var(--text-main);
-      outline: none;
-      min-width: 0;
-    }
-
-    .inline-input::placeholder {
-      color: rgba(148, 163, 184, 0.75);
-    }
-
-    .inline-input:focus {
-      border-color: rgba(129, 140, 248, 0.9);
-      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
-    }
-
-    .notes-layout {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      gap: 8px;
-      overflow: hidden;
-    }
-
-    .notes-toolbar {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    @media (min-width: 640px) {
-      .notes-toolbar {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-      }
-    }
-
-    .notes-left-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .notes-right-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .record-btn {
-      border-radius: 999px;
-      padding: 7px 12px;
-      font-size: 12px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: radial-gradient(circle at top left, rgba(248,113,113,0.9), rgba(185,28,28,0.95));
-      color: #fee2e2;
-      box-shadow: 0 14px 32px rgba(127,29,29,0.95);
-      transition: all 0.15s ease;
-    }
-
-    .record-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 16px 38px rgba(127,29,29,1);
-    }
-
-    .record-btn.disabled,
-    .btn-primary.disabled,
-    .btn-outline.disabled,
-    .btn-ghost.disabled {
-      opacity: 0.55;
-      pointer-events: none;
-      cursor: default;
-    }
-
-    .record-indicator {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: radial-gradient(circle, #f97373 0, rgba(248,113,113,0.2) 70%);
-      box-shadow: 0 0 12px rgba(248,113,113,0.9);
-    }
-
-    .record-indicator.pulsing {
-      animation: pulse 1.2s infinite;
-    }
-
-    @keyframes pulse {
-      0% {
-        transform: scale(1);
-        box-shadow: 0 0 12px rgba(248,113,113,0.9);
-      }
-      60% {
-        transform: scale(1.4);
-        box-shadow: 0 0 25px rgba(248,113,113,1);
-      }
-      100% {
-        transform: scale(1);
-        box-shadow: 0 0 12px rgba(248,113,113,0.7);
-      }
-    }
-
-    .notes-selection-group {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .segmented-control {
-      display: inline-flex;
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.95);
-      padding: 2px;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.9);
-    }
-
-    .segmented-option {
-      border-radius: 999px;
-      padding: 4px 8px;
-      font-size: 11px;
-      color: var(--text-soft);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid transparent;
-    }
-
-    .segmented-option.active {
-      background: linear-gradient(135deg, rgba(129,140,248,0.95), rgba(56,189,248,0.95));
-      color: #0b1120;
-      border-color: rgba(191, 219, 254, 0.9);
-    }
-
-    .segmented-option span.dot-mini {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.95);
-    }
-
-    .style-input {
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      background: rgba(15,23,42,0.95);
-      padding: 7px 10px;
-      font-size: 12px;
-      color: var(--text-main);
-      outline: none;
-      min-width: 0;
-    }
-
-    .style-input::placeholder {
-      color: rgba(148, 163, 184, 0.8);
-    }
-
-    .style-input:focus {
-      border-color: rgba(129, 140, 248, 0.9);
-      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
-    }
-
-    .notes-list {
-      margin-top: 4px;
-      flex: 1;
-      overflow-y: auto;
-      border-radius: 1rem;
-      border: 1px solid rgba(31, 41, 55, 0.95);
-      background: linear-gradient(150deg, rgba(15,23,42,0.97), rgba(15,23,42,0.99));
-      padding: 6px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(148, 163, 184, 0.65) transparent;
-    }
-
-    .notes-list::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .notes-list::-webkit-scrollbar-thumb {
-      background: rgba(148, 163, 184, 0.6);
-      border-radius: 999px;
-    }
-
-    .note-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 7px 8px;
-      border-radius: 0.9rem;
-      border: 1px solid rgba(31, 41, 55, 0.95);
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.98), rgba(15,23,42,0.99));
-      margin: 3px 0;
-      transition: all 0.15s ease;
-    }
-
-    .note-item.selected {
-      border-color: rgba(129, 140, 248, 0.9);
-      box-shadow: 0 10px 24px rgba(15,23,42,0.95);
-    }
-
-    .note-checkbox {
-      margin-top: 2px;
-      flex-shrink: 0;
-      accent-color: var(--accent);
-    }
-
-    .note-body {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .note-text {
-      font-size: 13px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .note-meta {
-      margin-top: 3px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-size: 10px;
-      color: var(--text-soft);
-    }
-
-    .note-time {
-      opacity: 0.9;
-    }
-
-    .note-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .note-chip {
-      border-radius: 999px;
-      padding: 2px 7px;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.95);
-      font-size: 10px;
-      color: var(--text-soft);
-    }
-
-    .manual-note-box {
-      margin-top: 6px;
-      border-radius: 1rem;
-      border: 1px dashed rgba(55, 65, 81, 0.95);
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.98), rgba(15,23,42,0.99));
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--text-soft);
-    }
-
-    .manual-note-textarea {
-      width: 100%;
-      min-height: 70px;
-      max-height: 140px;
-      border-radius: 0.8rem;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.98);
-      color: var(--text-main);
-      font-size: 12px;
-      padding: 7px 8px;
-      resize: vertical;
-      outline: none;
-    }
-
-    .manual-note-textarea::placeholder {
-      color: rgba(148, 163, 184, 0.8);
-    }
-
-    .manual-note-textarea:focus {
-      border-color: rgba(129, 140, 248, 0.9);
-      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
-    }
-
-    .manual-note-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .helper-inline {
-      font-size: 10px;
-      color: var(--text-soft);
-    }
-
-    .settings-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 2px 2px 4px 2px;
-      height: 100%;
-      overflow-y: auto;
-    }
-
-    .settings-section {
-      border-radius: 1rem;
-      border: 1px solid rgba(31, 41, 55, 0.95);
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.98), rgba(15,23,42,0.99));
-      padding: 10px;
-    }
-
-    .settings-title {
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .settings-title span.icon {
-      font-size: 16px;
-    }
-
-    .settings-description {
-      font-size: 11px;
-      color: var(--text-soft);
-      margin-bottom: 8px;
-    }
-
-    .field-label {
-      font-size: 11px;
-      color: var(--text-soft);
-      margin-bottom: 3px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
-
-    .field-label span.badge {
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.65);
-      padding: 1px 7px;
-      font-size: 10px;
-      background: rgba(15,23,42,0.95);
-    }
-
-    .settings-input {
-      width: 100%;
-      border-radius: 999px;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.95);
-      padding: 7px 10px;
-      font-size: 12px;
-      color: var(--text-main);
-      outline: none;
-    }
-
-    .settings-input::placeholder {
-      color: rgba(148, 163, 184, 0.75);
-    }
-
-    .settings-input:focus {
-      border-color: rgba(129, 140, 248, 0.9);
-      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
-    }
-
-    .settings-textarea {
-      width: 100%;
-      min-height: 94px;
-      border-radius: 0.9rem;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.98);
-      padding: 7px 10px;
-      font-size: 12px;
-      color: var(--text-main);
-      resize: vertical;
-      outline: none;
-    }
-
-    .settings-textarea::placeholder {
-      color: rgba(148, 163, 184, 0.8);
-    }
-
-    .settings-textarea:focus {
-      border-color: rgba(129, 140, 248, 0.9);
-      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
-    }
-
-    .settings-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-size: 10px;
-      color: var(--text-soft);
-      margin-top: 4px;
-      flex-wrap: wrap;
-    }
-
-    .status-bar {
-      margin-top: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 11px;
-    }
-
-    .status-pill {
-      padding: 5px 8px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.97);
-      color: var(--text-soft);
-      max-width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .status-pill span.dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(129, 140, 248, 0.9), rgba(129, 140, 248, 0.25));
-    }
-
-    .status-pill.error {
-      border-color: rgba(248, 113, 113, 0.9);
-      color: #fecaca;
-    }
-
-    .status-pill.error span.dot {
-      background: radial-gradient(circle, rgba(248, 113, 113, 0.95), rgba(248, 113, 113, 0.25));
-    }
-
-    .status-pill.success {
-      border-color: rgba(52, 211, 153, 0.9);
-      color: #bbf7d0;
-    }
-
-    .status-pill.success span.dot {
-      background: radial-gradient(circle, rgba(52, 211, 153, 0.95), rgba(52, 211, 153, 0.25));
-    }
-
-    .status-pill.loading {
-      opacity: 0.95;
-    }
-
-    .spinner {
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
-      border: 2px solid rgba(148, 163, 184, 0.3);
-      border-top-color: rgba(129, 140, 248, 0.95);
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    footer.app-footer {
-      padding: 6px 12px 10px 12px;
-      font-size: 10px;
-      color: var(--text-soft);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-      border-top: 1px solid rgba(31, 41, 55, 0.95);
-      background: radial-gradient(circle at top, rgba(15,23,42,0.98), rgba(15,23,42,0.98));
-    }
-
-    .footer-pill {
-      border-radius: 999px;
-      padding: 3px 8px;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.98);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      max-width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .footer-pill span.dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(129, 140, 248, 0.9), rgba(129, 140, 248, 0.2));
-    }
-
-    .footer-right {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .tag {
-      border-radius: 999px;
-      padding: 2px 7px;
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      background: rgba(15,23,42,0.98);
-    }
-
-    @media (max-width: 480px) {
-      .section-subtitle {
-        display: none;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VoiceNotes AI Manager</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel para JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Estilos base y utilidades */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Animación de carga */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Animación de grabación */
+        .pulse-ring {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: pulse-red 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+        }
+        @keyframes pulse-red {
+            to { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+        }
+
+        /* Scrollbar bonita */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
 </head>
 <body>
-<div id="root"></div>
-
-<script type="text/babel" data-presets="env,react">
-  const { useState, useEffect, useRef } = React;
-
-  const STORAGE_KEYS = {
-    DATA: 'voiceBooksData_v1',
-    SETTINGS: 'voiceBooksSettings_v1',
-  };
-
-  // Incluyo tu API key como valor inicial por defecto (puedes cambiarla en Opciones)
-  const defaultSettings = {
-    apiKey: 'AIzaSyBHy7CI9Dr1oONZkqghOOguNGQts94BjvI',
-    mergePrompt:
-      'Eres una herramienta que fusiona notas casi literalmente. ' +
-      'Une las notas dadas en un único texto coherente. ' +
-      'Solo corrige lo estrictamente necesario: mayúsculas iniciales, signos de puntuación básicos y espacios. ' +
-      'No añadas ideas nuevas ni elimines detalles importantes. ' +
-      'Devuelve únicamente el texto final fusionado, sin comentarios ni explicaciones.',
-    stylePrompt:
-      'Eres una herramienta que reescribe un texto aplicando un estilo concreto indicado por el usuario. ' +
-      'Debes mantener todo el contenido y el significado original. ' +
-      'Solo corrige lo estrictamente necesario a nivel de mayúsculas, signos de puntuación y espacios. ' +
-      'Aplica el estilo indicado sin introducir información nueva. ' +
-      'Devuelve únicamente el texto reescrito, sin comentarios ni explicaciones.',
-  };
-
-  function genId(prefix) {
-    return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-  }
-
-  function cleanTranscription(rawText) {
-    if (!rawText) return '';
-    let text = rawText.trim();
-    text = text.replace(/\s+/g, ' ');
-    if (!text) return '';
-    text = text.charAt(0).toUpperCase() + text.slice(1);
-    if (!/[.!?¡¿…]$/.test(text)) {
-      text += '.';
-    }
-    return text;
-  }
-
-  async function callGemini({ apiKey, systemPrompt, userPrompt }) {
-    if (!apiKey) {
-      throw new Error('Falta la API key de Gemini. Configúrala en Opciones.');
-    }
-
-    const endpoint =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=' +
-      encodeURIComponent(apiKey);
-
-    const body = {
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: (systemPrompt || '') + '\n\n' + (userPrompt || ''),
-            },
-          ],
-        },
-      ],
-    };
-
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      let details = '';
-      try {
-        const errData = await res.json();
-        if (errData && errData.error && errData.error.message) {
-          details = ' - ' + errData.error.message;
-        }
-      } catch (e) {}
-      throw new Error('Error ' + res.status + ' al llamar a Gemini' + details);
-    }
-
-    const data = await res.json();
-    let text = '';
-
-    if (data && Array.isArray(data.candidates) && data.candidates.length > 0) {
-      const candidate = data.candidates[0];
-      const content = candidate && candidate.content;
-      const parts = content && content.parts;
-      if (Array.isArray(parts)) {
-        text = parts
-          .map(function (p) {
-            return (p && p.text) || '';
-          })
-          .join('');
-      }
-    }
-
-    if (!text) {
-      throw new Error('La respuesta de Gemini llegó vacía.');
-    }
-
-    return text.trim();
-  }
-
-  function BookList({ books, onCreateBook, onOpenBook }) {
-    const [newBook, setNewBook] = useState('');
-
-    const handleCreate = () => {
-      const name = newBook.trim();
-      if (!name) return;
-      onCreateBook(name);
-      setNewBook('');
-    };
-
-    return (
-      <div className="content-card">
-        <div className="section-header">
-          <div className="section-title-group">
-            <div className="section-title">
-              <span className="emoji">📚</span>
-              <span>Libros</span>
-            </div>
-            <div className="section-subtitle">
-              Organiza tus ideas por libro &gt; capítulo &gt; nota.
-            </div>
-          </div>
-          <div className="section-actions">
-            <button className="btn-primary btn-sm" onClick={handleCreate}>
-              <span>＋</span>
-              <span>Nuevo libro</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="inline-form">
-          <input
-            className="inline-input"
-            placeholder="Nombre del nuevo libro..."
-            value={newBook}
-            onChange={(e) => setNewBook(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleCreate();
-              }
-            }}
-          />
-          <button className="btn-outline btn-sm" onClick={handleCreate}>
-            Crear
-          </button>
-        </div>
-
-        <div className="list">
-          {books.length === 0 ? (
-            <div className="list-empty">
-              No hay libros todavía. Crea el primero para empezar.
-              <div className="pill-helper">
-                <span className="pill-helper-dot" />
-                <span>Piensa en un libro como un proyecto o tema grande.</span>
-              </div>
-            </div>
-          ) : (
-            books.map((book, index) => {
-              const firstChar =
-                book && typeof book.title === 'string' && book.title.length > 0
-                  ? book.title.charAt(0).toUpperCase()
-                  : '📘';
-              const chapterCount =
-                book && Array.isArray(book.chapters) ? book.chapters.length : 0;
-              return (
-                <div
-                  key={book.id}
-                  className="list-item"
-                  onClick={() => onOpenBook(book.id)}
-                >
-                  <div className="item-avatar">
-                    <span>{firstChar}</span>
-                  </div>
-                  <div className="item-content">
-                    <div className="item-title-row">
-                      <div className="item-title">{book.title}</div>
-                      <span className="item-arrow">›</span>
-                    </div>
-                    <div className="item-meta">
-                      <span className="item-badge">
-                        {chapterCount} capítulos
-                      </span>
-                      <span className="item-subtitle">
-                        Libro #{index + 1}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  function ChapterList({ book, onCreateChapter, onOpenChapter }) {
-    const [newChapter, setNewChapter] = useState('');
-
-    const handleCreate = () => {
-      const name = newChapter.trim();
-      if (!name) return;
-      onCreateChapter(name);
-      setNewChapter('');
-    };
-
-    const chapterCount =
-      book && Array.isArray(book.chapters) ? book.chapters.length : 0;
-
-    return (
-      <div className="content-card">
-        <div className="section-header">
-          <div className="section-title-group">
-            <div className="section-title">
-              <span className="emoji">📖</span>
-              <span>{book.title}</span>
-            </div>
-            <div className="section-subtitle">
-              {chapterCount} capítulo{chapterCount === 1 ? '' : 's'} en este libro.
-            </div>
-          </div>
-          <div className="section-actions">
-            <button className="btn-primary btn-sm" onClick={handleCreate}>
-              <span>＋</span>
-              <span>Nuevo capítulo</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="inline-form">
-          <input
-            className="inline-input"
-            placeholder="Nombre del nuevo capítulo o sección..."
-            value={newChapter}
-            onChange={(e) => setNewChapter(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleCreate();
-              }
-            }}
-          />
-          <button className="btn-outline btn-sm" onClick={handleCreate}>
-            Crear
-          </button>
-        </div>
-
-        <div className="list">
-          {chapterCount === 0 ? (
-            <div className="list-empty">
-              Este libro todavía no tiene capítulos.
-              <div className="pill-helper">
-                <span className="pill-helper-dot" />
-                <span>Usa capítulos para separar escenas, ideas o bloques de contenido.</span>
-              </div>
-            </div>
-          ) : (
-            book.chapters.map((chapter, index) => {
-              const notesCount =
-                chapter && Array.isArray(chapter.notes)
-                  ? chapter.notes.length
-                  : 0;
-              return (
-                <div
-                  key={chapter.id}
-                  className="list-item"
-                  onClick={() => onOpenChapter(chapter.id)}
-                >
-                  <div className="item-avatar">
-                    <span>✏️</span>
-                  </div>
-                  <div className="item-content">
-                    <div className="item-title-row">
-                      <div className="item-title">{chapter.title}</div>
-                      <span className="item-arrow">›</span>
-                    </div>
-                    <div className="item-meta">
-                      <span className="item-badge">
-                        {notesCount} notas
-                      </span>
-                      <span className="item-subtitle">
-                        Capítulo #{index + 1}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  function ChapterView({
-    book,
-    chapter,
-    selectedNoteIds,
-    setSelectedNoteIds,
-    targetScope,
-    setTargetScope,
-    onAddNote,
-    onManualNoteAdd,
-    onMergeNotes,
-    onStyleChange,
-    aiLoading,
-    aiError,
-    infoMessage,
-    supportsSpeech,
-  }) {
-    const [isRecording, setIsRecording] = useState(false);
-    const [manualNote, setManualNote] = useState('');
-    const [styleDescription, setStyleDescription] = useState('');
-    const recognitionRef = useRef(null);
-
-    const notes = Array.isArray(chapter.notes) ? chapter.notes : [];
-
-    const startRecording = () => {
-      if (!supportsSpeech) return;
-
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      if (!SpeechRecognition) return;
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'es-ES';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setIsRecording(true);
-      };
-
-      recognition.onerror = (event) => {
-        const err = event && event.error ? event.error : 'desconocido';
-        alert(
-          'Error de reconocimiento de voz: ' +
-            err +
-            '.\n\nComprueba que el navegador permite usar el micrófono.'
-        );
-        setIsRecording(false);
-      };
-
-      recognition.onresult = (event) => {
-        let transcript = '';
-        if (
-          event &&
-          event.results &&
-          event.results[0] &&
-          event.results[0][0]
-        ) {
-          transcript = event.results[0][0].transcript;
-        }
-        const cleaned = cleanTranscription(transcript);
-        if (cleaned) {
-          onAddNote(cleaned);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
-
-      recognitionRef.current = recognition;
-      try {
-        recognition.start();
-      } catch (e) {
-        alert(
-          'No se pudo iniciar la grabación. Asegúrate de que el sitio está en HTTPS o en localhost.'
-        );
-      }
-    };
-
-    const stopRecording = () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {}
-      }
-      setIsRecording(false);
-    };
-
-    const toggleRecording = () => {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    };
-
-    const handleManualAdd = () => {
-      const text = manualNote.trim();
-      if (!text) return;
-      const cleaned = cleanTranscription(text);
-      onManualNoteAdd(cleaned);
-      setManualNote('');
-    };
-
-    const toggleNoteSelection = (noteId) => {
-      setSelectedNoteIds((prev) => {
-        if (prev.indexOf(noteId) >= 0) {
-          return prev.filter((id) => id !== noteId);
-        } else {
-          return prev.concat(noteId);
-        }
-      });
-    };
-
-    const allSelected =
-      notes.length > 0 && selectedNoteIds.length === notes.length;
-
-    const toggleSelectAll = () => {
-      if (allSelected) {
-        setSelectedNoteIds([]);
-      } else {
-        setSelectedNoteIds(notes.map((n) => n.id));
-      }
-    };
-
-    const handleMergeSelected = () => {
-      if (selectedNoteIds.length < 2) {
-        alert('Selecciona al menos 2 notas para fusionar.');
-        return;
-      }
-      onMergeNotes(selectedNoteIds);
-    };
-
-    const handleStyleChange = () => {
-      if (!styleDescription.trim()) {
-        alert('Describe el estilo deseado antes de aplicar el cambio.');
-        return;
-      }
-      if (targetScope === 'selected' && selectedNoteIds.length === 0) {
-        alert('Selecciona al menos una nota si el objetivo son notas seleccionadas.');
-        return;
-      }
-      onStyleChange({
-        scope: targetScope,
-        selectedNoteIds: selectedNoteIds,
-        styleDescription: styleDescription.trim(),
-      });
-    };
-
-    const notesCount = notes.length;
-
-    return (
-      <div className="content-card">
-        <div className="section-header">
-          <div className="section-title-group">
-            <div className="section-title">
-              <span className="emoji">📝</span>
-              <span>{chapter.title}</span>
-            </div>
-            <div className="section-subtitle">
-              {notesCount} nota{notesCount === 1 ? '' : 's'} en este capítulo.
-            </div>
-          </div>
-          <div className="section-actions">
-            <button
-              className={
-                'record-btn' + (isRecording || aiLoading ? ' disabled' : '')
-              }
-              onClick={toggleRecording}
-              disabled={aiLoading}
-            >
-              <span
-                className={
-                  'record-indicator' + (isRecording ? ' pulsing' : '')
-                }
-              />
-              <span>
-                {isRecording ? 'Grabando… pulsa para parar' : 'Grabar nota'}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {!supportsSpeech && (
-          <div className="chip">
-            <span className="dot dot-red" />
-            <span>
-              Tu navegador no soporta la Web Speech API. Usa las notas de texto manual.
-            </span>
-          </div>
-        )}
-
-        <div className="notes-layout">
-          <div className="notes-toolbar">
-            <div className="notes-left-controls">
-              <div className="segmented-control">
-                <button
-                  type="button"
-                  className={
-                    'segmented-option' +
-                    (targetScope === 'selected' ? ' active' : '')
-                  }
-                  onClick={() => setTargetScope('selected')}
-                >
-                  <span className="dot-mini" />
-                  <span>Notas seleccionadas</span>
-                </button>
-                <button
-                  type="button"
-                  className={
-                    'segmented-option' +
-                    (targetScope === 'chapter' ? ' active' : '')
-                  }
-                  onClick={() => setTargetScope('chapter')}
-                >
-                  <span className="dot-mini" />
-                  <span>Capítulo completo</span>
-                </button>
-                <button
-                  type="button"
-                  className={
-                    'segmented-option' +
-                    (targetScope === 'book' ? ' active' : '')
-                  }
-                  onClick={() => setTargetScope('book')}
-                >
-                  <span className="dot-mini" />
-                  <span>Libro completo</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="notes-right-controls">
-              <input
-                className="style-input"
-                placeholder='Describe el estilo: "más narrativo y emocional", "más técnico y conciso", etc.'
-                value={styleDescription}
-                onChange={(e) => setStyleDescription(e.target.value)}
-              />
-              <button
-                className={
-                  'btn-outline btn-sm' + (aiLoading ? ' disabled' : '')
-                }
-                onClick={handleMergeSelected}
-                disabled={aiLoading}
-              >
-                <span>🧩</span>
-                <span>Fusionar notas (nueva nota)</span>
-              </button>
-              <button
-                className={
-                  'btn-primary btn-sm' + (aiLoading ? ' disabled' : '')
-                }
-                onClick={handleStyleChange}
-                disabled={aiLoading}
-              >
-                <span>✨</span>
-                <span>Cambiar estilo</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="notes-list">
-            {notes.length === 0 ? (
-              <div className="list-empty">
-                Todavía no hay notas en este capítulo.
-                <div className="pill-helper">
-                  <span className="pill-helper-dot" />
-                  <span>
-                    Pulsa "Grabar nota" para dictar o añade una nota manual más abajo.
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="manual-note-actions" style={{ marginBottom: 4 }}>
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={toggleSelectAll}
-                  >
-                    <span>☑</span>
-                    <span>
-                      {allSelected ? 'Quitar selección' : 'Seleccionar todo'}
-                    </span>
-                  </button>
-                  <span className="helper-inline">
-                    {selectedNoteIds.length} seleccionada
-                    {selectedNoteIds.length === 1 ? '' : 's'}.
-                  </span>
-                </div>
-
-                {notes.map((note) => {
-                  const selected = selectedNoteIds.indexOf(note.id) >= 0;
-                  let timeLabel = '';
-                  if (note && note.createdAt) {
-                    const date = new Date(note.createdAt);
-                    if (!isNaN(date.getTime())) {
-                      timeLabel = date.toLocaleString();
-                    }
-                  }
-                  return (
-                    <label
-                      key={note.id}
-                      className={
-                        'note-item' + (selected ? ' selected' : '')
-                      }
-                    >
-                      <input
-                        type="checkbox"
-                        className="note-checkbox"
-                        checked={selected}
-                        onChange={() => toggleNoteSelection(note.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="note-body">
-                        <div className="note-text">{note.text}</div>
-                        <div className="note-meta">
-                          <span className="note-time">{timeLabel}</span>
-                          <div className="note-actions">
-                            <span className="note-chip">
-                              {selected ? 'Seleccionada' : 'Toca para seleccionar'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </>
-            )}
-          </div>
-
-          <div className="manual-note-box">
-            <div>
-              Añadir nota de texto manual (sin voz):
-            </div>
-            <textarea
-              className="manual-note-textarea"
-              placeholder="Escribe aquí una nota. Solo se limpiará lo mínimo (mayúscula inicial, punto final, espacios)."
-              value={manualNote}
-              onChange={(e) => setManualNote(e.target.value)}
-            />
-            <div className="manual-note-actions">
-              <span className="helper-inline">
-                Se aplicará la misma limpieza mínima que a las notas dictadas.
-              </span>
-              <button
-                className="btn-outline btn-sm"
-                onClick={handleManualAdd}
-              >
-                <span>➕</span>
-                <span>Guardar nota</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="status-bar">
-            {aiLoading && (
-              <div className="status-pill loading">
-                <span className="spinner" />
-                <span>Hablando con Gemini…</span>
-              </div>
-            )}
-            {aiError && !aiLoading && (
-              <div className="status-pill error">
-                <span className="dot" />
-                <span>{aiError}</span>
-              </div>
-            )}
-            {infoMessage && !aiError && !aiLoading && (
-              <div className="status-pill success">
-                <span className="dot" />
-                <span>{infoMessage}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function SettingsPanel({ settings, onChangeSettings }) {
-    const [localSettings, setLocalSettings] = useState(settings);
-
-    useEffect(() => {
-      setLocalSettings(settings);
-    }, [settings]);
-
-    const handleChange = (field, value) => {
-      const updated = Object.assign({}, localSettings, { [field]: value });
-      setLocalSettings(updated);
-      onChangeSettings(updated);
-    };
-
-    return (
-      <div className="content-card">
-        <div className="section-header">
-          <div className="section-title-group">
-            <div className="section-title">
-              <span className="emoji">⚙️</span>
-              <span>Opciones &bull; Gemini</span>
-            </div>
-            <div className="section-subtitle">
-              API key y prompts base usados en las funciones con IA.
-            </div>
-          </div>
-        </div>
-
-        <div className="settings-panel">
-          <div className="settings-section">
-            <div className="settings-title">
-              <span className="icon">🔑</span>
-              <span>API key de Gemini</span>
-            </div>
-            <div className="settings-description">
-              Introduce aquí tu API key de Gemini. Se guardará en tu navegador
-              (localStorage) y la app la usará para las llamadas a la IA.
-            </div>
-            <div className="field-label">
-              <span>API key (no se mostrará a nadie más)</span>
-              <span className="badge">Obligatorio para IA</span>
-            </div>
-            <input
-              className="settings-input"
-              type="password"
-              value={localSettings.apiKey}
-              placeholder="Pega aquí tu API key de Gemini…"
-              onChange={(e) => handleChange('apiKey', e.target.value)}
-            />
-            <div className="settings-footer">
-              <span>
-                Se guarda solo en este navegador (localStorage).
-              </span>
-              <span>Puedes cambiarla cuando quieras.</span>
-            </div>
-          </div>
-
-          <div className="settings-section">
-            <div className="settings-title">
-              <span className="icon">🧩</span>
-              <span>Prompt base para FUSIÓN de notas</span>
-            </div>
-            <div className="settings-description">
-              Este prompt se envía a Gemini cuando usas “Fusionar notas”. Puedes
-              ajustarlo si quieres que la fusión sea más o menos literal.
-            </div>
-            <div className="field-label">
-              <span>Prompt base</span>
-              <span className="badge">Se concatena con las notas seleccionadas</span>
-            </div>
-            <textarea
-              className="settings-textarea"
-              value={localSettings.mergePrompt}
-              onChange={(e) => handleChange('mergePrompt', e.target.value)}
-            />
-          </div>
-
-          <div className="settings-section">
-            <div className="settings-title">
-              <span className="icon">✨</span>
-              <span>Prompt base para CAMBIO de estilo</span>
-            </div>
-            <div className="settings-description">
-              Este prompt se usa junto con tu descripción de estilo al pulsar
-              “Cambiar estilo”. El contenido puede ser desde unas pocas notas
-              hasta un capítulo o casi un libro entero.
-            </div>
-            <div className="field-label">
-              <span>Prompt base</span>
-              <span className="badge">Se concatena con estilo + contenido</span>
-            </div>
-            <textarea
-              className="settings-textarea"
-              value={localSettings.stylePrompt}
-              onChange={(e) => handleChange('stylePrompt', e.target.value)}
-            />
-            <div className="settings-footer">
-              <span>
-                Mantén claro que no debe inventar ni borrar ideas.
-              </span>
-              <span>Los cambios se guardan al vuelo.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function App() {
-    const [books, setBooks] = useState([]);
-    const [currentBookId, setCurrentBookId] = useState(null);
-    const [currentChapterId, setCurrentChapterId] = useState(null);
-    const [settings, setSettings] = useState(defaultSettings);
-    const [showSettings, setShowSettings] = useState(false);
-
-    const [selectedNoteIds, setSelectedNoteIds] = useState([]);
-    const [targetScope, setTargetScope] = useState('selected');
-
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiError, setAiError] = useState('');
-    const [infoMessage, setInfoMessage] = useState('');
-
-    const [supportsSpeech, setSupportsSpeech] = useState(true);
-
-    useEffect(() => {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEYS.DATA);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            setBooks(parsed);
-          }
-        }
-      } catch (e) {
-        console.error('Error cargando datos:', e);
-      }
-
-      try {
-        const storedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-        if (storedSettings) {
-          const parsedSettings = JSON.parse(storedSettings);
-          const merged = Object.assign({}, defaultSettings, parsedSettings || {});
-          setSettings(merged);
-        }
-      } catch (e) {
-        console.error('Error cargando settings:', e);
-      }
-
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        setSupportsSpeech(false);
-      }
-    }, []);
-
-    useEffect(() => {
-      try {
-        localStorage.setItem(STORAGE_KEYS.DATA, JSON.stringify(books));
-      } catch (e) {
-        console.error('Error guardando datos:', e);
-      }
-    }, [books]);
-
-    useEffect(() => {
-      try {
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-      } catch (e) {
-        console.error('Error guardando settings:', e);
-      }
-    }, [settings]);
-
-    useEffect(() => {
-      setAiError('');
-      setInfoMessage('');
-    }, [currentBookId, currentChapterId, showSettings]);
-
-    let currentBook = null;
-    for (let i = 0; i < books.length; i++) {
-      if (books[i].id === currentBookId) {
-        currentBook = books[i];
-        break;
-      }
-    }
-
-    let currentChapter = null;
-    if (currentBook && Array.isArray(currentBook.chapters)) {
-      for (let i = 0; i < currentBook.chapters.length; i++) {
-        if (currentBook.chapters[i].id === currentChapterId) {
-          currentChapter = currentBook.chapters[i];
-          break;
-        }
-      }
-    }
-
-    const isAtBooks = !currentBookId;
-    const isAtChapters = !!currentBookId && !currentChapterId;
-    const isAtNotes = !!currentBookId && !!currentChapterId;
-
-    const handleCreateBook = (title) => {
-      const newBook = {
-        id: genId('book'),
-        title: title,
-        chapters: [],
-      };
-      setBooks((prev) => prev.concat(newBook));
-    };
-
-    const handleOpenBook = (bookId) => {
-      setCurrentBookId(bookId);
-      setCurrentChapterId(null);
-      setSelectedNoteIds([]);
-      setShowSettings(false);
-    };
-
-    const handleCreateChapter = (title) => {
-      if (!currentBook) return;
-      const newChapter = {
-        id: genId('chapter'),
-        title: title,
-        notes: [],
-      };
-      setBooks((prev) =>
-        prev.map((book) => {
-          if (book.id !== currentBook.id) return book;
-          const chapters = Array.isArray(book.chapters) ? book.chapters.slice() : [];
-          chapters.push(newChapter);
-          return Object.assign({}, book, { chapters: chapters });
-        })
-      );
-    };
-
-    const handleOpenChapter = (chapterId) => {
-      setCurrentChapterId(chapterId);
-      setSelectedNoteIds([]);
-      setShowSettings(false);
-    };
-
-    const handleAddNoteToCurrentChapter = (text) => {
-      if (!currentBook || !currentChapter) return;
-      const newNote = {
-        id: genId('note'),
-        text: text,
-        createdAt: new Date().toISOString(),
-      };
-
-      setBooks((prev) =>
-        prev.map((book) => {
-          if (book.id !== currentBook.id) return book;
-          const chapters = (book.chapters || []).map((ch) => {
-            if (ch.id !== currentChapter.id) return ch;
-            const notes = Array.isArray(ch.notes) ? ch.notes.slice() : [];
-            notes.push(newNote);
-            return Object.assign({}, ch, { notes: notes });
-          });
-          return Object.assign({}, book, { chapters: chapters });
-        })
-      );
-    };
-
-    const handleMergeNotes = async (noteIds) => {
-      if (!currentBook || !currentChapter) return;
-      if (!noteIds || noteIds.length < 2) {
-        setAiError('Selecciona al menos 2 notas para fusionar.');
-        return;
-      }
-
-      let bookForMerge = null;
-      for (let i = 0; i < books.length; i++) {
-        if (books[i].id === currentBook.id) {
-          bookForMerge = books[i];
-          break;
-        }
-      }
-      if (!bookForMerge || !Array.isArray(bookForMerge.chapters)) return;
-
-      let chapter = null;
-      for (let i = 0; i < bookForMerge.chapters.length; i++) {
-        if (bookForMerge.chapters[i].id === currentChapter.id) {
-          chapter = bookForMerge.chapters[i];
-          break;
-        }
-      }
-      if (!chapter || !Array.isArray(chapter.notes)) return;
-
-      const selectedNotes = chapter.notes.filter((n) => noteIds.indexOf(n.id) >= 0);
-      if (selectedNotes.length < 2) {
-        setAiError('No se encontraron suficientes notas seleccionadas en el capítulo.');
-        return;
-      }
-
-      const mergePrompt = settings.mergePrompt || defaultSettings.mergePrompt;
-
-      const userPrompt =
-        'Fusiona coherentemente las siguientes notas en un solo texto:\n\n' +
-        selectedNotes
-          .map((n, idx) => String(idx + 1) + '. ' + n.text)
-          .join('\n\n');
-
-      setAiLoading(true);
-      setAiError('');
-      setInfoMessage('');
-
-      try {
-        const fusedText = await callGemini({
-          apiKey: settings.apiKey,
-          systemPrompt: mergePrompt,
-          userPrompt: userPrompt,
-        });
-
-        const newNote = {
-          id: genId('note'),
-          text: fusedText,
-          createdAt: new Date().toISOString(),
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONOS SVG ---
+        const Icons = {
+            Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+            Folder: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+            Mic: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>,
+            MicOff: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>,
+            Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            Wand: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>,
+            Merge: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3"/><path d="M12 12.3v9.3"/><path d="m8 18 4 4 4-4"/></svg>,
+            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         };
 
-        setBooks((prev) =>
-          prev.map((book) => {
-            if (book.id !== currentBook.id) return book;
-            const chapters = (book.chapters || []).map((ch) => {
-              if (ch.id !== currentChapter.id) return ch;
-              const notes = Array.isArray(ch.notes) ? ch.notes.slice() : [];
-              notes.push(newNote);
-              return Object.assign({}, ch, { notes: notes });
-            });
-            return Object.assign({}, book, { chapters: chapters });
-          })
-        );
+        // --- CONFIGURACIÓN INICIAL Y HELPERS ---
+        const DEFAULT_API_KEY = "AIzaSyBHy7CI9Dr1oONZkqghOOguNGQts94BjvI"; 
+        
+        const DEFAULT_PROMPTS = {
+            merge: "Combina las siguientes notas en un único texto coherente, bien estructurado y resumido. Usa Markdown para dar formato si es necesario.",
+            style: "Reescribe el siguiente contenido aplicando estrictamente el siguiente estilo o tono: {STYLE}. Mantén la información original pero cambia la forma de expresarla."
+        };
 
-        setInfoMessage(
-          'Fusión completada: se ha creado una nueva nota a partir de las seleccionadas (las originales se mantienen).'
-        );
-      } catch (e) {
-        console.error(e);
-        setAiError(e.message || 'Error al fusionar notas con Gemini.');
-      } finally {
-        setAiLoading(false);
-      }
-    };
+        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-    const handleStyleChange = async ({ scope, selectedNoteIds, styleDescription }) => {
-      if (!currentBook) return;
+        // --- API GEMINI ---
+        async function callGemini(apiKey, prompt, content) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const fullText = `${prompt}\n\n--- CONTENIDO ---\n${content}`;
+            const payload = { contents: [{ parts: [{ text: fullText }] }] };
 
-      const stylePrompt = settings.stylePrompt || defaultSettings.stylePrompt;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-      let contentText = '';
-      let contextLabel = '';
-      let affectedChaptersIds = [];
-      let noteIdsToReplaceInChapter = [];
-
-      if (scope === 'selected') {
-        if (!currentChapter || !selectedNoteIds || selectedNoteIds.length === 0) {
-          setAiError(
-            'Debes seleccionar al menos una nota si el alcance es "Notas seleccionadas".'
-          );
-          return;
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error?.message || 'Error en la API de Gemini');
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "No se generó respuesta.";
+            } catch (error) {
+                console.error("API Error:", error);
+                throw error;
+            }
         }
 
-        let bookCopy = null;
-        for (let i = 0; i < books.length; i++) {
-          if (books[i].id === currentBook.id) {
-            bookCopy = books[i];
-            break;
-          }
-        }
-        if (!bookCopy || !Array.isArray(bookCopy.chapters)) return;
+        // --- COMPONENTE PRINCIPAL ---
+        function App() {
+            const [books, setBooks] = useState([]);
+            const [settings, setSettings] = useState({ apiKey: DEFAULT_API_KEY, prompts: { ...DEFAULT_PROMPTS } });
+            const [view, setView] = useState('home'); // home, book, chapter, settings
+            const [activeBookId, setActiveBookId] = useState(null);
+            const [activeChapterId, setActiveChapterId] = useState(null);
+            const [loading, setLoading] = useState(false);
 
-        let chapter = null;
-        for (let i = 0; i < bookCopy.chapters.length; i++) {
-          if (bookCopy.chapters[i].id === currentChapter.id) {
-            chapter = bookCopy.chapters[i];
-            break;
-          }
-        }
-        if (!chapter || !Array.isArray(chapter.notes)) {
-          setAiError('No se encontraron notas en el capítulo.');
-          return;
-        }
+            useEffect(() => {
+                const savedBooks = localStorage.getItem('voiceNotes_books');
+                const savedSettings = localStorage.getItem('voiceNotes_settings');
+                if (savedBooks) setBooks(JSON.parse(savedBooks));
+                if (savedSettings) setSettings(JSON.parse(savedSettings));
+            }, []);
 
-        const selectedNotes = chapter.notes.filter(
-          (n) => selectedNoteIds.indexOf(n.id) >= 0
-        );
-        if (selectedNotes.length === 0) {
-          setAiError('No se encontraron notas seleccionadas en el capítulo.');
-          return;
-        }
+            useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
+            useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
 
-        contentText = selectedNotes
-          .map((n, idx) => String(idx + 1) + '. ' + n.text)
-          .join('\n\n');
-        contextLabel = 'notas seleccionadas del capítulo "' + chapter.title + '"';
-        affectedChaptersIds = [chapter.id];
-        noteIdsToReplaceInChapter = selectedNoteIds.slice();
-      } else if (scope === 'chapter') {
-        if (!currentChapter) return;
+            const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
 
-        let bookCopy = null;
-        for (let i = 0; i < books.length; i++) {
-          if (books[i].id === currentBook.id) {
-            bookCopy = books[i];
-            break;
-          }
-        }
-        if (!bookCopy || !Array.isArray(bookCopy.chapters)) return;
+            const addChapter = (bookId, title) => {
+                const updatedBooks = books.map(b => {
+                    if (b.id === bookId) return { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] };
+                    return b;
+                });
+                setBooks(updatedBooks);
+            };
 
-        let chapter = null;
-        for (let i = 0; i < bookCopy.chapters.length; i++) {
-          if (bookCopy.chapters[i].id === currentChapter.id) {
-            chapter = bookCopy.chapters[i];
-            break;
-          }
-        }
-        if (!chapter || !Array.isArray(chapter.notes) || chapter.notes.length === 0) {
-          setAiError('El capítulo actual no tiene notas para reescribir.');
-          return;
-        }
+            const addNote = (bookId, chapterId, content) => {
+                if (!content || content.trim() === "") return;
+                const cleanContent = content.charAt(0).toUpperCase() + content.slice(1).trim();
+                
+                const updatedBooks = books.map(b => {
+                    if (b.id === bookId) {
+                        const updatedChapters = b.chapters.map(c => {
+                            if (c.id === chapterId) {
+                                return { ...c, notes: [...c.notes, { id: generateId(), content: cleanContent, timestamp: Date.now() }] };
+                            }
+                            return c;
+                        });
+                        return { ...b, chapters: updatedChapters };
+                    }
+                    return b;
+                });
+                setBooks(updatedBooks);
+            };
 
-        contentText = chapter.notes
-          .map((n, idx) => String(idx + 1) + '. ' + n.text)
-          .join('\n\n');
-        contextLabel = 'todas las notas del capítulo "' + chapter.title + '"';
-        affectedChaptersIds = [chapter.id];
-        noteIdsToReplaceInChapter = chapter.notes.map((n) => n.id);
-      } else if (scope === 'book') {
-        if (!Array.isArray(currentBook.chapters) || currentBook.chapters.length === 0) {
-          setAiError('Este libro no tiene capítulos ni notas para reescribir.');
-          return;
-        }
+            const updateNotes = (bookId, chapterId, newNotes) => {
+                const updatedBooks = books.map(b => {
+                    if (b.id === bookId) {
+                        const updatedChapters = b.chapters.map(c => {
+                            if (c.id === chapterId) return { ...c, notes: newNotes };
+                            return c;
+                        });
+                        return { ...b, chapters: updatedChapters };
+                    }
+                    return b;
+                });
+                setBooks(updatedBooks);
+            };
+            
+             const updateBookChapters = (bookId, newChapters) => {
+                const updatedBooks = books.map(b => b.id === bookId ? { ...b, chapters: newChapters } : b);
+                setBooks(updatedBooks);
+            };
 
-        const allNotes = [];
-        for (let ci = 0; ci < currentBook.chapters.length; ci++) {
-          const ch = currentBook.chapters[ci];
-          const chNotes = Array.isArray(ch.notes) ? ch.notes : [];
-          for (let ni = 0; ni < chNotes.length; ni++) {
-            const n = chNotes[ni];
-            allNotes.push(
-              'Capítulo ' +
-                String(ci + 1) +
-                ' - ' +
-                ch.title +
-                ', nota ' +
-                String(ni + 1) +
-                ':\n' +
-                n.text
-            );
-          }
-        }
-        if (allNotes.length === 0) {
-          setAiError('Este libro no tiene notas para reescribir.');
-          return;
-        }
 
-        contentText = allNotes.join('\n\n---\n\n');
-        contextLabel =
-          'todas las notas del libro completo "' + currentBook.title + '"';
-        affectedChaptersIds = currentBook.chapters.map((c) => c.id);
-      } else {
-        setAiError('Ámbito de cambio de estilo no reconocido.');
-        return;
-      }
+            const goHome = () => { setView('home'); setActiveBookId(null); setActiveChapterId(null); };
+            const goBook = (id) => { setActiveBookId(id); setView('book'); };
+            const goChapter = (id) => { setActiveChapterId(id); setView('chapter'); };
+            const goSettings = () => setView('settings');
 
-      const userPrompt =
-        'Aplica el siguiente estilo a ' +
-        contextLabel +
-        ':\n\n' +
-        'Estilo solicitado por el usuario: "' +
-        styleDescription +
-        '"\n\n' +
-        'Contenido original:\n\n' +
-        contentText;
+            const activeBook = books.find(b => b.id === activeBookId);
+            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
 
-      setAiLoading(true);
-      setAiError('');
-      setInfoMessage('');
-
-      try {
-        const styledText = await callGemini({
-          apiKey: settings.apiKey,
-          systemPrompt: stylePrompt,
-          userPrompt: userPrompt,
-        });
-
-        if (scope === 'book') {
-          const newChapter = {
-            id: genId('chapter'),
-            title: 'Libro reescrito (estilo aplicado)',
-            notes: [
-              {
-                id: genId('note'),
-                text: styledText,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-          };
-
-          setBooks((prev) =>
-            prev.map((book) => {
-              if (book.id !== currentBook.id) return book;
-              const chapters = Array.isArray(book.chapters)
-                ? book.chapters.slice()
-                : [];
-              chapters.push(newChapter);
-              return Object.assign({}, book, { chapters: chapters });
-            })
-          );
-
-          setInfoMessage(
-            'Cambio de estilo completo aplicado al libro. Se ha creado un capítulo nuevo con la versión reescrita; los capítulos originales se mantienen.'
-          );
-        } else {
-          const newSingleNote = {
-            id: genId('note'),
-            text: styledText,
-            createdAt: new Date().toISOString(),
-          };
-
-          setBooks((prev) =>
-            prev.map((book) => {
-              if (book.id !== currentBook.id) return book;
-              const chapters = (book.chapters || []).map((ch) => {
-                if (affectedChaptersIds.indexOf(ch.id) < 0) return ch;
-                const originalNotes = Array.isArray(ch.notes)
-                  ? ch.notes
-                  : [];
-                const filteredNotes = originalNotes.filter(
-                  (n) => noteIdsToReplaceInChapter.indexOf(n.id) < 0
+            if (loading) {
+                return (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+                        <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center">
+                            <div className="loader mb-4"></div>
+                            <p className="text-gray-700 font-medium">Procesando con IA...</p>
+                        </div>
+                    </div>
                 );
-                const notes = filteredNotes.concat(newSingleNote);
-                return Object.assign({}, ch, { notes: notes });
-              });
-              return Object.assign({}, book, { chapters: chapters });
-            })
-          );
+            }
 
-          if (scope === 'selected') {
-            setInfoMessage(
-              'Estilo aplicado: las notas seleccionadas se han fusionado y sustituido por una nota nueva reescrita.'
+            const Header = ({ title, onBack }) => (
+                <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div className="flex items-center gap-2">
+                        {onBack && (
+                            <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600">
+                                <Icons.ChevronLeft />
+                            </button>
+                        )}
+                        <h1 className="text-lg font-bold text-gray-800 truncate max-w-[200px]">{title}</h1>
+                    </div>
+                    <button onClick={goSettings} className="p-2 text-gray-500 hover:text-blue-600">
+                        <Icons.Settings />
+                    </button>
+                </header>
             );
-          } else {
-            setInfoMessage(
-              'Estilo aplicado al capítulo completo: todas las notas se han sustituido por una nota nueva reescrita.'
-            );
-          }
+
+            if (view === 'settings') {
+                return (
+                    <div className="min-h-screen bg-gray-50">
+                        <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
+                        <div className="p-4 max-w-md mx-auto space-y-6">
+                            <div className="bg-white p-4 rounded-lg shadow">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
+                                <input 
+                                    type="text" 
+                                    value={settings.apiKey}
+                                    onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
+                                    className="w-full p-2 border rounded-md bg-gray-50 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="bg-white p-4 rounded-lg shadow">
+                                <h3 className="font-medium text-gray-800 mb-3 border-b pb-2">Prompts del Sistema</h3>
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fusión de Notas</label>
+                                    <textarea 
+                                        value={settings.prompts.merge}
+                                        onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, merge: e.target.value}})}
+                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cambio de Estilo</label>
+                                    <textarea 
+                                        value={settings.prompts.style}
+                                        onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, style: e.target.value}})}
+                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                    />
+                                </div>
+                            </div>
+                            <button onClick={() => { if(activeChapterId) goChapter(activeChapterId); else if(activeBookId) goBook(activeBookId); else goHome(); }}
+                                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                                Guardar y Salir
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'home') {
+                return (
+                    <div className="min-h-screen flex flex-col">
+                        <Header title="Mis Libros" />
+                        <main className="flex-1 p-4 max-w-md mx-auto w-full">
+                            {books.length === 0 && <div className="text-center py-10 text-gray-400"><p>No tienes libros creados.</p></div>}
+                            <div className="space-y-3">
+                                {books.map(book => (
+                                    <div key={book.id} onClick={() => goBook(book.id)} 
+                                        className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 active:scale-95 transition cursor-pointer">
+                                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Icons.Book /></div>
+                                        <div className="flex-1"><h3 className="font-semibold text-gray-800">{book.title}</h3><p className="text-xs text-gray-500">{book.chapters.length} capítulos</p></div>
+                                        <Icons.ChevronLeft className="rotate-180 text-gray-300 w-5 h-5" />
+                                    </div>
+                                ))}
+                            </div>
+                        </main>
+                        <div className="p-4 bg-white border-t sticky bottom-0">
+                            <button onClick={() => { const title = prompt("Nombre del nuevo libro:"); if (title) addBook(title); }} 
+                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-blue-700 transition">
+                                <Icons.Plus /> Nuevo Libro
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'book' && activeBook) {
+                const handleStyleBook = async () => {
+                    if(activeBook.chapters.length === 0) return alert("El libro está vacío.");
+                    const styleDesc = prompt("Describe el estilo para reescribir TODO el libro:");
+                    if (!styleDesc) return;
+
+                    setLoading(true);
+                    try {
+                        let newChapters = JSON.parse(JSON.stringify(activeBook.chapters));
+                        for (let chapter of newChapters) {
+                            if (chapter.notes.length === 0) continue;
+                            const chapterText = chapter.notes.map(n => n.content).join("\n");
+                            const finalPrompt = settings.prompts.style.replace('{STYLE}', styleDesc);
+                            const newText = await callGemini(settings.apiKey, finalPrompt, chapterText);
+                            chapter.notes = [{ id: generateId(), content: newText, timestamp: Date.now() }];
+                        }
+                        updateBookChapters(activeBook.id, newChapters);
+                        alert("¡Libro reescrito!");
+                    } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
+                };
+
+                return (
+                    <div className="min-h-screen flex flex-col">
+                        <Header title={activeBook.title} onBack={goHome} />
+                        <main className="flex-1 p-4 max-w-md mx-auto w-full">
+                            <div className="mb-4 flex justify-end">
+                                <button onClick={handleStyleBook} className="text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full font-medium hover:bg-purple-100 border border-purple-200">
+                                    <Icons.Wand className="w-3 h-3" /> Estilo Libro
+                                </button>
+                            </div>
+                            {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
+                            <div className="space-y-3">
+                                {activeBook.chapters.map(chap => (
+                                    <div key={chap.id} onClick={() => goChapter(chap.id)}
+                                        className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 active:scale-95 transition cursor-pointer">
+                                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Icons.Folder /></div>
+                                        <div className="flex-1"><h3 className="font-semibold text-gray-800">{chap.title}</h3><p className="text-xs text-gray-500">{chap.notes.length} notas</p></div>
+                                        <Icons.ChevronLeft className="rotate-180 text-gray-300 w-5 h-5" />
+                                    </div>
+                                ))}
+                            </div>
+                        </main>
+                        <div className="p-4 bg-white border-t sticky bottom-0">
+                            <button onClick={() => { const title = prompt("Nombre del capítulo:"); if (title) addChapter(activeBook.id, title); }} 
+                                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-indigo-700 transition">
+                                <Icons.Plus /> Nuevo Capítulo
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'chapter' && activeChapter) {
+                return <NoteManager 
+                    bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
+                    onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
+                    onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
+                    settings={settings} setLoading={setLoading}
+                />;
+            }
+            return null;
         }
 
-        setSelectedNoteIds([]);
-      } catch (e) {
-        console.error(e);
-        setAiError(e.message || 'Error al cambiar el estilo con Gemini.');
-      } finally {
-        setAiLoading(false);
-      }
-    };
+        // --- NOTE MANAGER ---
+        function NoteManager({ bookId, chapter, onBack, onAddNote, onUpdateNotes, settings, setLoading }) {
+            const [isRecording, setIsRecording] = useState(false);
+            const [selectedIds, setSelectedIds] = useState([]);
+            const [selectionMode, setSelectionMode] = useState(false);
+            const recognitionRef = useRef(null);
+            const [supportError, setSupportError] = useState(null);
 
-    const handleSettingsToggle = () => {
-      setShowSettings((prev) => !prev);
-    };
-
-    const handleBack = () => {
-      if (isAtNotes) {
-        setCurrentChapterId(null);
-        setSelectedNoteIds([]);
-      } else if (isAtChapters) {
-        setCurrentBookId(null);
-        setCurrentChapterId(null);
-        setSelectedNoteIds([]);
-      }
-    };
-
-    const canGoBack = !isAtBooks;
-    const apiKeyConfigured = !!settings.apiKey;
-
-    return (
-      <div className="app-shell">
-        <div className="blobs">
-          <div className="blob blob-1" />
-          <div className="blob blob-2" />
-          <div className="blob blob-3" />
-          <div className="blob blob-4" />
-        </div>
-        <div className="app-inner">
-          <header className="app-header">
-            <div className="header-left">
-              {canGoBack && (
-                <button className="back-btn" onClick={handleBack}>
-                  <span>‹</span>
-                </button>
-              )}
-              <div className="app-title-wrapper">
-                <h1 className="app-title">
-                  <span className="title-accent">Libros</span>
-                  <span>&gt;</span>
-                  <span className="title-accent">IA</span>
-                  <span className="title-pill">voz→texto</span>
-                </h1>
-                <p className="app-subtitle">
-                  <span>
-                    <span className="subtitle-dot" />
-                    <span>Libro → capítulos → notas · Gemini para fusionar y reescribir.</span>
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div className="header-right">
-              <div className="pill-indicator">
-                IA:&nbsp;
-                <strong>{apiKeyConfigured ? 'configurada' : 'sin API key'}</strong>
-              </div>
-              <button
-                className={
-                  'settings-btn' + (showSettings ? ' active' : '')
+            // --- INICIALIZACIÓN DE VOZ SEGURA ---
+            useEffect(() => {
+                // Verificar soporte al montar
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    setSupportError("Navegador no compatible con Voz a Texto");
                 }
-                onClick={handleSettingsToggle}
-              >
-                <span className="icon">⚙️</span>
-                <span className="label">
-                  {showSettings ? 'Cerrar' : 'Opciones'}
-                </span>
-              </button>
-            </div>
-          </header>
+                
+                // Limpiar al desmontar
+                return () => {
+                    if (recognitionRef.current) {
+                        recognitionRef.current.stop();
+                        recognitionRef.current = null;
+                    }
+                }
+            }, []);
 
-          <main className="app-main">
-            {showSettings ? (
-              <SettingsPanel
-                settings={settings}
-                onChangeSettings={setSettings}
-              />
-            ) : isAtBooks ? (
-              <BookList
-                books={books}
-                onCreateBook={handleCreateBook}
-                onOpenBook={handleOpenBook}
-              />
-            ) : isAtChapters && currentBook ? (
-              <ChapterList
-                book={currentBook}
-                onCreateChapter={handleCreateChapter}
-                onOpenChapter={handleOpenChapter}
-              />
-            ) : isAtNotes && currentBook && currentChapter ? (
-              <ChapterView
-                book={currentBook}
-                chapter={currentChapter}
-                selectedNoteIds={selectedNoteIds}
-                setSelectedNoteIds={setSelectedNoteIds}
-                targetScope={targetScope}
-                setTargetScope={setTargetScope}
-                onAddNote={handleAddNoteToCurrentChapter}
-                onManualNoteAdd={handleAddNoteToCurrentChapter}
-                onMergeNotes={handleMergeNotes}
-                onStyleChange={handleStyleChange}
-                aiLoading={aiLoading}
-                aiError={aiError}
-                infoMessage={infoMessage}
-                supportsSpeech={supportsSpeech}
-              />
-            ) : (
-              <BookList
-                books={books}
-                onCreateBook={handleCreateBook}
-                onOpenBook={handleOpenBook}
-              />
-            )}
-          </main>
+            const startRecording = () => {
+                if (supportError) return alert(supportError);
 
-          <footer className="app-footer">
-            <div className="footer-pill">
-              <span className="dot" />
-              <span>
-                Datos y configuración se guardan en localStorage.
-              </span>
-            </div>
-            <div className="footer-right">
-              <span className="tag">Web Speech API*</span>
-              <span className="tag">Gemini LLM</span>
-            </div>
-          </footer>
-        </div>
-      </div>
-    );
-  }
+                // Crear instancia nueva cada vez para evitar conflictos de estado en móviles/safari
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                
+                recognition.lang = 'es-ES';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
 
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(<App />);
-</script>
+                recognition.onstart = () => {
+                    setIsRecording(true);
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    if (transcript) {
+                        onAddNote(transcript);
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech API Error:", event.error);
+                    setIsRecording(false);
+                    
+                    if (event.error === 'not-allowed') {
+                        alert("ACCESO DENEGADO: El navegador bloqueó el micrófono. \n\nSi estás abriendo el archivo como 'file://', esto es normal por seguridad. \n\nSOLUCIÓN: Usa un servidor local (localhost) o un hosting HTTPS.");
+                    } else if (event.error === 'network') {
+                        alert("ERROR DE RED: El reconocimiento de voz requiere conexión a internet.");
+                    } else if (event.error === 'no-speech') {
+                        // Ignorar silencio
+                    } else {
+                        alert("Error de reconocimiento: " + event.error);
+                    }
+                };
+
+                recognition.onend = () => {
+                    setIsRecording(false);
+                    recognitionRef.current = null;
+                };
+
+                try {
+                    recognition.start();
+                    recognitionRef.current = recognition;
+                } catch (e) {
+                    console.error("No se pudo iniciar el reconocimiento", e);
+                    setIsRecording(false);
+                }
+            };
+
+            const stopRecording = () => {
+                if (recognitionRef.current) {
+                    recognitionRef.current.stop();
+                }
+            };
+
+            const toggleRecording = () => {
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            };
+
+            const toggleSelect = (id) => {
+                if (selectedIds.includes(id)) setSelectedIds(selectedIds.filter(sid => sid !== id));
+                else setSelectedIds([...selectedIds, id]);
+            };
+
+            const handleMerge = async () => {
+                if (selectedIds.length < 2) return alert("Selecciona al menos 2 notas.");
+                setLoading(true);
+                try {
+                    const notesToMerge = chapter.notes.filter(n => selectedIds.includes(n.id));
+                    const contentText = notesToMerge.map(n => `- ${n.content}`).join("\n");
+                    const result = await callGemini(settings.apiKey, settings.prompts.merge, contentText);
+                    const remainingNotes = chapter.notes.filter(n => !selectedIds.includes(n.id));
+                    onUpdateNotes([...remainingNotes, { id: generateId(), content: result, timestamp: Date.now() }]);
+                    setSelectedIds([]); setSelectionMode(false);
+                } catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+
+            const handleStyle = async (scope) => {
+                const notesToProcess = scope === 'selection' ? chapter.notes.filter(n => selectedIds.includes(n.id)) : chapter.notes;
+                if (notesToProcess.length === 0) return alert("Sin notas.");
+                const styleDesc = prompt("Describe el estilo:");
+                if (!styleDesc) return;
+                setLoading(true);
+                try {
+                    const contentText = notesToProcess.map(n => n.content).join("\n\n");
+                    const finalPrompt = settings.prompts.style.replace('{STYLE}', styleDesc);
+                    const result = await callGemini(settings.apiKey, finalPrompt, contentText);
+                    if (scope === 'selection') {
+                        const remaining = chapter.notes.filter(n => !selectedIds.includes(n.id));
+                        onUpdateNotes([...remaining, { id: generateId(), content: result, timestamp: Date.now() }]);
+                        setSelectedIds([]); setSelectionMode(false);
+                    } else {
+                        onUpdateNotes([{ id: generateId(), content: result, timestamp: Date.now() }]);
+                    }
+                } catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col bg-gray-50">
+                    <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+                        <div className="flex items-center gap-2">
+                            <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
+                            <div className="overflow-hidden"><h1 className="text-lg font-bold text-gray-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">Selección: {selectedIds.length}</p></div>
+                        </div>
+                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }}
+                            className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {selectionMode ? 'Cancelar' : 'Seleccionar'}
+                        </button>
+                    </header>
+
+                    <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto">
+                        <div className="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                            {selectionMode && selectedIds.length > 1 && (
+                                <button onClick={handleMerge} className="whitespace-nowrap text-xs flex items-center gap-1 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 font-medium active:scale-95 transition"><Icons.Merge className="w-3 h-3" /> Fusionar</button>
+                            )}
+                            {selectionMode && selectedIds.length > 0 && (
+                                <button onClick={() => handleStyle('selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Sel)</button>
+                            )}
+                            {!selectionMode && chapter.notes.length > 0 && (
+                                <button onClick={() => handleStyle('chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Todo)</button>
+                            )}
+                        </div>
+
+                        {chapter.notes.length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                                <Icons.Mic className="w-12 h-12 mb-2 opacity-20" />
+                                <p>Graba tu primera nota</p>
+                                {supportError && <p className="text-red-400 text-xs mt-2">{supportError}</p>}
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            {chapter.notes.map(note => (
+                                <div key={note.id} onClick={() => selectionMode && toggleSelect(note.id)}
+                                    className={`p-4 rounded-xl shadow-sm border transition relative ${selectedIds.includes(note.id) ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}>
+                                    <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                    <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
+                                        <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                        {!selectionMode && (
+                                            <button onClick={(e) => { e.stopPropagation(); if(confirm("¿Borrar nota?")) { const remaining = chapter.notes.filter(n => n.id !== note.id); onUpdateNotes(remaining); }}} className="text-gray-300 hover:text-red-500 p-1"><Icons.Trash /></button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                        {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                        <button onClick={toggleRecording} disabled={!!supportError}
+                            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
+                            {isRecording ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic className="text-white" />}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
+
+
