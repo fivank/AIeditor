@@ -140,6 +140,8 @@
             const [loading, setLoading] = useState(false);
             const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
             const [testMsg, setTestMsg] = useState("");
+            const [editingBook, setEditingBook] = useState({ id: null, title: "" });
+            const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
 
             useEffect(() => {
                 const savedBooks = localStorage.getItem('voiceNotes_books');
@@ -236,6 +238,22 @@
             const goBook = (id) => { setActiveBookId(id); setView('book'); };
             const goChapter = (id) => { setActiveChapterId(id); setView('chapter'); };
             const goSettings = () => setView('settings');
+
+            const startBookEdit = (book) => setEditingBook({ id: book.id, title: book.title });
+            const saveBookEdit = () => {
+                if (!editingBook.title.trim()) return;
+                renameBook(editingBook.id, editingBook.title.trim());
+                setEditingBook({ id: null, title: "" });
+            };
+            const cancelBookEdit = () => setEditingBook({ id: null, title: "" });
+
+            const startChapterEdit = (chapter) => setEditingChapter({ id: chapter.id, title: chapter.title });
+            const saveChapterEdit = () => {
+                if (!editingChapter.title.trim()) return;
+                renameChapter(activeBookId, editingChapter.id, editingChapter.title.trim());
+                setEditingChapter({ id: null, title: "" });
+            };
+            const cancelChapterEdit = () => setEditingChapter({ id: null, title: "" });
 
             // Componente de Pantalla de Carga
             if (loading) {
@@ -365,15 +383,30 @@
                                 {books.map((book, idx) => (
                                     <div key={book.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
                                         <div onClick={() => goBook(book.id)} className="p-2 bg-blue-50 text-blue-600 rounded-lg cursor-pointer"><Icons.Book /></div>
-                                        <div onClick={() => goBook(book.id)} className="flex-1 cursor-pointer">
-                                            <h3 className="font-semibold text-gray-800">{book.title}</h3>
-                                            <p className="text-xs text-gray-500">{book.chapters.length} capítulos</p>
+                                        <div className="flex-1">
+                                            {editingBook.id === book.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        value={editingBook.title}
+                                                        onChange={(e) => setEditingBook({ ...editingBook, title: e.target.value })}
+                                                        className="w-full p-2 border rounded-md text-sm"
+                                                        autoFocus
+                                                    />
+                                                    <button onClick={saveBookEdit} className="text-green-600 text-sm font-semibold">Guardar</button>
+                                                    <button onClick={cancelBookEdit} className="text-gray-400 text-sm">Cancelar</button>
+                                                </div>
+                                            ) : (
+                                                <div onClick={() => goBook(book.id)} className="cursor-pointer">
+                                                    <h3 className="font-semibold text-gray-800">{book.title}</h3>
+                                                    <p className="text-xs text-gray-500">{book.chapters.length} capítulos</p>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-1 text-gray-400">
                                             <button onClick={() => reorderBook(book.id, -1)} className="p-1 hover:text-blue-600">↑</button>
                                             <button onClick={() => reorderBook(book.id, 1)} className="p-1 hover:text-blue-600">↓</button>
-                                            <button onClick={() => { const title = prompt('Renombrar libro', book.title); if(title) renameBook(book.id, title); }} className="p-1 hover:text-green-600">✎</button>
-                                            <button onClick={() => { if(confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); }} className="p-1 hover:text-red-600">✕</button>
+                                            {editingBook.id === book.id ? null : <button onClick={() => startBookEdit(book)} className="p-1 hover:text-green-600">✎</button>}
+                                            <button onClick={() => { if(confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); }} className="p-1 hover:text-red-600"><Icons.Trash /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -438,15 +471,30 @@
                                 {activeBook.chapters.map((chap, idx) => (
                                     <div key={chap.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
                                         <div onClick={() => goChapter(chap.id)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg cursor-pointer"><Icons.Folder /></div>
-                                        <div onClick={() => goChapter(chap.id)} className="flex-1 cursor-pointer">
-                                            <h3 className="font-semibold text-gray-800">{chap.title}</h3><p className="text-xs text-gray-500">{chap.notes.length} notas</p>
+                                        <div className="flex-1">
+                                            {editingChapter.id === chap.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        value={editingChapter.title}
+                                                        onChange={(e) => setEditingChapter({ ...editingChapter, title: e.target.value })}
+                                                        className="w-full p-2 border rounded-md text-sm"
+                                                        autoFocus
+                                                    />
+                                                    <button onClick={saveChapterEdit} className="text-green-600 text-sm font-semibold">Guardar</button>
+                                                    <button onClick={cancelChapterEdit} className="text-gray-400 text-sm">Cancelar</button>
+                                                </div>
+                                            ) : (
+                                                <div onClick={() => goChapter(chap.id)} className="cursor-pointer">
+                                                    <h3 className="font-semibold text-gray-800">{chap.title}</h3><p className="text-xs text-gray-500">{chap.notes.length} notas</p>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-1 text-gray-400 text-sm">
                                             <button onClick={() => reorderChapter(activeBook.id, chap.id, -1)} className="p-1 hover:text-blue-600">↑</button>
                                             <button onClick={() => reorderChapter(activeBook.id, chap.id, 1)} className="p-1 hover:text-blue-600">↓</button>
-                                            <button onClick={() => { const title = prompt('Renombrar capítulo', chap.title); if(title) renameChapter(activeBook.id, chap.id, title); }} className="p-1 hover:text-green-600">✎</button>
+                                            {editingChapter.id === chap.id ? null : <button onClick={() => startChapterEdit(chap)} className="p-1 hover:text-green-600">✎</button>}
                                             <button onClick={() => { const target = prompt('Mover a libro (escribe el nombre exacto)'); const targetBook = books.find(b => b.title === target); if(targetBook) moveChapterToBook(activeBook.id, chap.id, targetBook.id); }} className="p-1 hover:text-purple-600" title="Mover a otro libro">⇄</button>
-                                            <button onClick={() => { if(confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); }} className="p-1 hover:text-red-600">✕</button>
+                                            <button onClick={() => { if(confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); }} className="p-1 hover:text-red-600"><Icons.Trash /></button>
                                         </div>
                                     </div>
                                 ))}
