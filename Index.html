@@ -280,7 +280,7 @@
             useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
-            useEffect(() => { setQuickBookText(""); }, [activeBookId]);
+            useEffect(() => { setEditingChapter({ id: null, title: "" }); setQuickBookText(""); }, [activeBookId]);
 
             // Helpers de navegación y datos
             const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
