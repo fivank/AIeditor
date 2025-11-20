@@ -136,14 +136,41 @@
             return arr;
         };
         const cloneNote = (note) => ({ ...note, id: generateId(), timestamp: Date.now() });
-        const buildDestinations = (books) => {
-            const options = [{ label: 'Notas rápidas (inicio)', type: 'root' }];
-            books.forEach(book => {
+        const buildDestinations = (books, source) => {
+            const options = [];
+
+            const addBookScope = (book) => {
                 options.push({ label: `${book.title} (Notas del libro)`, type: 'book', bookId: book.id });
                 book.chapters.forEach(chapter => {
                     options.push({ label: `${book.title} → ${chapter.title}`, type: 'chapter', bookId: book.id, chapterId: chapter.id });
                 });
-            });
+            };
+
+            if (!source || source.type !== 'root') {
+                options.push({ label: 'Notas rápidas (inicio)', type: 'root' });
+            }
+
+            if (!source || source.type === 'root') {
+                books.forEach(addBookScope);
+                return options;
+            }
+
+            if (source.type === 'book') {
+                books.forEach(book => {
+                    if (book.id === source.bookId) {
+                        addBookScope(book);
+                    } else {
+                        options.push({ label: `${book.title} (Notas del libro)`, type: 'book', bookId: book.id });
+                    }
+                });
+                return options;
+            }
+
+            if (source.type === 'chapter') {
+                const parentBook = books.find(b => b.id === source.bookId);
+                if (parentBook) addBookScope(parentBook);
+            }
+
             return options;
         };
 
@@ -215,6 +242,66 @@
             );
         };
 
+        const ActionMenu = ({ colorClass = 'bg-slate-600', onToggle = () => {}, options = [] }) => {
+            const [open, setOpen] = useState(false);
+
+            const handleOption = (action) => {
+                action();
+                setOpen(false);
+            };
+
+            return (
+                <div className="relative">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); onToggle(); }}
+                        className={`w-9 h-9 rounded-full text-white shadow-md flex items-center justify-center ${colorClass}`}
+                        title="Opciones"
+                    >
+                        ✎
+                    </button>
+                    {open && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden">
+                            {options.map(opt => (
+                                <button
+                                    key={opt.label}
+                                    onClick={(e) => { e.stopPropagation(); handleOption(opt.onClick); }}
+                                    className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between"
+                                >
+                                    <span>{opt.label}</span>
+                                    {opt.badge && <span className="text-[10px] text-slate-400">{opt.badge}</span>}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const OptionPicker = ({ state, onSelect, onClose }) => {
+            if (!state.open) return null;
+            return (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+                    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border p-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-slate-800">{state.title || 'Selecciona una opción'}</p>
+                            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
+                        </div>
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {state.options.map((opt, idx) => (
+                                <button
+                                    key={`${opt.label}-${idx}`}
+                                    onClick={() => onSelect(opt)}
+                                    className="w-full text-left px-3 py-2 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition"
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- API GEMINI ---
         async function callGemini(apiKey, model, prompt, content) {
             if (!apiKey || apiKey.length < 10) throw new Error("Falta la API Key.");
@@ -268,6 +355,7 @@
             const [noteDraft, setNoteDraft] = useState("");
             const recognitionRef = useRef(null);
             const [voiceTarget, setVoiceTarget] = useState(null);
+            const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
 
             useEffect(() => {
                 const savedBooks = localStorage.getItem('voiceNotes_books');
@@ -308,6 +396,38 @@
                 if (target < 0 || target >= books.length) return;
                 setBooks(moveItem(books, index, target));
             };
+            const moveBookToPosition = async (bookId) => {
+                if (books.length < 2) return;
+                const options = books
+                    .filter(b => b.id !== bookId)
+                    .map((b, idx) => ({ label: `Después de ${b.title}`, value: idx + 1 }));
+                options.unshift({ label: 'Al inicio', value: 0 });
+                const choice = await openPickerWithOptions(options, 'Mover libro');
+                if (!choice || typeof choice.value !== 'number') return;
+                const fromIndex = books.findIndex(b => b.id === bookId);
+                const list = [...books];
+                const [item] = list.splice(fromIndex, 1);
+                let targetIndex = choice.value;
+                if (targetIndex > fromIndex) targetIndex -= 1;
+                list.splice(targetIndex, 0, item);
+                setBooks(list);
+            };
+            const duplicateBook = (bookId) => {
+                const book = books.find(b => b.id === bookId);
+                if (!book) return;
+                const copy = {
+                    ...book,
+                    id: generateId(),
+                    title: `${book.title} (copia)`,
+                    notes: (book.notes || []).map(cloneNote),
+                    chapters: book.chapters.map(ch => ({
+                        ...ch,
+                        id: generateId(),
+                        notes: ch.notes.map(cloneNote)
+                    }))
+                };
+                setBooks([...books, copy]);
+            };
             const addChapter = (bookId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] } : b));
             };
@@ -345,13 +465,10 @@
                 if (target < 0 || !book.notes || target >= book.notes.length) return;
                 updateBookNotes(bookId, moveItem(book.notes, index, target));
             };
-            const chooseDestination = () => {
-                const options = buildDestinations(books);
+            const chooseDestination = async (source) => {
+                const options = buildDestinations(books, source);
                 if (options.length === 0) { alert('No hay destinos disponibles.'); return null; }
-                const list = options.map((o, idx) => `${idx + 1}. ${o.label}`).join('\n');
-                const input = prompt(`Selecciona destino (número)\n${list}`);
-                const selected = options[Number(input) - 1];
-                return selected || null;
+                return await openPickerWithOptions(options, 'Elige dónde guardar');
             };
             const relocateNote = (source, destination, noteId, mode = 'move') => {
                 const findNote = () => {
@@ -426,6 +543,15 @@
                 const newChapters = moveItem(book.chapters, index, target);
                 updateBookChapters(bookId, newChapters);
             };
+            const copyChapterToBook = (sourceBookId, chapterId, targetBookId) => {
+                const source = books.find(b => b.id === sourceBookId);
+                const target = books.find(b => b.id === targetBookId);
+                if (!source || !target) return;
+                const chapter = source.chapters.find(c => c.id === chapterId);
+                if (!chapter) return;
+                const cloned = { ...chapter, id: generateId(), notes: chapter.notes.map(cloneNote) };
+                setBooks(books.map(b => b.id === targetBookId ? { ...b, chapters: [...b.chapters, cloned] } : b));
+            };
             const moveChapterToBook = (sourceBookId, chapterId, targetBookId) => {
                 if (sourceBookId === targetBookId) return;
                 const source = books.find(b => b.id === sourceBookId);
@@ -493,6 +619,15 @@
                 if (target.type === 'root') addRootNote(text);
                 if (target.type === 'book') addBookNote(target.bookId, text);
                 closeNoteModal();
+            };
+
+            const closePicker = () => setPicker({ open: false, options: [], title: '', resolve: null });
+            const openPickerWithOptions = (options, title = 'Selecciona destino') => new Promise((resolve) => {
+                setPicker({ open: true, options, title, resolve });
+            });
+            const handlePickOption = (option) => {
+                if (picker.resolve) picker.resolve(option);
+                closePicker();
             };
 
             // Componente de Pantalla de Carga
@@ -631,10 +766,12 @@
 
             const activeBook = books.find(b => b.id === activeBookId);
             const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
+            const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
 
             if (view === 'home') {
                 return (
-                    <div className="min-h-screen flex flex-col bg-slate-100">
+                    <>
+                    <div className="min-h-screen flex flex-col bg-blue-50">
                         <Header title="Mis Libros" />
 
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
@@ -656,8 +793,8 @@
                                                 onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
                                                 onMoveUp: () => reorderRootNote(note.id, -1),
                                                 onMoveDown: () => reorderRootNote(note.id, 1),
-                                                onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
-                                                onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
+                                                onMove: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
+                                                onCopy: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
                                             }}
                                         />
                                     ))}
@@ -722,36 +859,17 @@
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-1 text-slate-400">
-                                            <button
-                                                onClick={() => reorderBook(book.id, -1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                onClick={() => reorderBook(book.id, 1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↓
-                                            </button>
-                                            {editingBook.id === book.id ? null : (
-                                                <button
-                                                    onClick={() => startBookEdit(book)}
-                                                    className="icon-btn-sm hover:text-green-600"
-                                                >
-                                                    ✎
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id);
-                                                }}
-                                                className="icon-btn-sm hover:text-red-600"
-                                            >
-                                                <Icons.Trash />
-                                            </button>
-                                        </div>
+                                        <ActionMenu
+                                            colorClass="bg-blue-700"
+                                            options={[
+                                                { label: 'Cambiar nombre', onClick: () => startBookEdit(book) },
+                                                { label: 'Mover', onClick: () => moveBookToPosition(book.id) },
+                                                { label: 'Subir', onClick: () => reorderBook(book.id, -1) },
+                                                { label: 'Bajar', onClick: () => reorderBook(book.id, 1) },
+                                                { label: 'Copiar libro', onClick: () => duplicateBook(book.id) },
+                                                { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); } },
+                                            ]}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -759,11 +877,11 @@
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                             {voiceTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                            <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-full shadow-lg border px-3 py-2">
-                                <button onClick={() => openNoteModal({ type: 'root' })} className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg shadow hover:bg-amber-200" title="Escribir nota">
+                            <div className="flex items-center gap-3 bg-white/85 backdrop-blur rounded-full shadow-lg border px-3 py-2">
+                                <button onClick={() => openNoteModal({ type: 'root' })} className="w-12 h-12 rounded-full bg-blue-200 text-blue-900 flex items-center justify-center text-lg shadow hover:bg-blue-300" title="Escribir nota">
                                     📝
                                 </button>
-                                <button onClick={() => startVoiceNote({ type: 'root' })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 text-white'}`}>
+                                <button onClick={() => startVoiceNote({ type: 'root' })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-700 hover:bg-blue-800 hover:scale-105 text-white'}`}>
                                     <Icons.Mic />
                                 </button>
                             </div>
@@ -784,13 +902,15 @@
                                     const title = prompt("Nuevo libro:");
                                     if (title) addBook(title);
                                 }}
-                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-blue-700 active:scale-[0.98] transition"
+                                className="w-full flex items-center justify-center gap-2 bg-blue-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-blue-800 active:scale-[0.98] transition"
                             >
                                 <Icons.Plus />
                                 <span>Nuevo Libro</span>
                             </button>
                         </div>
                     </div>
+                    {pickerPortal}
+                    </>
                 );
             }
             if (view === 'book' && activeBook) {
@@ -833,12 +953,13 @@
                 };
 
                 return (
-                    <div className="min-h-screen flex flex-col bg-slate-100">
+                    <>
+                    <div className="min-h-screen flex flex-col bg-violet-50">
                         <Header title={activeBook.title} onBack={goHome} />
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-full font-semibold border border-amber-200 shadow-sm">💡 Generar resumen</button>
-                                <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full font-semibold border border-purple-200 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
+                                <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-violet-100 text-violet-800 px-4 py-2 rounded-full font-semibold border border-violet-200 shadow-sm">💡 Generar resumen</button>
+                                <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-violet-200 text-violet-900 px-4 py-2 rounded-full font-semibold border border-violet-300 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
                             </div>
 
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
@@ -859,8 +980,8 @@
                                                 onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
                                                 onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
                                                 onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
-                                                onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
-                                                onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
+                                                onMove: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
+                                                onCopy: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
                                             }}
                                         />
                                     ))}
@@ -875,7 +996,7 @@
                                     >
                                         <button
                                             onClick={() => goChapter(chap.id)}
-                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"
+                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center"
                                         >
                                             <Icons.Folder />
                                         </button>
@@ -919,49 +1040,27 @@
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-1 text-slate-400 text-xs">
-                                            <button
-                                                onClick={() => reorderChapter(activeBook.id, chap.id, -1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                onClick={() => reorderChapter(activeBook.id, chap.id, 1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↓
-                                            </button>
-                                            {editingChapter.id === chap.id ? null : (
-                                                <button
-                                                    onClick={() => startChapterEdit(chap)}
-                                                    className="icon-btn-sm hover:text-green-600"
-                                                >
-                                                    ✎
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    const target = prompt('Mover a libro (escribe el nombre exacto)');
-                                                    const targetBook = books.find(b => b.title === target);
-                                                    if (targetBook) moveChapterToBook(activeBook.id, chap.id, targetBook.id);
-                                                }}
-                                                className="icon-btn-sm hover:text-purple-600"
-                                                title="Mover a otro libro"
-                                            >
-                                                ⇄
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('¿Borrar capítulo y sus notas?')) {
-                                                        deleteChapter(activeBook.id, chap.id);
-                                                    }
-                                                }}
-                                                className="icon-btn-sm hover:text-red-600"
-                                            >
-                                                <Icons.Trash />
-                                            </button>
-                                        </div>
+                                        <ActionMenu
+                                            colorClass="bg-violet-700"
+                                            options={[
+                                                { label: 'Cambiar nombre', onClick: () => startChapterEdit(chap) },
+                                                { label: 'Mover', onClick: async () => {
+                                                    const available = books.filter(b => b.id !== activeBook.id);
+                                                    if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                    const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Mover a libro');
+                                                    if (choice?.bookId) moveChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                } },
+                                                { label: 'Copiar', onClick: async () => {
+                                                    const available = books.filter(b => b.id !== activeBook.id);
+                                                    if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                    const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Copiar a libro');
+                                                    if (choice?.bookId) copyChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                } },
+                                                { label: 'Subir', onClick: () => reorderChapter(activeBook.id, chap.id, -1) },
+                                                { label: 'Bajar', onClick: () => reorderChapter(activeBook.id, chap.id, 1) },
+                                                { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); } },
+                                            ]}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -969,11 +1068,11 @@
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                             {voiceTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                            <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-full shadow-lg border px-3 py-2">
-                                <button onClick={() => openNoteModal({ type: 'book', bookId: activeBook.id })} className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg shadow hover:bg-amber-200" title="Escribir nota del libro">
+                            <div className="flex items-center gap-3 bg-white/85 backdrop-blur rounded-full shadow-lg border px-3 py-2">
+                                <button onClick={() => openNoteModal({ type: 'book', bookId: activeBook.id })} className="w-12 h-12 rounded-full bg-violet-200 text-violet-900 flex items-center justify-center text-lg shadow hover:bg-violet-300" title="Escribir nota del libro">
                                     📝
                                 </button>
-                                <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 text-white'}`}>
+                                <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-violet-700 hover:bg-violet-800 hover:scale-105 text-white'}`}>
                                     <Icons.Mic />
                                 </button>
                             </div>
@@ -994,24 +1093,31 @@
                                     const title = prompt("Nuevo capítulo:");
                                     if (title) addChapter(activeBook.id, title);
                                 }}
-                                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition"
+                                className="w-full flex items-center justify-center gap-2 bg-violet-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-violet-800 active:scale-[0.98] transition"
                             >
                                 <Icons.Plus />
                                 <span>Nuevo Capítulo</span>
                             </button>
                         </div>
                     </div>
+                    {pickerPortal}
+                    </>
                 );
             }
 
             if (view === 'chapter' && activeChapter) {
-                return <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
-                    onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
-                    onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
-                    editNote={editNote}
-                    settings={settings} setLoading={setLoading}
-                    chooseDestination={chooseDestination}
-                    relocateNote={relocateNote} />;
+                return (
+                    <>
+                    <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
+                        onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
+                        onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
+                        editNote={editNote}
+                        settings={settings} setLoading={setLoading}
+                        chooseDestination={chooseDestination}
+                        relocateNote={relocateNote} />
+                    {pickerPortal}
+                    </>
+                );
             }
             return null;
         }
@@ -1091,23 +1197,23 @@
             };
 
             return (
-                <div className="min-h-screen flex flex-col bg-gray-50">
+                <div className="min-h-screen flex flex-col bg-emerald-50">
                     <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
                         <div className="flex items-center gap-2">
                             <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
                             <div className="overflow-hidden"><h1 className="text-lg font-bold text-gray-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
                         </div>
-                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
+                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
                     </header>
 
                     <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto">
                         <div className="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {selectionMode && selectedIds.length > 1 && <button onClick={() => processAI('merge', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 font-medium active:scale-95 transition" title="Fusiona y reemplaza la selección por una sola nota"><Icons.Merge className="w-3 h-3" /> Fusionar</button>}
-                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('style', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Sel)</button>}
-                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('generate', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-medium active:scale-95 transition">💡 Generar</button>}
+                    {selectionMode && selectedIds.length > 1 && <button onClick={() => processAI('merge', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-emerald-100 text-emerald-800 px-3 py-2 rounded-lg border border-emerald-200 font-medium active:scale-95 transition" title="Fusiona y reemplaza la selección por una sola nota"><Icons.Merge className="w-3 h-3" /> Fusionar</button>}
+                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('style', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg border border-emerald-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Sel)</button>}
+                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('generate', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-emerald-200 text-emerald-900 px-3 py-2 rounded-lg border border-emerald-300 font-medium active:scale-95 transition">💡 Generar</button>}
                     {!selectionMode && chapter.notes.length > 0 && <>
-                        <button onClick={() => processAI('style', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Todo)</button>
-                        <button onClick={() => processAI('generate', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-medium active:scale-95 transition">💡 Generar capítulo</button>
+                        <button onClick={() => processAI('style', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg border border-emerald-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Todo)</button>
+                        <button onClick={() => processAI('generate', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-emerald-200 text-emerald-900 px-3 py-2 rounded-lg border border-emerald-300 font-medium active:scale-95 transition">💡 Generar capítulo</button>
                     </>}
                 </div>
 
@@ -1125,8 +1231,8 @@
                                         onEdit: () => { const updated = prompt('Editar nota', note.content); if(updated) editNote(bookId, chapter.id, note.id, updated.trim()); },
                     onMoveUp: () => reorderNote(note.id, -1),
                                         onMoveDown: () => reorderNote(note.id, 1),
-                                        onMove: () => { const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); },
-                                        onCopy: () => { const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); },
+                                        onMove: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); },
+                                        onCopy: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); },
                                         onDelete: () => { if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }
                                     } : {}}
                                 />
@@ -1136,11 +1242,11 @@
 
                     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                         {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                        <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-full shadow-lg border px-3 py-2">
-                            <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg shadow hover:bg-amber-200" title="Escribir nota">
+                        <div className="flex items-center gap-3 bg-white/85 backdrop-blur rounded-full shadow-lg border px-3 py-2">
+                            <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-lg shadow hover:bg-emerald-300" title="Escribir nota">
                                 📝
                             </button>
-                            <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
+                            <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-emerald-700 hover:bg-emerald-800 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
                                 {isRecording ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic className="text-white" />}
                             </button>
                         </div>
