@@ -237,29 +237,6 @@
                 const note = sourceChapter?.notes.find(n => n.id === noteId);
                 if (!note || !sourceBook || !targetBook || !targetChapter) return;
 
-                // Si el origen y destino son el mismo libro, necesitamos manejar la eliminación y la inserción
-                // dentro del mismo objeto para que no se pierda la nota al devolver en el primer condicional.
-                if (fromBookId === targetBookId) {
-                    const newNote = mode === 'copy' ? { ...note, id: generateId(), timestamp: Date.now() } : note;
-                    setBooks(books.map(b => {
-                        if (b.id !== fromBookId) return b;
-
-                        const chapters = b.chapters.map(c => {
-                            if (c.id === fromChapterId && mode === 'move' && fromChapterId !== targetChapterId) {
-                                return { ...c, notes: c.notes.filter(n => n.id !== noteId) };
-                            }
-                            if (c.id === targetChapterId) {
-                                if (fromChapterId === targetChapterId && mode === 'move') return c; // Nada que mover
-                                return { ...c, notes: [...c.notes, newNote] };
-                            }
-                            return c;
-                        });
-
-                        return { ...b, chapters };
-                    }));
-                    return;
-                }
-
                 const updatedBooks = books.map(b => {
                     if (b.id === fromBookId) {
                         return { ...b, chapters: b.chapters.map(c => c.id === fromChapterId ? { ...c, notes: c.notes.filter(n => !(mode === 'move' && n.id === noteId)) } : c) };
