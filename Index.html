@@ -1,1051 +1,698 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VoiceNotes AI Manager</title>
-
-    <!-- Tailwind CSS -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VoiceNotes Manager</title>
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel para JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <style>
-        :root {
-            --color-bg: #f1f5f9;
-            --color-card: #ffffff;
-            --radius-lg: 0.75rem;
-            --radius-xl: 1rem;
-        }
-
-        /* Estilos base y utilidades */
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--color-bg);
-            margin: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .safe-top {
-            padding-top: env(safe-area-inset-top, 0);
-        }
-        .safe-bottom {
-            padding-bottom: env(safe-area-inset-bottom, 0);
-        }
-
-        .card {
-            background: var(--color-card);
-            border-radius: var(--radius-xl);
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-        }
-
-        .card-tap {
-            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
-        }
-        .card-tap:active {
-            transform: scale(0.98);
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-        }
-
-        .icon-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 9999px;
-            padding: 0.35rem;
-            font-size: 0.75rem;
-        }
-        .icon-btn-sm {
-            padding: 0.25rem;
-        }
-
-        /* Animación de carga */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Animación de grabación */
-        .pulse-ring {
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-            animation: pulse-red 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
-        }
-        @keyframes pulse-red {
-            to { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
-        }
-
-        /* Scrollbar bonita */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(16px);
-        }
-    </style>
-</head>
-<body>
+    <!-- React and Babel via CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  </head>
+  <body class="bg-gray-100">
     <div id="root"></div>
-
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+      // Themes used to colour UI on different pages
+      const THEMES = {
+        home: { primary: 'blue', dark: 'blue-700', light: 'blue-100' },
+        book: { primary: 'purple', dark: 'purple-700', light: 'purple-100' },
+        chapter: { primary: 'green', dark: 'green-700', light: 'green-100' },
+      };
 
-        // --- ICONOS SVG ---
-        const Icons = {
-            Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
-            Folder: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
-            Mic: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>,
-            Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-            ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
-            Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-            Wand: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>,
-            Merge: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3"/><path d="M12 12.3v9.3"/><path d="m8 18 4 4 4-4"/></svg>,
-            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        };
+      // Floating actions: a row of buttons centred at the bottom
+      function FloatingActions({ onVoice, onText, theme }) {
+        const [openText, setOpenText] = React.useState(false);
+        const [textValue, setTextValue] = React.useState('');
+        const primaryBg = `bg-${THEMES[theme].primary}-600`;
+        const noteBg = `bg-${THEMES[theme].primary}-400`;
+        return (
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center gap-3">
+            {openText && (
+              <div className="mb-2 p-4 bg-white rounded-xl shadow-xl border w-64">
+                <textarea
+                  className="w-full h-24 p-2 border rounded mb-2"
+                  placeholder="Escribe una nota..."
+                  value={textValue}
+                  onChange={(e) => setTextValue(e.target.value)}
+                ></textarea>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    className="text-sm text-gray-600 hover:underline"
+                    onClick={() => {
+                      setTextValue('');
+                      setOpenText(false);
+                    }}
+                  >Cancelar</button>
+                  <button
+                    className={`px-4 py-1 rounded text-white ${primaryBg}`}
+                    onClick={() => {
+                      if (textValue.trim()) onText(textValue.trim());
+                      setTextValue('');
+                      setOpenText(false);
+                    }}
+                  >Guardar</button>
+                </div>
+              </div>
+            )}
+            <div className="flex space-x-4">
+              <button
+                className={`p-4 rounded-full shadow-lg text-white ${noteBg}`}
+                onClick={() => setOpenText(!openText)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
+              <button
+                className={`p-4 rounded-full shadow-lg text-white ${primaryBg}`}
+                onClick={onVoice}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 9V6a7.5 7.5 0 00-15 0v3a7.5 7.5 0 0015 0zM12 19v2m0 0h-3m3 0h3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        );
+      }
 
-        // --- CONFIGURACIÓN INICIAL ---
-        const DEFAULT_API_KEY = "";
-        const DEFAULT_MODEL = "gemini-2.0-flash-exp";
-        const DEFAULT_PROMPTS = {
-            merge: "Combina las siguientes notas en un único texto coherente, bien estructurado y resumido. Usa Markdown para dar formato si es necesario.",
-            style: "Reescribe el siguiente contenido aplicando estrictamente el siguiente estilo o tono: {STYLE}. Mantén la información original pero cambia la forma de expresarla.",
-            generate: "Crea una nota nueva usando el siguiente contexto. Respeta el idioma y el nivel de detalle del material."
-        };
-
-        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
-        const moveItem = (array, from, to) => {
-            const arr = [...array];
-            const [item] = arr.splice(from, 1);
-            arr.splice(to, 0, item);
-            return arr;
-        };
-        const cloneNote = (note) => ({ ...note, id: generateId(), timestamp: Date.now() });
-        const buildDestinations = (books) => {
-            const options = [{ label: 'Notas rápidas (inicio)', type: 'root' }];
-            books.forEach(book => {
-                options.push({ label: `${book.title} (Notas del libro)`, type: 'book', bookId: book.id });
-                book.chapters.forEach(chapter => {
-                    options.push({ label: `${book.title} → ${chapter.title}`, type: 'chapter', bookId: book.id, chapterId: chapter.id });
-                });
-            });
-            return options;
-        };
-
-        // --- API GEMINI ---
-        async function callGemini(apiKey, model, prompt, content) {
-            if (!apiKey || apiKey.length < 10) throw new Error("Falta la API Key.");
-
-            // Usar el modelo configurado
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            const fullText = `${prompt}\n\n--- CONTENIDO ---\n${content}`;
-            const payload = { contents: [{ parts: [{ text: fullText }] }] };
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    if (data.error?.code === 404) {
-                        throw new Error(`Modelo '${model}' no encontrado. Revisa el nombre en Configuración.`);
-                    }
-                    throw new Error(data.error?.message || 'Error desconocido en la API');
-                }
-
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "No se generó respuesta.";
-            } catch (error) {
-                console.error("API Error:", error);
-                throw error;
-            }
-        }
-
-        // --- COMPONENTE PRINCIPAL ---
-        function App() {
-            const [books, setBooks] = useState([]);
-            const [rootNotes, setRootNotes] = useState([]);
-            const [settings, setSettings] = useState({
-                apiKey: DEFAULT_API_KEY,
-                model: DEFAULT_MODEL,
-                prompts: { ...DEFAULT_PROMPTS }
-            });
-            const [view, setView] = useState('home');
-            const [activeBookId, setActiveBookId] = useState(null);
-            const [activeChapterId, setActiveChapterId] = useState(null);
-            const [loading, setLoading] = useState(false);
-            const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
-            const [testMsg, setTestMsg] = useState("");
-            const [editingBook, setEditingBook] = useState({ id: null, title: "" });
-            const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
-            const [quickRootText, setQuickRootText] = useState("");
-            const [quickBookText, setQuickBookText] = useState("");
-            const recognitionRef = useRef(null);
-            const [voiceTarget, setVoiceTarget] = useState(null);
-
-            useEffect(() => {
-                const savedBooks = localStorage.getItem('voiceNotes_books');
-                const savedSettings = localStorage.getItem('voiceNotes_settings');
-                if (savedBooks) {
-                    const parsed = JSON.parse(savedBooks);
-                    const normalized = parsed.map(b => ({
-                        ...b,
-                        notes: b.notes || [],
-                        chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
-                    }));
-                    setBooks(normalized);
-                }
-                const savedRoot = localStorage.getItem('voiceNotes_rootNotes');
-                if (savedRoot) setRootNotes(JSON.parse(savedRoot));
-                if (savedSettings) {
-                    const parsed = JSON.parse(savedSettings);
-                    setSettings({
-                        apiKey: parsed.apiKey || DEFAULT_API_KEY,
-                        model: parsed.model || DEFAULT_MODEL,
-                        prompts: { ...DEFAULT_PROMPTS, ...(parsed.prompts || {}) }
-                    });
-                }
-            }, []);
-
-            useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
-            useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
-            useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
-            useEffect(() => { setEditingChapter({ id: null, title: "" }); setQuickBookText(""); }, [activeBookId]);
-
-            // Helpers de navegación y datos
-            const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
-            const renameBook = (id, title) => setBooks(books.map(b => b.id === id ? { ...b, title } : b));
-            const deleteBook = (id) => setBooks(books.filter(b => b.id !== id));
-            const reorderBook = (id, direction) => {
-                const index = books.findIndex(b => b.id === id);
-                const target = index + direction;
-                if (target < 0 || target >= books.length) return;
-                setBooks(moveItem(books, index, target));
-            };
-            const addChapter = (bookId, title) => {
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] } : b));
-            };
-            const renameChapter = (bookId, chapterId, title) => {
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
-            };
-            const addNote = (bookId, chapterId, content) => {
-                if (!content || !content.trim()) return;
-                const cleanContent = content.charAt(0).toUpperCase() + content.slice(1).trim();
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, { id: generateId(), content: cleanContent, timestamp: Date.now() }] } : c) } : b));
-            };
-            const addBookNote = (bookId, content) => {
-                if (!content || !content.trim()) return;
-                const cleanContent = content.charAt(0).toUpperCase() + content.slice(1).trim();
-                setBooks(books.map(b => b.id === bookId ? { ...b, notes: [...(b.notes || []), { id: generateId(), content: cleanContent, timestamp: Date.now() }] } : b));
-            };
-            const addRootNote = (content) => {
-                if (!content || !content.trim()) return;
-                const cleanContent = content.charAt(0).toUpperCase() + content.slice(1).trim();
-                setRootNotes([...rootNotes, { id: generateId(), content: cleanContent, timestamp: Date.now() }]);
-            };
-            const reorderRootNote = (noteId, direction) => {
-                const index = rootNotes.findIndex(n => n.id === noteId);
-                if (index < 0) return;
-                const target = index + direction;
-                if (target < 0 || target >= rootNotes.length) return;
-                setRootNotes(moveItem(rootNotes, index, target));
-            };
-            const reorderBookNote = (bookId, noteId, direction) => {
-                const book = books.find(b => b.id === bookId);
-                if (!book) return;
-                const index = book.notes?.findIndex(n => n.id === noteId) ?? -1;
-                if (index < 0) return;
-                const target = index + direction;
-                if (target < 0 || !book.notes || target >= book.notes.length) return;
-                updateBookNotes(bookId, moveItem(book.notes, index, target));
-            };
-            const chooseDestination = () => {
-                const options = buildDestinations(books);
-                if (options.length === 0) { alert('No hay destinos disponibles.'); return null; }
-                const list = options.map((o, idx) => `${idx + 1}. ${o.label}`).join('\n');
-                const input = prompt(`Selecciona destino (número)\n${list}`);
-                const selected = options[Number(input) - 1];
-                return selected || null;
-            };
-            const relocateNote = (source, destination, noteId, mode = 'move') => {
-                const findNote = () => {
-                    if (source.type === 'root') return rootNotes.find(n => n.id === noteId);
-                    if (source.type === 'book') return books.find(b => b.id === source.bookId)?.notes?.find(n => n.id === noteId);
-                    if (source.type === 'chapter') return books.find(b => b.id === source.bookId)?.chapters.find(c => c.id === source.chapterId)?.notes.find(n => n.id === noteId);
-                    return null;
-                };
-                const note = findNote();
-                if (!note) return;
-                const noteForDestination = mode === 'copy' ? cloneNote(note) : note;
-
-                if (destination.type === 'root') {
-                    if (mode === 'move' && source.type === 'root') {
-                        setRootNotes(prev => [...prev.filter(n => n.id !== noteId), noteForDestination]);
-                    } else {
-                        setRootNotes(prev => [...prev, noteForDestination]);
-                    }
-                }
-
-                setBooks(prevBooks => prevBooks.map(book => {
-                    let updatedBook = book;
-
-                    // Eliminar del origen si corresponde
-                    if (mode === 'move') {
-                        if (source.type === 'book' && book.id === source.bookId) {
-                            updatedBook = { ...updatedBook, notes: (updatedBook.notes || []).filter(n => n.id !== noteId) };
-                        }
-                        if (source.type === 'chapter' && book.id === source.bookId) {
-                            updatedBook = {
-                                ...updatedBook,
-                                chapters: updatedBook.chapters.map(c => c.id === source.chapterId ? { ...c, notes: c.notes.filter(n => n.id !== noteId) } : c)
-                            };
-                        }
-                    }
-
-                    // Agregar al destino
-                    if (destination.type === 'book' && book.id === destination.bookId) {
-                        updatedBook = { ...updatedBook, notes: [...(updatedBook.notes || []), noteForDestination] };
-                    }
-                    if (destination.type === 'chapter' && book.id === destination.bookId) {
-                        updatedBook = {
-                            ...updatedBook,
-                            chapters: updatedBook.chapters.map(c => c.id === destination.chapterId ? { ...c, notes: [...c.notes, noteForDestination] } : c)
-                        };
-                    }
-
-                    return updatedBook;
-                }));
-
-                if (source.type === 'root' && mode === 'move' && destination.type !== 'root') setRootNotes(prev => prev.filter(n => n.id !== noteId));
-            };
-            const editNote = (bookId, chapterId, noteId, content) => {
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: c.notes.map(n => n.id === noteId ? { ...n, content } : n) } : c) } : b));
-            };
-            const updateNotes = (bookId, chapterId, newNotes) => {
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: newNotes } : c) } : b));
-            };
-            const updateBookNotes = (bookId, newNotes) => setBooks(books.map(b => b.id === bookId ? { ...b, notes: newNotes } : b));
-            const updateBookChapters = (bookId, newChapters) => {
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: newChapters } : b));
-            };
-            const deleteChapter = (bookId, chapterId) => {
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.filter(c => c.id !== chapterId) } : b));
-            };
-            const reorderChapter = (bookId, chapterId, direction) => {
-                const book = books.find(b => b.id === bookId);
-                const index = book?.chapters.findIndex(c => c.id === chapterId);
-                if (index === undefined || index < 0) return;
-                const target = index + direction;
-                if (target < 0 || !book || target >= book.chapters.length) return;
-                const newChapters = moveItem(book.chapters, index, target);
-                updateBookChapters(bookId, newChapters);
-            };
-            const moveChapterToBook = (sourceBookId, chapterId, targetBookId) => {
-                if (sourceBookId === targetBookId) return;
-                const source = books.find(b => b.id === sourceBookId);
-                const chapter = source?.chapters.find(c => c.id === chapterId);
-                if (!chapter) return;
-                const cleanedSource = source.chapters.filter(c => c.id !== chapterId);
-                setBooks(books.map(b => {
-                    if (b.id === sourceBookId) return { ...b, chapters: cleanedSource };
-                    if (b.id === targetBookId) return { ...b, chapters: [...b.chapters, chapter] };
-                    return b;
-                }));
-            };
-
-            const goHome = () => { setView('home'); setActiveBookId(null); setActiveChapterId(null); };
-            const goBook = (id) => { setActiveBookId(id); setView('book'); };
-            const goChapter = (id) => { setActiveChapterId(id); setView('chapter'); };
-            const goSettings = () => setView('settings');
-
-            const startBookEdit = (book) => setEditingBook({ id: book.id, title: book.title });
-            const saveBookEdit = () => {
-                if (!editingBook.title.trim()) return;
-                renameBook(editingBook.id, editingBook.title.trim());
-                setEditingBook({ id: null, title: "" });
-            };
-            const cancelBookEdit = () => setEditingBook({ id: null, title: "" });
-
-            const startChapterEdit = (chapter) => setEditingChapter({ id: chapter.id, title: chapter.title });
-            const saveChapterEdit = () => {
-                if (!editingChapter.title.trim()) return;
-                renameChapter(activeBookId, editingChapter.id, editingChapter.title.trim());
-                setEditingChapter({ id: null, title: "" });
-            };
-            const cancelChapterEdit = () => setEditingChapter({ id: null, title: "" });
-
-            const startVoiceNote = (target) => {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SpeechRecognition) {
-                    alert('Tu navegador no soporta dictado de voz.');
-                    return;
-                }
-                const recognition = new SpeechRecognition();
-                recognition.lang = 'es-ES';
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.onresult = (e) => {
-                    const transcript = e.results[0][0].transcript.trim();
-                    if (!transcript) return;
-                    if (target.type === 'root') addRootNote(transcript);
-                    if (target.type === 'book') addBookNote(target.bookId, transcript);
-                };
-                recognition.onerror = () => setVoiceTarget(null);
-                recognition.onend = () => setVoiceTarget(null);
-                setVoiceTarget(target);
-                recognition.start();
-                recognitionRef.current = recognition;
-            };
-
-            const renderNoteChip = (note, actions = {}) => {
-                const { onEdit, onDelete, onMove, onCopy, onMoveUp, onMoveDown } = actions;
-                return (
-                    <div key={note.id} className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{note.content}</p>
-                        <div className="flex items-center justify-between text-[11px] text-gray-500">
-                            <span>{new Date(note.timestamp).toLocaleString()}</span>
-                            <div className="flex items-center gap-1">
-                                {onEdit && <button onClick={() => { const updated = prompt('Editar nota', note.content); if(updated) onEdit(updated.trim()); }} className="text-gray-400 hover:text-blue-600 text-xs">✎</button>}
-                                {onMoveUp && <button onClick={onMoveUp} className="text-gray-400 hover:text-blue-600 text-xs">↑</button>}
-                                {onMoveDown && <button onClick={onMoveDown} className="text-gray-400 hover:text-blue-600 text-xs">↓</button>}
-                                {onMove && <button onClick={onMove} className="text-gray-400 hover:text-purple-600 text-xs" title="Mover">⇄</button>}
-                                {onCopy && <button onClick={onCopy} className="text-gray-400 hover:text-amber-600 text-xs" title="Copiar">⧉</button>}
-                                {onDelete && <button onClick={onDelete} className="text-gray-400 hover:text-red-600 text-xs"><Icons.Trash /></button>}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            // Componente de Pantalla de Carga
-            if (loading) {
-                return (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
-                        <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center">
-                            <div className="loader mb-4"></div>
-                            <p className="text-gray-700 font-medium">Procesando con IA...</p>
-                        </div>
-                    </div>
-                );
-            }
-
-            // Header
-            const Header = ({ title, onBack }) => (
-                <header
-                    className="glass-panel safe-top sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-slate-200 shadow-sm"
-                >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                        {onBack && (
-                            <button
-                                onClick={onBack}
-                                className="icon-btn text-slate-600 hover:text-slate-900"
-                            >
-                                <Icons.ChevronLeft />
-                            </button>
-                        )}
-                        <div className="flex flex-col min-w-0">
-                            <h1 className="text-base font-semibold text-slate-900 truncate">
-                                {title}
-                            </h1>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={goSettings}
-                        className="icon-btn text-slate-500 hover:text-blue-600"
-                    >
-                        <Icons.Settings />
+      // Generic row for books or chapters
+      function ItemRow({ item, index, totalCount, onSelect, onRename, onMoveUp, onMoveDown, onMove, onCopy, onDelete, theme }) {
+        const [menuOpen, setMenuOpen] = React.useState(false);
+        const [moveOpen, setMoveOpen] = React.useState(false);
+        return (
+          <div className="flex items-center justify-between py-2 px-3 bg-white border rounded-lg shadow-sm mb-2 hover:bg-gray-50 cursor-pointer" onClick={() => onSelect(item.id)}>
+            <div className="flex-1">
+              <div className="font-medium text-gray-800">{item.name}</div>
+              {item.subtitle && <div className="text-sm text-gray-500">{item.subtitle}</div>}
+            </div>
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                className={`p-2 rounded-full text-${THEMES[theme].primary}-700 hover:bg-${THEMES[theme].light}`}
+                onClick={() => setMenuOpen(!menuOpen)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" className="w-4 h-4">
+                  <path d="M2 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                </svg>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-20">
+                  <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onRename(item.id); }}>
+                    Cambiar nombre
+                  </button>
+                  {index > 0 && (
+                    <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onMoveUp(item.id); }}>
+                      Mover arriba
                     </button>
-                </header>
+                  )}
+                  {index < totalCount - 1 && (
+                    <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onMoveDown(item.id); }}>
+                      Mover abajo
+                    </button>
+                  )}
+                  <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMoveOpen(!moveOpen); }}>
+                    Mover a...
+                  </button>
+                  <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMoveOpen(!moveOpen); }}>
+                    Copiar a...
+                  </button>
+                  <button className="block w-full text-left px-3 py-2 text-red-600 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onDelete(item.id); }}>
+                    Borrar
+                  </button>
+                  {/* Move/Copy dropdown; it will be populated externally */}
+                  {moveOpen && (
+                    <div className="border-t p-2 max-h-40 overflow-auto">
+                      {item.moveOptions && item.moveOptions.length > 0 ? (
+                        item.moveOptions.map((opt) => (
+                          <div key={opt.id} className="px-2 py-1 hover:bg-gray-200 cursor-pointer" onClick={() => { setMenuOpen(false); setMoveOpen(false); onMove(item.id, opt.id); }}>
+                            {opt.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1 text-gray-500">No options</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // Component for a note card with menu actions
+      function NoteCard({ note, index, totalCount, onEdit, onMoveUp, onMoveDown, onMove, onCopy, onDelete, theme }) {
+        const [menuOpen, setMenuOpen] = React.useState(false);
+        const [moveOpen, setMoveOpen] = React.useState(false);
+        return (
+          <div className="bg-white border rounded-lg shadow-sm p-3 mb-2 relative">
+            <div className="mb-1 text-gray-800 whitespace-pre-wrap">{note.text}</div>
+            <div className="text-xs text-gray-500">{new Date(note.timestamp).toLocaleString()}</div>
+            <div className="absolute top-1 right-1">
+              <button className={`p-1 rounded-full text-${THEMES[theme].primary}-700 hover:bg-${THEMES[theme].light}`} onClick={() => setMenuOpen(!menuOpen)}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" className="w-4 h-4">
+                  <path d="M2 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                </svg>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-20">
+                  <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onEdit(note.id); }}>
+                    Editar
+                  </button>
+                  {index > 0 && (
+                    <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onMoveUp(note.id); }}>
+                      Mover arriba
+                    </button>
+                  )}
+                  {index < totalCount - 1 && (
+                    <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onMoveDown(note.id); }}>
+                      Mover abajo
+                    </button>
+                  )}
+                  <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => setMoveOpen(!moveOpen)}>
+                    Mover a...
+                  </button>
+                  <button className="block w-full text-left px-3 py-2 hover:bg-gray-100" onClick={() => setMoveOpen(!moveOpen)}>
+                    Copiar a...
+                  </button>
+                  <button className="block w-full text-left px-3 py-2 text-red-600 hover:bg-gray-100" onClick={() => { setMenuOpen(false); onDelete(note.id); }}>
+                    Borrar
+                  </button>
+                  {moveOpen && (
+                    <div className="border-t p-2 max-h-40 overflow-auto">
+                      {note.moveOptions && note.moveOptions.length > 0 ? (
+                        note.moveOptions.map((opt) => (
+                          <div key={opt.id} className="px-2 py-1 hover:bg-gray-200 cursor-pointer" onClick={() => { setMenuOpen(false); setMoveOpen(false); onMove(note.id, opt.id); }}>
+                            {opt.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1 text-gray-500">No options</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      function App() {
+        const [view, setView] = React.useState('home'); // 'home', 'book', 'chapter'
+        const [books, setBooks] = React.useState([]);
+        const [currentBookId, setCurrentBookId] = React.useState(null);
+        const [currentChapterId, setCurrentChapterId] = React.useState(null);
+        // Helper to generate IDs
+        const nextId = () => Math.random().toString(36).substr(2, 9);
+
+        // Add new book
+        const addBook = () => {
+          const name = prompt('Nuevo libro:');
+          if (name) {
+            setBooks([...books, { id: nextId(), name, chapters: [], notes: [] }]);
+          }
+        };
+        // Add new chapter to current book
+        const addChapter = () => {
+          const book = books.find((b) => b.id === currentBookId);
+          if (!book) return;
+          const name = prompt('Nuevo capítulo:');
+          if (name) {
+            const updatedBook = { ...book, chapters: [...book.chapters, { id: nextId(), name, notes: [] }] };
+            setBooks(books.map((b) => (b.id === book.id ? updatedBook : b)));
+          }
+        };
+        // Add note to current location
+        const addNote = (text) => {
+          const ts = Date.now();
+          if (view === 'home') {
+            // Quick note not associated with any book
+            const quickNotesIndex = books.findIndex((b) => b.id === null);
+          } else if (view === 'book') {
+            setBooks(
+              books.map((b) => {
+                if (b.id === currentBookId) {
+                  return { ...b, notes: [...(b.notes || []), { id: nextId(), text, timestamp: ts }] };
+                }
+                return b;
+              })
             );
-
-            // --- VISTA: SETTINGS (Mejorada) ---
-            if (view === 'settings') {
-                const testConnection = async () => {
-                    setTestStatus('loading');
-                    try {
-                        await callGemini(settings.apiKey, settings.model, "Di hola", "Test de conexión");
-                        setTestStatus('success');
-                        setTestMsg("¡Conexión Exitosa!");
-                    } catch (e) {
-                        setTestStatus('error');
-                        setTestMsg(e.message);
+          } else if (view === 'chapter') {
+            setBooks(
+              books.map((b) => {
+                if (b.id === currentBookId) {
+                  const updatedChapters = b.chapters.map((c) => {
+                    if (c.id === currentChapterId) {
+                      return { ...c, notes: [...(c.notes || []), { id: nextId(), text, timestamp: ts }] };
                     }
-                };
-
-                return (
-                    <div className="min-h-screen bg-gray-50">
-                        <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
-                        <div className="p-4 max-w-md mx-auto space-y-6">
-                            
-                            {/* Sección API */}
-                            <div className="bg-white p-4 rounded-lg shadow space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
-                                    <input type="text" value={settings.apiKey} onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none" placeholder="AIzaSy..." />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Modelo (Model Name)</label>
-                                    <div className="flex gap-2">
-                                        <select 
-                                            value={settings.model} 
-                                            onChange={(e) => setSettings({...settings, model: e.target.value})}
-                                            className="w-full p-2 border rounded-md bg-gray-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        >
-                                            <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Predeterminado)</option>
-                                            <option value="gemini-1.5-flash">gemini-1.5-flash (Estándar)</option>
-                                            <option value="gemini-1.5-pro">gemini-1.5-pro (Más inteligente)</option>
-                                            <option value="gemini-pro">gemini-pro (Legacy)</option>
-                                        </select>
-                                    </div>
-                                    {/* Opción manual por si acaso */}
-                                    <input 
-                                        type="text" 
-                                        value={settings.model}
-                                        onChange={(e) => setSettings({...settings, model: e.target.value})}
-                                        placeholder="Nombre manual del modelo..."
-                                        className="w-full mt-2 p-2 border border-dashed rounded-md text-xs text-gray-500"
-                                    />
-                                </div>
-
-                                <button onClick={testConnection} disabled={testStatus === 'loading'}
-                                    className={`w-full py-2 px-4 rounded text-sm font-medium border transition flex items-center justify-center gap-2
-                                    ${testStatus === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                      testStatus === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                                    {testStatus === 'loading' ? <div className="loader w-4 h-4 border-2 border-gray-400 border-t-transparent"></div> : 
-                                     testStatus === 'success' ? <Icons.Check /> : 
-                                     testStatus === 'error' ? <Icons.Alert /> : "Probar Conexión"}
-                                    {testStatus === 'loading' ? ' Probando...' : testStatus === 'success' ? ' Conectado' : testStatus === 'error' ? ' Error' : ' Probar Conexión'}
-                                </button>
-                                {testMsg && <p className={`text-xs ${testStatus === 'error' ? 'text-red-600' : 'text-green-600'}`}>{testMsg}</p>}
-                            </div>
-
-                            {/* Sección Prompts */}
-                            <div className="bg-white p-4 rounded-lg shadow">
-                                <h3 className="font-medium text-gray-800 mb-3 border-b pb-2">Prompts</h3>
-                                <div className="mb-4">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fusión</label>
-                                    <textarea value={settings.prompts.merge} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, merge: e.target.value}})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-20 resize-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estilo</label>
-                                    <textarea value={settings.prompts.style} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, style: e.target.value}})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-20 resize-none" />
-                                </div>
-                                <div className="mt-4">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Generación de notas</label>
-                                    <textarea value={settings.prompts.generate} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, generate: e.target.value}})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-20 resize-none" />
-                                </div>
-                            </div>
-
-                            <button onClick={() => { if(activeChapterId) goChapter(activeChapterId); else if(activeBookId) goBook(activeBookId); else goHome(); }}
-                                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition shadow-lg">
-                                Guardar y Salir
-                            </button>
-                        </div>
-                    </div>
-                );
+                    return c;
+                  });
+                  return { ...b, chapters: updatedChapters };
+                }
+                return b;
+              })
+            );
+          }
+        };
+        // Voice note stub
+        const handleVoice = () => {
+          alert('Voice input is not available in this demo.');
+        };
+        // Rename book or chapter
+        const renameItem = (level, id) => {
+          const newName = prompt('Nuevo nombre:');
+          if (!newName) return;
+          if (level === 'book') {
+            setBooks(books.map((b) => (b.id === id ? { ...b, name: newName } : b)));
+          } else if (level === 'chapter') {
+            setBooks(
+              books.map((b) => {
+                if (b.id === currentBookId) {
+                  return {
+                    ...b,
+                    chapters: b.chapters.map((c) => (c.id === id ? { ...c, name: newName } : c)),
+                  };
+                }
+                return b;
+              })
+            );
+          }
+        };
+        // Move up or down within list
+        const moveItemUp = (level, id) => {
+          if (level === 'book') {
+            const idx = books.findIndex((b) => b.id === id);
+            if (idx > 0) {
+              const newBooks = [...books];
+              [newBooks[idx - 1], newBooks[idx]] = [newBooks[idx], newBooks[idx - 1]];
+              setBooks(newBooks);
             }
-
-            const activeBook = books.find(b => b.id === activeBookId);
-            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
-
-            if (view === 'home') {
-                return (
-                    <div className="min-h-screen flex flex-col bg-slate-100">
-                        <Header title="Mis Libros" />
-
-                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
-                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3 mt-4">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-800">Notas rápidas</p>
-                                        <p className="text-xs text-gray-500">Fuera de cualquier libro.</p>
-                                    </div>
-                                    <button onClick={() => startVoiceNote({ type: 'root' })} className={`icon-btn ${voiceTarget?.type === 'root' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota">
-                                        <Icons.Mic />
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input value={quickRootText} onChange={(e) => setQuickRootText(e.target.value)} placeholder="Nota breve..." className="flex-1 p-2 rounded-lg border text-sm" />
-                                    <button onClick={() => { addRootNote(quickRootText); setQuickRootText(''); }} disabled={!quickRootText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${quickRootText.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
-                                </div>
-                                {voiceTarget?.type === 'root' && <p className="text-[11px] text-red-600">Escuchando... habla ahora.</p>}
-                                {rootNotes.length > 0 && <div className="space-y-2 pt-2 border-t">
-                                    {rootNotes.map(note => renderNoteChip(note, {
-                                        onEdit: (txt) => setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: txt } : n)),
-                                        onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
-                                        onMoveUp: () => reorderRootNote(note.id, -1),
-                                        onMoveDown: () => reorderRootNote(note.id, 1),
-                                        onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
-                                        onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
-                                    }))}
-                                </div>}
-                            </div>
-
-                            {books.length === 0 && (
-                                <div className="text-center py-10 text-gray-400">
-                                    <p>No tienes libros creados.</p>
-                                </div>
-                            )}
-
-                            <div className="space-y-3 mt-4">
-                                {books.map((book) => (
-                                    <div
-                                        key={book.id}
-                                        className="card card-tap p-4 flex items-center gap-3"
-                                    >
-                                        <button
-                                            onClick={() => goBook(book.id)}
-                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"
-                                        >
-                                            <Icons.Book />
-                                        </button>
-
-                                        <div className="flex-1">
-                                            {editingBook.id === book.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        value={editingBook.title}
-                                                        onChange={(e) =>
-                                                            setEditingBook({ ...editingBook, title: e.target.value })
-                                                        }
-                                                        className="w-full p-2 border rounded-md text-sm"
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={saveBookEdit}
-                                                        className="text-green-600 text-sm font-semibold"
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelBookEdit}
-                                                        className="text-gray-400 text-sm"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => goBook(book.id)}
-                                                    className="w-full text-left"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
-                                                        {book.title}
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        {book.chapters.length} capítulos
-                                                    </p>
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center gap-1 text-slate-400">
-                                            <button
-                                                onClick={() => reorderBook(book.id, -1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                onClick={() => reorderBook(book.id, 1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↓
-                                            </button>
-                                            {editingBook.id === book.id ? null : (
-                                                <button
-                                                    onClick={() => startBookEdit(book)}
-                                                    className="icon-btn-sm hover:text-green-600"
-                                                >
-                                                    ✎
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id);
-                                                }}
-                                                className="icon-btn-sm hover:text-red-600"
-                                            >
-                                                <Icons.Trash />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </main>
-
-                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
-                            <button
-                                onClick={() => {
-                                    const title = prompt("Nuevo libro:");
-                                    if (title) addBook(title);
-                                }}
-                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-blue-700 active:scale-[0.98] transition"
-                            >
-                                <Icons.Plus />
-                                <span>Nuevo Libro</span>
-                            </button>
-                        </div>
-                    </div>
-                );
+          } else if (level === 'chapter') {
+            const book = books.find((b) => b.id === currentBookId);
+            if (!book) return;
+            const idx = book.chapters.findIndex((c) => c.id === id);
+            if (idx > 0) {
+              const newChapters = [...book.chapters];
+              [newChapters[idx - 1], newChapters[idx]] = [newChapters[idx], newChapters[idx - 1]];
+              const updatedBook = { ...book, chapters: newChapters };
+              setBooks(books.map((b) => (b.id === book.id ? updatedBook : b)));
             }
-            if (view === 'book' && activeBook) {
-                const handleStyleBook = async () => {
-                    if(activeBook.chapters.length === 0) return alert("Libro vacío.");
-                    const styleDesc = prompt("Describe el estilo para todo el libro:");
-                    if (!styleDesc) return;
-                    setLoading(true);
-                    try {
-                        let newChapters = JSON.parse(JSON.stringify(activeBook.chapters));
-                        for (let chapter of newChapters) {
-                            if (chapter.notes.length === 0) continue;
-                            const chapterText = chapter.notes.map(n => n.content).join("\n");
-                            const finalPrompt = settings.prompts.style.replace('{STYLE}', styleDesc);
-                            const newText = await callGemini(settings.apiKey, settings.model, finalPrompt, chapterText);
-                            chapter.notes = [{ id: generateId(), content: newText, timestamp: Date.now() }];
-                        }
-                        updateBookChapters(activeBook.id, newChapters);
-                        alert("¡Libro reescrito!");
-                    } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
-                };
-
-                const handleGenerateBook = async () => {
-                    if(activeBook.chapters.length === 0) return alert("Libro vacío.");
-                    const promptText = prompt("¿Qué necesitas generar a partir del libro?");
-                    if (!promptText) return;
-                    setLoading(true);
-                    try {
-                        const bookContent = activeBook.chapters.map(ch => `Capítulo: ${ch.title}\n${ch.notes.map(n => n.content).join('\n')}`).join('\n\n');
-                        const finalPrompt = `${settings.prompts.generate}\n\nPetición: ${promptText}`;
-                        const newText = await callGemini(settings.apiKey, settings.model, finalPrompt, bookContent);
-                        const newChapterId = generateId();
-                        const newNoteId = generateId();
-                        setBooks(books.map(b => b.id === activeBook.id ? {
+          }
+        };
+        const moveItemDown = (level, id) => {
+          if (level === 'book') {
+            const idx = books.findIndex((b) => b.id === id);
+            if (idx < books.length - 1) {
+              const newBooks = [...books];
+              [newBooks[idx], newBooks[idx + 1]] = [newBooks[idx + 1], newBooks[idx]];
+              setBooks(newBooks);
+            }
+          } else if (level === 'chapter') {
+            const book = books.find((b) => b.id === currentBookId);
+            if (!book) return;
+            const idx = book.chapters.findIndex((c) => c.id === id);
+            if (idx < book.chapters.length - 1) {
+              const newChapters = [...book.chapters];
+              [newChapters[idx], newChapters[idx + 1]] = [newChapters[idx + 1], newChapters[idx]];
+              const updatedBook = { ...book, chapters: newChapters };
+              setBooks(books.map((b) => (b.id === book.id ? updatedBook : b)));
+            }
+          }
+        };
+        // Delete item
+        const deleteItem = (level, id) => {
+          if (!confirm('¿Estás seguro?')) return;
+          if (level === 'book') {
+            setBooks(books.filter((b) => b.id !== id));
+          } else if (level === 'chapter') {
+            setBooks(
+              books.map((b) => {
+                if (b.id === currentBookId) {
+                  return { ...b, chapters: b.chapters.filter((c) => c.id !== id) };
+                }
+                return b;
+              })
+            );
+          }
+        };
+        // Move item to another book or top level. For books level there is no higher level.
+        const moveItem = (level, id, targetId) => {
+          if (level === 'book') {
+            // Not implemented: moving books between levels is not applicable
+            return;
+          } else if (level === 'chapter') {
+            const bookFrom = books.find((b) => b.id === currentBookId);
+            const chapter = bookFrom.chapters.find((c) => c.id === id);
+            // remove from current
+            const updatedSource = { ...bookFrom, chapters: bookFrom.chapters.filter((c) => c.id !== id) };
+            // find target book
+            const bookTo = books.find((b) => b.id === targetId);
+            if (bookTo) {
+              const updatedTarget = { ...bookTo, chapters: [...bookTo.chapters, chapter] };
+              setBooks(
+                books.map((b) => {
+                  if (b.id === bookFrom.id) return updatedSource;
+                  if (b.id === bookTo.id) return updatedTarget;
+                  return b;
+                })
+              );
+            }
+          }
+        };
+        // Render home view: list of books
+        const renderHome = () => {
+          const theme = 'home';
+          return (
+            <div className="p-4">
+              <h1 className="text-2xl font-bold mb-4 text-${THEMES.home.dark}">Mis Libros</h1>
+              {books.length === 0 && <div className="text-gray-500">No tienes libros creados.</div>}
+              {books.map((book, idx) => (
+                <ItemRow
+                  key={book.id}
+                  item={book}
+                  index={idx}
+                  totalCount={books.length}
+                  theme={theme}
+                  onSelect={(id) => { setCurrentBookId(id); setView('book'); }}
+                  onRename={(id) => renameItem('book', id)}
+                  onMoveUp={(id) => moveItemUp('book', id)}
+                  onMoveDown={(id) => moveItemDown('book', id)}
+                  onMove={() => {}}
+                  onCopy={() => {}}
+                  onDelete={(id) => deleteItem('book', id)}
+                  item={{ ...book, moveOptions: [] }}
+                />
+              ))}
+              <FloatingActions
+                onVoice={handleVoice}
+                onText={(text) => addNote(text)}
+                theme={theme}
+              />
+              <button
+                className={`fixed bottom-20 right-4 px-4 py-2 rounded shadow text-white bg-${THEMES.home.primary}-600`}
+                onClick={addBook}
+              >
+                + Nuevo Libro
+              </button>
+            </div>
+          );
+        };
+        // Render book view: show notes and chapters
+        const renderBook = () => {
+          const book = books.find((b) => b.id === currentBookId);
+          if (!book) return null;
+          const theme = 'book';
+          // Build move options for chapters: other books only (not itself)
+          const chapterMoveOptions = books.filter((b) => b.id !== book.id).map((b) => ({ id: b.id, name: b.name }));
+          return (
+            <div className="p-4">
+              <div className="flex items-center mb-4">
+                <button className="mr-2 text-${THEMES.book.primary}-700" onClick={() => setView('home')}>&larr;</button>
+                <h1 className="text-2xl font-bold text-${THEMES.book.dark}">{book.name}</h1>
+              </div>
+              {/* Notes belonging to book */}
+              <div className="mb-4">
+                <h2 className="font-semibold mb-2 text-${THEMES.book.dark}">Notas del libro</h2>
+                {(!book.notes || book.notes.length === 0) && <div className="text-gray-500">Sin notas.</div>}
+                {book.notes && book.notes.map((note, idx) => (
+                  <NoteCard
+                    key={note.id}
+                    note={{ ...note, moveOptions: chapterMoveOptions }}
+                    index={idx}
+                    totalCount={book.notes.length}
+                    theme={theme}
+                    onEdit={(noteId) => {
+                      const newText = prompt('Editar nota:', note.text);
+                      if (newText !== null) {
+                        setBooks(
+                          books.map((b) => {
+                            if (b.id === book.id) {
+                              return {
+                                ...b,
+                                notes: b.notes.map((n) => (n.id === noteId ? { ...n, text: newText } : n)),
+                              };
+                            }
+                            return b;
+                          })
+                        );
+                      }
+                    }}
+                    onMoveUp={(noteId) => {
+                      const idx2 = book.notes.findIndex((n) => n.id === noteId);
+                      if (idx2 > 0) {
+                        const newNotes = [...book.notes];
+                        [newNotes[idx2 - 1], newNotes[idx2]] = [newNotes[idx2], newNotes[idx2 - 1]];
+                        const updatedBook = { ...book, notes: newNotes };
+                        setBooks(books.map((b) => (b.id === book.id ? updatedBook : b)));
+                      }
+                    }}
+                    onMoveDown={(noteId) => {
+                      const idx2 = book.notes.findIndex((n) => n.id === noteId);
+                      if (idx2 < book.notes.length - 1) {
+                        const newNotes = [...book.notes];
+                        [newNotes[idx2], newNotes[idx2 + 1]] = [newNotes[idx2 + 1], newNotes[idx2]];
+                        const updatedBook = { ...book, notes: newNotes };
+                        setBooks(books.map((b) => (b.id === book.id ? updatedBook : b)));
+                      }
+                    }}
+                    onMove={(noteId, targetBookId) => {
+                      // Move note to chapter of another book not implemented. Could also move to book notes of another book.
+                      const sourceNotes = book.notes.filter((n) => n.id !== noteId);
+                      const movedNote = book.notes.find((n) => n.id === noteId);
+                      setBooks(
+                        books.map((b) => {
+                          if (b.id === book.id) {
+                            return { ...b, notes: sourceNotes };
+                          }
+                          if (b.id === targetBookId) {
+                            return { ...b, notes: [...(b.notes || []), movedNote] };
+                          }
+                          return b;
+                        })
+                      );
+                    }}
+                    onCopy={(noteId, targetBookId) => {
+                      const noteToCopy = book.notes.find((n) => n.id === noteId);
+                      const copyNote = { ...noteToCopy, id: nextId(), timestamp: Date.now() };
+                      setBooks(
+                        books.map((b) => {
+                          if (b.id === targetBookId) {
+                            return { ...b, notes: [...(b.notes || []), copyNote] };
+                          }
+                          return b;
+                        })
+                      );
+                    }}
+                    onDelete={(noteId) => {
+                      setBooks(
+                        books.map((b) => {
+                          if (b.id === book.id) {
+                            return { ...b, notes: b.notes.filter((n) => n.id !== noteId) };
+                          }
+                          return b;
+                        })
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+              {/* Chapters list */}
+              <div>
+                <h2 className="font-semibold mb-2 text-${THEMES.book.dark}">Capítulos</h2>
+                {book.chapters.length === 0 && <div className="text-gray-500">No hay capítulos.</div>}
+                {book.chapters.map((chapter, idx) => (
+                  <ItemRow
+                    key={chapter.id}
+                    item={{ ...chapter, moveOptions: chapterMoveOptions }}
+                    index={idx}
+                    totalCount={book.chapters.length}
+                    theme={theme}
+                    onSelect={(id) => { setCurrentChapterId(id); setView('chapter'); }}
+                    onRename={(id) => renameItem('chapter', id)}
+                    onMoveUp={(id) => moveItemUp('chapter', id)}
+                    onMoveDown={(id) => moveItemDown('chapter', id)}
+                    onMove={(id, targetBookId) => moveItem('chapter', id, targetBookId)}
+                    onCopy={() => { alert('Copiar capítulo no implementado.'); }}
+                    onDelete={(id) => deleteItem('chapter', id)}
+                  />
+                ))}
+              </div>
+              <FloatingActions
+                onVoice={handleVoice}
+                onText={(text) => addNote(text)}
+                theme={theme}
+              />
+              <button
+                className={`fixed bottom-20 right-4 px-4 py-2 rounded shadow text-white bg-${THEMES.book.primary}-600`}
+                onClick={addChapter}
+              >
+                + Nuevo Capítulo
+              </button>
+            </div>
+          );
+        };
+        // Render chapter view: show notes of selected chapter
+        const renderChapter = () => {
+          const book = books.find((b) => b.id === currentBookId);
+          if (!book) return null;
+          const chapter = book.chapters.find((c) => c.id === currentChapterId);
+          if (!chapter) return null;
+          const theme = 'chapter';
+          // Move options for notes: other chapters within same book
+          const noteMoveOptions = book.chapters
+            .filter((c) => c.id !== chapter.id)
+            .map((c) => ({ id: c.id, name: c.name }));
+          return (
+            <div className="p-4">
+              <div className="flex items-center mb-4">
+                <button className="mr-2 text-${THEMES.chapter.primary}-700" onClick={() => setView('book')}>&larr;</button>
+                <h1 className="text-2xl font-bold text-${THEMES.chapter.dark}">{chapter.name}</h1>
+              </div>
+              {chapter.notes.length === 0 && <div className="text-gray-500">No hay notas. Usa el micrófono o escribe una nota.</div>}
+              {chapter.notes.map((note, idx) => (
+                <NoteCard
+                  key={note.id}
+                  note={{ ...note, moveOptions: noteMoveOptions }}
+                  index={idx}
+                  totalCount={chapter.notes.length}
+                  theme={theme}
+                  onEdit={(noteId) => {
+                    const newText = prompt('Editar nota:', note.text);
+                    if (newText !== null) {
+                      setBooks(
+                        books.map((b) => {
+                          if (b.id === book.id) {
+                            return {
+                              ...b,
+                              chapters: b.chapters.map((c) => {
+                                if (c.id === chapter.id) {
+                                  return {
+                                    ...c,
+                                    notes: c.notes.map((n) => (n.id === noteId ? { ...n, text: newText } : n)),
+                                  };
+                                }
+                                return c;
+                              }),
+                            };
+                          }
+                          return b;
+                        })
+                      );
+                    }
+                  }}
+                  onMoveUp={(noteId) => {
+                    const idx2 = chapter.notes.findIndex((n) => n.id === noteId);
+                    if (idx2 > 0) {
+                      const newNotes = [...chapter.notes];
+                      [newNotes[idx2 - 1], newNotes[idx2]] = [newNotes[idx2], newNotes[idx2 - 1]];
+                      setBooks(
+                        books.map((b) => {
+                          if (b.id === book.id) {
+                            return {
+                              ...b,
+                              chapters: b.chapters.map((c) => (c.id === chapter.id ? { ...c, notes: newNotes } : c)),
+                            };
+                          }
+                          return b;
+                        })
+                      );
+                    }
+                  }}
+                  onMoveDown={(noteId) => {
+                    const idx2 = chapter.notes.findIndex((n) => n.id === noteId);
+                    if (idx2 < chapter.notes.length - 1) {
+                      const newNotes = [...chapter.notes];
+                      [newNotes[idx2], newNotes[idx2 + 1]] = [newNotes[idx2 + 1], newNotes[idx2]];
+                      setBooks(
+                        books.map((b) => {
+                          if (b.id === book.id) {
+                            return {
+                              ...b,
+                              chapters: b.chapters.map((c) => (c.id === chapter.id ? { ...c, notes: newNotes } : c)),
+                            };
+                          }
+                          return b;
+                        })
+                      );
+                    }
+                  }}
+                  onMove={(noteId, targetChapterId) => {
+                    const noteToMove = chapter.notes.find((n) => n.id === noteId);
+                    // Remove from current
+                    const updatedCurrentNotes = chapter.notes.filter((n) => n.id !== noteId);
+                    // Add to target
+                    setBooks(
+                      books.map((b) => {
+                        if (b.id === book.id) {
+                          return {
                             ...b,
-                            chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, notes: [{ id: newNoteId, content: newText, timestamp: Date.now() }] }]
-                        } : b));
-                        alert("Nueva nota generada y guardada en un capítulo nuevo.");
-                    } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
-                };
-
-                return (
-                    <div className="min-h-screen flex flex-col bg-slate-100">
-                        <Header title={activeBook.title} onBack={goHome} />
-                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-full font-semibold border border-amber-200 shadow-sm">💡 Generar resumen</button>
-                                <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full font-semibold border border-purple-200 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
-                            </div>
-
-                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-800">Notas del libro</p>
-                                        <p className="text-xs text-gray-500">Sin asociar a capítulos.</p>
-                                    </div>
-                                    <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`icon-btn ${voiceTarget?.bookId === activeBook.id ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota del libro">
-                                        <Icons.Mic />
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input value={quickBookText} onChange={(e) => setQuickBookText(e.target.value)} placeholder="Nota breve..." className="flex-1 p-2 rounded-lg border text-sm" />
-                                    <button onClick={() => { addBookNote(activeBook.id, quickBookText); setQuickBookText(''); }} disabled={!quickBookText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${quickBookText.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
-                                </div>
-                                {voiceTarget?.bookId === activeBook.id && <p className="text-[11px] text-red-600">Escuchando... habla ahora.</p>}
-                                {activeBook.notes?.length > 0 && <div className="space-y-2 pt-2 border-t">
-                                    {activeBook.notes.map(note => renderNoteChip(note, {
-                                        onEdit: (txt) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: txt } : n)),
-                                        onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
-                                        onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
-                                        onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
-                                        onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
-                                        onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
-                                    }))}
-                                </div>}
-                            </div>
-                            {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
-                            <div className="space-y-3">
-                                {activeBook.chapters.map((chap) => (
-                                    <div
-                                        key={chap.id}
-                                        className="card card-tap p-4 flex items-center gap-3"
-                                    >
-                                        <button
-                                            onClick={() => goChapter(chap.id)}
-                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"
-                                        >
-                                            <Icons.Folder />
-                                        </button>
-
-                                        <div className="flex-1">
-                                            {editingChapter.id === chap.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        value={editingChapter.title}
-                                                        onChange={(e) =>
-                                                            setEditingChapter({ ...editingChapter, title: e.target.value })
-                                                        }
-                                                        className="w-full p-2 border rounded-md text-sm"
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={saveChapterEdit}
-                                                        className="text-green-600 text-sm font-semibold"
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelChapterEdit}
-                                                        className="text-gray-400 text-sm"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => goChapter(chap.id)}
-                                                    className="w-full text-left"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
-                                                        {chap.title}
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        {chap.notes.length} notas
-                                                    </p>
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center gap-1 text-slate-400 text-xs">
-                                            <button
-                                                onClick={() => reorderChapter(activeBook.id, chap.id, -1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                onClick={() => reorderChapter(activeBook.id, chap.id, 1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↓
-                                            </button>
-                                            {editingChapter.id === chap.id ? null : (
-                                                <button
-                                                    onClick={() => startChapterEdit(chap)}
-                                                    className="icon-btn-sm hover:text-green-600"
-                                                >
-                                                    ✎
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    const target = prompt('Mover a libro (escribe el nombre exacto)');
-                                                    const targetBook = books.find(b => b.title === target);
-                                                    if (targetBook) moveChapterToBook(activeBook.id, chap.id, targetBook.id);
-                                                }}
-                                                className="icon-btn-sm hover:text-purple-600"
-                                                title="Mover a otro libro"
-                                            >
-                                                ⇄
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('¿Borrar capítulo y sus notas?')) {
-                                                        deleteChapter(activeBook.id, chap.id);
-                                                    }
-                                                }}
-                                                className="icon-btn-sm hover:text-red-600"
-                                            >
-                                                <Icons.Trash />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </main>
-
-                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
-                            <button
-                                onClick={() => {
-                                    const title = prompt("Nuevo capítulo:");
-                                    if (title) addChapter(activeBook.id, title);
-                                }}
-                                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition"
-                            >
-                                <Icons.Plus />
-                                <span>Nuevo Capítulo</span>
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (view === 'chapter' && activeChapter) {
-                return <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
-                    onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
-                    onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
-                    editNote={editNote}
-                    settings={settings} setLoading={setLoading}
-                    chooseDestination={chooseDestination}
-                    relocateNote={relocateNote} />;
-            }
-            return null;
-        }
-
-        // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, onBack, onAddNote, onUpdateNotes, editNote, settings, setLoading, chooseDestination, relocateNote }) {
-            const [isRecording, setIsRecording] = useState(false);
-            const [selectedIds, setSelectedIds] = useState([]);
-            const [selectionMode, setSelectionMode] = useState(false);
-            const [manualText, setManualText] = useState("");
-            const recognitionRef = useRef(null);
-            const [supportError, setSupportError] = useState(null);
-
-            useEffect(() => {
-                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) setSupportError("Navegador sin soporte de voz");
-                return () => { if (recognitionRef.current) recognitionRef.current.stop(); }
-            }, []);
-
-            const startRecording = () => {
-                if (supportError) return alert(supportError);
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                const recognition = new SpeechRecognition();
-                recognition.lang = 'es-ES';
-                recognition.continuous = false;
-                recognition.onstart = () => setIsRecording(true);
-                recognition.onresult = (event) => { if(event.results[0][0].transcript) onAddNote(event.results[0][0].transcript); };
-                recognition.onerror = (event) => { console.error(event); setIsRecording(false); if(event.error === 'not-allowed') alert("Permiso de micrófono denegado."); };
-                recognition.onend = () => setIsRecording(false);
-                recognition.start();
-                recognitionRef.current = recognition;
-            };
-
-            const toggleRecording = () => isRecording ? recognitionRef.current?.stop() : startRecording();
-            const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
-
-            const reorderNote = (id, direction) => {
-                const index = chapter.notes.findIndex(n => n.id === id);
-                const target = index + direction;
-                if (target < 0 || target >= chapter.notes.length) return;
-                onUpdateNotes(moveItem(chapter.notes, index, target));
-            };
-
-            const processAI = async (type, scope) => {
-                const notes = scope === 'selection' ? chapter.notes.filter(n => selectedIds.includes(n.id)) : chapter.notes;
-                if (notes.length === 0) return alert("Sin notas seleccionadas.");
-                if (type === 'merge' && notes.length < 2) return alert("Selecciona 2+ notas.");
-
-                const extraPrompt = type === 'style' ? prompt("Describe el estilo:") : type === 'generate' ? prompt("¿Qué necesitas generar?") : null;
-                if ((type === 'style' || type === 'generate') && !extraPrompt) return;
-
-                setLoading(true);
-                try {
-                    const text = notes.map(n => type === 'merge' ? `- ${n.content}` : n.content).join("\n\n");
-                    let promptText = settings.prompts.merge;
-                    if (type === 'style') promptText = settings.prompts.style.replace('{STYLE}', extraPrompt);
-                    if (type === 'generate') promptText = `${settings.prompts.generate}\n\nPetición: ${extraPrompt}`;
-                    const result = await callGemini(settings.apiKey, settings.model, promptText, text);
-
-                    const newNote = { id: generateId(), content: result, timestamp: Date.now() };
-                    if (scope === 'selection') {
-                        const remaining = chapter.notes.filter(n => !selectedIds.includes(n.id));
-                        onUpdateNotes([...remaining, newNote]);
-                        setSelectedIds([]); setSelectionMode(false);
-                    } else {
-                        onUpdateNotes([newNote]);
-                    }
-                } catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-
-            return (
-                <div className="min-h-screen flex flex-col bg-gray-50">
-                    <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
-                        <div className="flex items-center gap-2">
-                            <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
-                            <div className="overflow-hidden"><h1 className="text-lg font-bold text-gray-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
-                        </div>
-                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
-                    </header>
-
-                    <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto">
-                        <div className="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {selectionMode && selectedIds.length > 1 && <button onClick={() => processAI('merge', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 font-medium active:scale-95 transition" title="Fusiona y reemplaza la selección por una sola nota"><Icons.Merge className="w-3 h-3" /> Fusionar</button>}
-                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('style', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Sel)</button>}
-                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('generate', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-medium active:scale-95 transition">💡 Generar</button>}
-                    {!selectionMode && chapter.notes.length > 0 && <>
-                        <button onClick={() => processAI('style', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Todo)</button>
-                        <button onClick={() => processAI('generate', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-medium active:scale-95 transition">💡 Generar capítulo</button>
-                    </>}
-                </div>
-
-                        {chapter.notes.length === 0 && <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Mic className="w-12 h-12 mb-2 opacity-20" /><p>Graba una nota</p></div>}
-
-                        <div className="space-y-3">
-                            {chapter.notes.map(note => (
-                                <div key={note.id} onClick={() => selectionMode && toggleSelect(note.id)} className={`p-4 rounded-xl shadow-sm border transition relative ${selectedIds.includes(note.id) ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}>
-                                    <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
-                                    <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
-                                        <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                        {!selectionMode && <div className="flex items-center gap-1">
-                                            <button onClick={(e) => { e.stopPropagation(); const updated = prompt('Editar nota', note.content); if(updated) editNote(bookId, chapter.id, note.id, updated.trim()); }} className="text-gray-400 hover:text-green-600 p-1">✎</button>
-                                            <button onClick={(e) => { e.stopPropagation(); reorderNote(note.id, -1); }} className="text-gray-400 hover:text-blue-600 p-1">↑</button>
-                                            <button onClick={(e) => { e.stopPropagation(); reorderNote(note.id, 1); }} className="text-gray-400 hover:text-blue-600 p-1">↓</button>
-                                            <button onClick={(e) => { e.stopPropagation(); const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); }} className="text-gray-400 hover:text-purple-600 p-1" title="Mover">⇄</button>
-                                            <button onClick={(e) => { e.stopPropagation(); const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); }} className="text-gray-400 hover:text-amber-600 p-1" title="Copiar">⧉</button>
-                                            <button onClick={(e) => { e.stopPropagation(); if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }} className="text-gray-300 hover:text-red-500 p-1"><Icons.Trash /></button>
-                                        </div>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </main>
-
-                    <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
-                        <div className="bg-white border rounded-xl shadow p-3 space-y-2">
-                            <div className="flex items-center gap-2">
-                                <input value={manualText} onChange={(e) => setManualText(e.target.value)} className="flex-1 border rounded-lg p-2 text-sm" placeholder="Añadir nota rápida" />
-                                <button onClick={() => { onAddNote(manualText); setManualText(''); }} disabled={!manualText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${manualText.trim() ? 'bg-slate-800 text-white hover:bg-slate-900' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
-                            </div>
-                            <p className="text-[11px] text-gray-500">Las notas de texto son secundarias: ocupan poco espacio y se guardan al instante.</p>
-                        </div>
-                    </div>
-
-                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                        {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                        <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
-                            {isRecording ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic className="text-white" />}
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+                            chapters: b.chapters.map((c) => {
+                              if (c.id === chapter.id) {
+                                return { ...c, notes: updatedCurrentNotes };
+                              }
+                              if (c.id === targetChapterId) {
+                                return { ...c, notes: [...c.notes, noteToMove] };
+                              }
+                              return c;
+                            }),
+                          };
+                        }
+                        return b;
+                      })
+                    );
+                  }}
+                  onCopy={(noteId, targetChapterId) => {
+                    const noteToCopy = chapter.notes.find((n) => n.id === noteId);
+                    const copied = { ...noteToCopy, id: nextId(), timestamp: Date.now() };
+                    setBooks(
+                      books.map((b) => {
+                        if (b.id === book.id) {
+                          return {
+                            ...b,
+                            chapters: b.chapters.map((c) => {
+                              if (c.id === targetChapterId) {
+                                return { ...c, notes: [...c.notes, copied] };
+                              }
+                              return c;
+                            }),
+                          };
+                        }
+                        return b;
+                      })
+                    );
+                  }}
+                  onDelete={(noteId) => {
+                    setBooks(
+                      books.map((b) => {
+                        if (b.id === book.id) {
+                          return {
+                            ...b,
+                            chapters: b.chapters.map((c) => (c.id === chapter.id ? { ...c, notes: c.notes.filter((n) => n.id !== noteId) } : c)),
+                          };
+                        }
+                        return b;
+                      })
+                    );
+                  }}
+                />
+              ))}
+              <FloatingActions
+                onVoice={handleVoice}
+                onText={(text) => addNote(text)}
+                theme={theme}
+              />
+            </div>
+          );
+        };
+        if (view === 'home') return renderHome();
+        if (view === 'book') return renderBook();
+        if (view === 'chapter') return renderChapter();
+      }
+      ReactDOM.render(<App />, document.getElementById('root'));
     </script>
-</body>
+  </body>
 </html>
