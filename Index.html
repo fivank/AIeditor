@@ -16,13 +16,55 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
+        :root {
+            --color-bg: #f1f5f9;
+            --color-card: #ffffff;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
         /* Estilos base y utilidades */
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
+            background-color: var(--color-bg);
+            margin: 0;
             -webkit-tap-highlight-color: transparent;
         }
-        
+
+        .safe-top {
+            padding-top: env(safe-area-inset-top, 0);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+
+        .card {
+            background: var(--color-card);
+            border-radius: var(--radius-xl);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        }
+
+        .card-tap {
+            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+        }
+        .card-tap:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            padding: 0.35rem;
+            font-size: 0.75rem;
+        }
+        .icon-btn-sm {
+            padding: 0.25rem;
+        }
+
         /* Animación de carga */
         .loader {
             border: 4px solid #f3f3f3;
@@ -51,8 +93,8 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
         .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(16px);
         }
     </style>
 </head>
@@ -143,12 +185,6 @@
             const [testMsg, setTestMsg] = useState("");
             const [editingBook, setEditingBook] = useState({ id: null, title: "" });
             const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
-            const [newBookTitle, setNewBookTitle] = useState("");
-            const [newChapterTitle, setNewChapterTitle] = useState("");
-            const [renameModal, setRenameModal] = useState(null); // {type, id, title}
-            const [moveModal, setMoveModal] = useState(null); // {chapterId, sourceBookId, mode}
-            const [actionTarget, setActionTarget] = useState(null); // {type: 'book'|'chapter', id}
-            const [longPressTimer, setLongPressTimer] = useState(null);
             const [quickRootText, setQuickRootText] = useState("");
             const [quickBookText, setQuickBookText] = useState("");
             const recognitionRef = useRef(null);
@@ -181,7 +217,7 @@
             useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
-            useEffect(() => { setNewChapterTitle(""); setEditingChapter({ id: null, title: "" }); setQuickBookText(""); }, [activeBookId]);
+            useEffect(() => { setEditingChapter({ id: null, title: "" }); setQuickBookText(""); }, [activeBookId]);
 
             // Helpers de navegación y datos
             const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
@@ -198,18 +234,6 @@
             };
             const renameChapter = (bookId, chapterId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
-            };
-            const handleAddBook = () => {
-                const cleanTitle = newBookTitle.trim();
-                if (!cleanTitle) return;
-                addBook(cleanTitle);
-                setNewBookTitle("");
-            };
-            const handleAddChapter = () => {
-                const cleanTitle = newChapterTitle.trim();
-                if (!cleanTitle || !activeBookId) return;
-                addChapter(activeBookId, cleanTitle);
-                setNewChapterTitle("");
             };
             const addNote = (bookId, chapterId, content) => {
                 if (!content || !content.trim()) return;
@@ -324,38 +348,6 @@
             };
             const cancelChapterEdit = () => setEditingChapter({ id: null, title: "" });
 
-            const openRenameModal = (type, id, title) => setRenameModal({ type, id, title });
-            const handleRenameSubmit = () => {
-                if (!renameModal?.title.trim()) return;
-                if (renameModal.type === 'book') renameBook(renameModal.id, renameModal.title.trim());
-                if (renameModal.type === 'chapter') renameChapter(activeBookId, renameModal.id, renameModal.title.trim());
-                setRenameModal(null);
-            };
-
-            const openMoveModal = (chapterId, mode = 'move') => setMoveModal({ chapterId, sourceBookId: activeBookId, mode });
-            const handleMoveChoice = (targetBookId) => {
-                if (!moveModal) return;
-                if (moveModal.mode === 'move') moveChapterToBook(moveModal.sourceBookId, moveModal.chapterId, targetBookId);
-                if (moveModal.mode === 'copy') {
-                    const source = books.find(b => b.id === moveModal.sourceBookId);
-                    const chapter = source?.chapters.find(c => c.id === moveModal.chapterId);
-                    if (chapter) {
-                        const clone = { ...chapter, id: generateId(), notes: chapter.notes.map(n => ({ ...n, id: generateId(), timestamp: Date.now() })) };
-                        setBooks(books.map(b => b.id === targetBookId ? { ...b, chapters: [...b.chapters, clone] } : b));
-                    }
-                }
-                setMoveModal(null);
-            };
-
-            const startPress = (type, id) => {
-                if (longPressTimer) clearTimeout(longPressTimer);
-                const timer = setTimeout(() => setActionTarget({ type, id }), 650);
-                setLongPressTimer(timer);
-            };
-            const endPress = () => {
-                if (longPressTimer) clearTimeout(longPressTimer);
-            };
-
             const startVoiceNote = (target) => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
@@ -392,41 +384,6 @@
                 </div>
             );
 
-            const renameOverlay = renameModal ? (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center px-4">
-                    <div className="bg-white rounded-xl shadow-2xl p-5 w-full max-w-md space-y-3">
-                        <h3 className="text-lg font-semibold text-gray-800">Renombrar {renameModal.type === 'book' ? 'libro' : 'capítulo'}</h3>
-                        <input value={renameModal.title} onChange={(e) => setRenameModal({ ...renameModal, title: e.target.value })}
-                            className="w-full p-3 border rounded-lg bg-gray-50" placeholder="Escribe el nuevo nombre" autoFocus />
-                        <div className="flex justify-end gap-2 text-sm">
-                            <button onClick={() => setRenameModal(null)} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700">Cancelar</button>
-                            <button onClick={handleRenameSubmit} className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">Guardar</button>
-                        </div>
-                    </div>
-                </div>
-            ) : null;
-
-            const moveOverlay = moveModal ? (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center px-4">
-                    <div className="bg-white rounded-xl shadow-2xl p-5 w-full max-w-md space-y-3">
-                        <h3 className="text-lg font-semibold text-gray-800">{moveModal.mode === 'move' ? 'Mover' : 'Copiar'} capítulo</h3>
-                        <p className="text-sm text-gray-500">Elige el libro destino. Solo tienes que tocar uno.</p>
-                        <div className="max-h-64 overflow-y-auto space-y-2">
-                            {books.filter(b => b.id !== moveModal.sourceBookId).map(b => (
-                                <button key={b.id} onClick={() => handleMoveChoice(b.id)} className="w-full text-left p-3 rounded-lg border hover:border-indigo-400 hover:bg-indigo-50">
-                                    <span className="font-semibold text-gray-800">{b.title}</span>
-                                    <p className="text-xs text-gray-500">{b.chapters.length} capítulos</p>
-                                </button>
-                            ))}
-                            {books.filter(b => b.id !== moveModal.sourceBookId).length === 0 && <p className="text-sm text-gray-400">No hay otros libros disponibles.</p>}
-                        </div>
-                        <div className="flex justify-end">
-                            <button onClick={() => setMoveModal(null)} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm">Cerrar</button>
-                        </div>
-                    </div>
-                </div>
-            ) : null;
-
             // Componente de Pantalla de Carga
             if (loading) {
                 return (
@@ -441,12 +398,31 @@
 
             // Header
             const Header = ({ title, onBack }) => (
-                <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
-                    <div className="flex items-center gap-2">
-                        {onBack && <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>}
-                        <h1 className="text-lg font-bold text-gray-800 truncate max-w-[200px]">{title}</h1>
+                <header
+                    className="glass-panel safe-top sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-slate-200 shadow-sm"
+                >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        {onBack && (
+                            <button
+                                onClick={onBack}
+                                className="icon-btn text-slate-600 hover:text-slate-900"
+                            >
+                                <Icons.ChevronLeft />
+                            </button>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                            <h1 className="text-base font-semibold text-slate-900 truncate">
+                                {title}
+                            </h1>
+                        </div>
                     </div>
-                    <button onClick={goSettings} className="p-2 text-gray-500 hover:text-blue-600"><Icons.Settings /></button>
+
+                    <button
+                        onClick={goSettings}
+                        className="icon-btn text-slate-500 hover:text-blue-600"
+                    >
+                        <Icons.Settings />
+                    </button>
                 </header>
             );
 
@@ -547,21 +523,22 @@
 
             if (view === 'home') {
                 return (
-                    <div className="min-h-screen flex flex-col">
+                    <div className="min-h-screen flex flex-col bg-slate-100">
                         <Header title="Mis Libros" />
-                        <main className="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
+
+                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
                             <div className="bg-blue-50 border border-blue-100 text-blue-900 text-sm p-4 rounded-xl shadow-sm">
                                 <p className="font-semibold mb-1">Mantén la pantalla limpia</p>
                                 <p className="leading-snug">Haz una pulsación larga sobre un libro para desplegar sus opciones. Las notas sueltas ahora pueden vivir aquí mismo o dentro de cada libro.</p>
                             </div>
 
-                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3 mt-4">
                                 <div className="flex items-center justify-between gap-2">
                                     <div>
                                         <p className="text-sm font-semibold text-gray-800">Notas rápidas</p>
                                         <p className="text-xs text-gray-500">Fuera de cualquier libro.</p>
                                     </div>
-                                    <button onClick={() => startVoiceNote({ type: 'root' })} className={`p-2 rounded-full ${voiceTarget?.type === 'root' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota">
+                                    <button onClick={() => startVoiceNote({ type: 'root' })} className={`icon-btn ${voiceTarget?.type === 'root' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota">
                                         <Icons.Mic />
                                     </button>
                                 </div>
@@ -575,57 +552,111 @@
                                 </div>}
                             </div>
 
-                            {books.length === 0 && <div className="text-center py-10 text-gray-400"><p>No tienes libros creados.</p></div>}
+                            {books.length === 0 && (
+                                <div className="text-center py-10 text-gray-400">
+                                    <p>No tienes libros creados.</p>
+                                </div>
+                            )}
 
-                            <div className="space-y-3">
-                                {books.map((book, idx) => (
-                                    <div key={book.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3"
-                                         onMouseDown={() => startPress('book', book.id)} onMouseUp={endPress} onMouseLeave={endPress}
-                                         onTouchStart={() => startPress('book', book.id)} onTouchEnd={endPress}>
-                                        <div onClick={() => goBook(book.id)} className="p-3 bg-blue-50 text-blue-600 rounded-lg cursor-pointer" aria-label={`Abrir ${book.title}`}>
+                            <div className="space-y-3 mt-4">
+                                {books.map((book) => (
+                                    <div
+                                        key={book.id}
+                                        className="card card-tap p-4 flex items-center gap-3"
+                                    >
+                                        <button
+                                            onClick={() => goBook(book.id)}
+                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"
+                                        >
                                             <Icons.Book />
-                                        </div>
+                                        </button>
+
                                         <div className="flex-1">
-                                            <div onClick={() => goBook(book.id)} className="cursor-pointer">
-                                                <h3 className="font-semibold text-gray-800">{book.title}</h3>
-                                                <p className="text-xs text-gray-500">{book.chapters.length} capítulos</p>
-                                            </div>
+                                            {editingBook.id === book.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        value={editingBook.title}
+                                                        onChange={(e) =>
+                                                            setEditingBook({ ...editingBook, title: e.target.value })
+                                                        }
+                                                        className="w-full p-2 border rounded-md text-sm"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={saveBookEdit}
+                                                        className="text-green-600 text-sm font-semibold"
+                                                    >
+                                                        Guardar
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelBookEdit}
+                                                        className="text-gray-400 text-sm"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => goBook(book.id)}
+                                                    className="w-full text-left"
+                                                >
+                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                        {book.title}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-500">
+                                                        {book.chapters.length} capítulos
+                                                    </p>
+                                                </button>
+                                            )}
                                         </div>
-                                        {actionTarget?.type === 'book' && actionTarget.id === book.id && (
-                                            <div className="flex items-center gap-2 text-gray-600 animate-fade-in">
-                                                <button onClick={() => reorderBook(book.id, -1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-blue-300 hover:text-blue-700 text-xs" aria-label="Mover arriba">Arriba</button>
-                                                <button onClick={() => reorderBook(book.id, 1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-blue-300 hover:text-blue-700 text-xs" aria-label="Mover abajo">Abajo</button>
-                                                <button onClick={() => openRenameModal('book', book.id, book.title)} className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-xs font-semibold">Renombrar</button>
-                                                <button onClick={() => { if(confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); }} className="p-2 rounded-full hover:bg-red-50 text-red-600" aria-label={`Borrar ${book.title}`}><Icons.Trash /></button>
-                                            </div>
-                                        )}
+
+                                        <div className="flex items-center gap-1 text-slate-400">
+                                            <button
+                                                onClick={() => reorderBook(book.id, -1)}
+                                                className="icon-btn-sm hover:text-blue-600"
+                                            >
+                                                ↑
+                                            </button>
+                                            <button
+                                                onClick={() => reorderBook(book.id, 1)}
+                                                className="icon-btn-sm hover:text-blue-600"
+                                            >
+                                                ↓
+                                            </button>
+                                            {editingBook.id === book.id ? null : (
+                                                <button
+                                                    onClick={() => startBookEdit(book)}
+                                                    className="icon-btn-sm hover:text-green-600"
+                                                >
+                                                    ✎
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id);
+                                                }}
+                                                className="icon-btn-sm hover:text-red-600"
+                                            >
+                                                <Icons.Trash />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                        <div className="p-4 bg-white border-t sticky bottom-0">
-                            <div className="bg-gray-50 border rounded-xl p-3 space-y-2">
-                                <label className="text-xs font-semibold text-gray-600 uppercase">Crear nuevo libro</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        value={newBookTitle}
-                                        onChange={(e) => setNewBookTitle(e.target.value)}
-                                        placeholder="Ej. Guías de proyecto"
-                                        className="flex-1 p-2 rounded-lg border bg-white text-sm focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    <button
-                                        onClick={handleAddBook}
-                                        disabled={!newBookTitle.trim()}
-                                        className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow ${newBookTitle.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                                    >
-                                        <Icons.Plus />
-                                        Añadir
-                                    </button>
-                                </div>
-                                <p className="text-[11px] text-gray-500">El nombre se guarda al instante. Reordena con los botones que aparecen tras una pulsación larga.</p>
-                            </div>
+                        </main>
+
+                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
+                            <button
+                                onClick={() => {
+                                    const title = prompt("Nuevo libro:");
+                                    if (title) addBook(title);
+                                }}
+                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-blue-700 active:scale-[0.98] transition"
+                            >
+                                <Icons.Plus />
+                                <span>Nuevo Libro</span>
+                            </button>
                         </div>
-                        {renameOverlay}
-                        {moveOverlay}
                     </div>
                 );
             }
@@ -669,9 +700,9 @@
                 };
 
                 return (
-                    <div className="min-h-screen flex flex-col">
+                    <div className="min-h-screen flex flex-col bg-slate-100">
                         <Header title={activeBook.title} onBack={goHome} />
-                        <main className="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
+                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
                             <div className="bg-emerald-50 border border-emerald-100 text-emerald-900 text-sm p-4 rounded-xl shadow-sm flex flex-col gap-2">
                                 <p className="font-semibold">Ajusta tus capítulos con claridad</p>
                                 <p className="leading-snug">Haz pulsación larga sobre un capítulo para ver acciones. Las notas del libro pueden vivir aquí o en cada capítulo.</p>
@@ -687,7 +718,7 @@
                                         <p className="text-sm font-semibold text-gray-800">Notas del libro</p>
                                         <p className="text-xs text-gray-500">Sin asociar a capítulos.</p>
                                     </div>
-                                    <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`p-2 rounded-full ${voiceTarget?.bookId === activeBook.id ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota del libro">
+                                    <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`icon-btn ${voiceTarget?.bookId === activeBook.id ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota del libro">
                                         <Icons.Mic />
                                     </button>
                                 </div>
@@ -702,54 +733,117 @@
                             </div>
                             {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
                             <div className="space-y-3">
-                                {activeBook.chapters.map((chap, idx) => (
-                                    <div key={chap.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3"
-                                         onMouseDown={() => startPress('chapter', chap.id)} onMouseUp={endPress} onMouseLeave={endPress}
-                                         onTouchStart={() => startPress('chapter', chap.id)} onTouchEnd={endPress}>
-                                        <div onClick={() => goChapter(chap.id)} className="p-3 bg-indigo-50 text-indigo-600 rounded-lg cursor-pointer" aria-label={`Abrir ${chap.title}`}><Icons.Folder /></div>
+                                {activeBook.chapters.map((chap) => (
+                                    <div
+                                        key={chap.id}
+                                        className="card card-tap p-4 flex items-center gap-3"
+                                    >
+                                        <button
+                                            onClick={() => goChapter(chap.id)}
+                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"
+                                        >
+                                            <Icons.Folder />
+                                        </button>
+
                                         <div className="flex-1">
-                                            <div onClick={() => goChapter(chap.id)} className="cursor-pointer">
-                                                <h3 className="font-semibold text-gray-800">{chap.title}</h3><p className="text-xs text-gray-500">{chap.notes.length} notas</p>
-                                            </div>
+                                            {editingChapter.id === chap.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        value={editingChapter.title}
+                                                        onChange={(e) =>
+                                                            setEditingChapter({ ...editingChapter, title: e.target.value })
+                                                        }
+                                                        className="w-full p-2 border rounded-md text-sm"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={saveChapterEdit}
+                                                        className="text-green-600 text-sm font-semibold"
+                                                    >
+                                                        Guardar
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelChapterEdit}
+                                                        className="text-gray-400 text-sm"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => goChapter(chap.id)}
+                                                    className="w-full text-left"
+                                                >
+                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                        {chap.title}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-500">
+                                                        {chap.notes.length} notas
+                                                    </p>
+                                                </button>
+                                            )}
                                         </div>
-                                        {actionTarget?.type === 'chapter' && actionTarget.id === chap.id && (
-                                            <div className="flex items-center gap-2 text-gray-600 text-sm animate-fade-in">
-                                                <button onClick={() => reorderChapter(activeBook.id, chap.id, -1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-indigo-300 hover:text-indigo-700" aria-label="Mover arriba">Arriba</button>
-                                                <button onClick={() => reorderChapter(activeBook.id, chap.id, 1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-indigo-300 hover:text-indigo-700" aria-label="Mover abajo">Abajo</button>
-                                                <button onClick={() => openRenameModal('chapter', chap.id, chap.title)} className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 font-semibold">Renombrar</button>
-                                                <button onClick={() => openMoveModal(chap.id, 'move')} className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100" title="Mover a otro libro">Mover</button>
-                                                <button onClick={() => openMoveModal(chap.id, 'copy')} className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100" title="Copiar a otro libro">Copiar</button>
-                                                <button onClick={() => { if(confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); }} className="p-2 rounded-full hover:bg-red-50 text-red-600" aria-label={`Borrar ${chap.title}`}><Icons.Trash /></button>
-                                            </div>
-                                        )}
+
+                                        <div className="flex items-center gap-1 text-slate-400 text-xs">
+                                            <button
+                                                onClick={() => reorderChapter(activeBook.id, chap.id, -1)}
+                                                className="icon-btn-sm hover:text-blue-600"
+                                            >
+                                                ↑
+                                            </button>
+                                            <button
+                                                onClick={() => reorderChapter(activeBook.id, chap.id, 1)}
+                                                className="icon-btn-sm hover:text-blue-600"
+                                            >
+                                                ↓
+                                            </button>
+                                            {editingChapter.id === chap.id ? null : (
+                                                <button
+                                                    onClick={() => startChapterEdit(chap)}
+                                                    className="icon-btn-sm hover:text-green-600"
+                                                >
+                                                    ✎
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => {
+                                                    const target = prompt('Mover a libro (escribe el nombre exacto)');
+                                                    const targetBook = books.find(b => b.title === target);
+                                                    if (targetBook) moveChapterToBook(activeBook.id, chap.id, targetBook.id);
+                                                }}
+                                                className="icon-btn-sm hover:text-purple-600"
+                                                title="Mover a otro libro"
+                                            >
+                                                ⇄
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('¿Borrar capítulo y sus notas?')) {
+                                                        deleteChapter(activeBook.id, chap.id);
+                                                    }
+                                                }}
+                                                className="icon-btn-sm hover:text-red-600"
+                                            >
+                                                <Icons.Trash />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </main>
-                        <div className="p-4 bg-white border-t sticky bottom-0">
-                            <div className="bg-indigo-50 border rounded-xl p-3 space-y-2">
-                                <label className="text-xs font-semibold text-indigo-800 uppercase">Añadir capítulo</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        value={newChapterTitle}
-                                        onChange={(e) => setNewChapterTitle(e.target.value)}
-                                        placeholder="Ej. Introducción clara"
-                                        className="flex-1 p-2 rounded-lg border bg-white text-sm focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                    <button
-                                        onClick={handleAddChapter}
-                                        disabled={!newChapterTitle.trim()}
-                                        className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow ${newChapterTitle.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                                    >
-                                        <Icons.Plus />
-                                        Crear
-                                    </button>
-                                </div>
-                                <p className="text-[11px] text-gray-600">Los nombres se pueden editar con el botón “Renombrar”. Usa mover para reorganizar antes de trabajar notas.</p>
-                            </div>
+
+                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
+                            <button
+                                onClick={() => {
+                                    const title = prompt("Nuevo capítulo:");
+                                    if (title) addChapter(activeBook.id, title);
+                                }}
+                                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition"
+                            >
+                                <Icons.Plus />
+                                <span>Nuevo Capítulo</span>
+                            </button>
                         </div>
-                        {renameOverlay}
-                        {moveOverlay}
                     </div>
                 );
             }
