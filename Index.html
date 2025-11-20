@@ -168,43 +168,6 @@
             }
         }
 
-        const QuickNoteBar = ({
-            value,
-            onChange,
-            onSave,
-            onMic,
-            listening = false,
-            placeholder,
-            helperText
-        }) => (
-            <div className="bg-white border rounded-xl shadow p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={onMic}
-                        className={`icon-btn text-white ${listening ? 'bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'} shadow`}
-                        title="Dictar nota"
-                    >
-                        <Icons.Mic />
-                    </button>
-                    <input
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="flex-1 border rounded-lg p-2 text-sm"
-                        placeholder={placeholder}
-                    />
-                    <button
-                        onClick={() => { onSave(); }}
-                        disabled={!value.trim()}
-                        className={`px-3 py-2 rounded-lg text-xs font-semibold ${value.trim() ? 'bg-slate-800 text-white hover:bg-slate-900' : 'bg-gray-200 text-gray-400'}`}
-                    >
-                        Guardar
-                    </button>
-                </div>
-                {listening && <p className="text-[11px] text-red-600">Escuchando... habla ahora.</p>}
-                {helperText && <p className="text-[11px] text-gray-500">{helperText}</p>}
-            </div>
-        );
-
         // --- COMPONENTE PRINCIPAL ---
         function App() {
             const [books, setBooks] = useState([]);
@@ -575,7 +538,15 @@
                                         <p className="text-sm font-semibold text-gray-800">Notas rápidas</p>
                                         <p className="text-xs text-gray-500">Fuera de cualquier libro.</p>
                                     </div>
+                                    <button onClick={() => startVoiceNote({ type: 'root' })} className={`icon-btn ${voiceTarget?.type === 'root' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota">
+                                        <Icons.Mic />
+                                    </button>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    <input value={quickRootText} onChange={(e) => setQuickRootText(e.target.value)} placeholder="Nota breve..." className="flex-1 p-2 rounded-lg border text-sm" />
+                                    <button onClick={() => { addRootNote(quickRootText); setQuickRootText(''); }} disabled={!quickRootText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${quickRootText.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
+                                </div>
+                                {voiceTarget?.type === 'root' && <p className="text-[11px] text-red-600">Escuchando... habla ahora.</p>}
                                 {rootNotes.length > 0 && <div className="space-y-2 pt-2 border-t">
                                     {rootNotes.map(note => renderNoteChip(note, (txt) => setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: txt } : n)), () => setRootNotes(rootNotes.filter(n => n.id !== note.id))))}
                                 </div>}
@@ -674,16 +645,7 @@
                             </div>
                         </main>
 
-                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0 space-y-3">
-                            <QuickNoteBar
-                                value={quickRootText}
-                                onChange={setQuickRootText}
-                                onSave={() => { addRootNote(quickRootText); setQuickRootText(''); }}
-                                onMic={() => startVoiceNote({ type: 'root' })}
-                                listening={voiceTarget?.type === 'root'}
-                                placeholder="Añade una nota suelta con texto o voz"
-                                helperText="Tus notas globales se guardan sin libro ni capítulo."
-                            />
+                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
                             <button
                                 onClick={() => {
                                     const title = prompt("Nuevo libro:");
@@ -698,7 +660,6 @@
                     </div>
                 );
             }
-
             if (view === 'book' && activeBook) {
                 const handleStyleBook = async () => {
                     if(activeBook.chapters.length === 0) return alert("Libro vacío.");
@@ -757,7 +718,15 @@
                                         <p className="text-sm font-semibold text-gray-800">Notas del libro</p>
                                         <p className="text-xs text-gray-500">Sin asociar a capítulos.</p>
                                     </div>
+                                    <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`icon-btn ${voiceTarget?.bookId === activeBook.id ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota del libro">
+                                        <Icons.Mic />
+                                    </button>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    <input value={quickBookText} onChange={(e) => setQuickBookText(e.target.value)} placeholder="Nota breve..." className="flex-1 p-2 rounded-lg border text-sm" />
+                                    <button onClick={() => { addBookNote(activeBook.id, quickBookText); setQuickBookText(''); }} disabled={!quickBookText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${quickBookText.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
+                                </div>
+                                {voiceTarget?.bookId === activeBook.id && <p className="text-[11px] text-red-600">Escuchando... habla ahora.</p>}
                                 {activeBook.notes?.length > 0 && <div className="space-y-2 pt-2 border-t">
                                     {activeBook.notes.map(note => renderNoteChip(note, (txt) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: txt } : n)), () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id))))}
                                 </div>}
@@ -863,16 +832,7 @@
                             </div>
                         </main>
 
-                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0 space-y-3">
-                            <QuickNoteBar
-                                value={quickBookText}
-                                onChange={setQuickBookText}
-                                onSave={() => { addBookNote(activeBook.id, quickBookText); setQuickBookText(''); }}
-                                onMic={() => startVoiceNote({ type: 'book', bookId: activeBook.id })}
-                                listening={voiceTarget?.bookId === activeBook.id}
-                                placeholder="Añade notas generales del libro"
-                                helperText="Estas notas viven por encima de los capítulos."
-                            />
+                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
                             <button
                                 onClick={() => {
                                     const title = prompt("Nuevo capítulo:");
@@ -1015,16 +975,21 @@
                         </div>
                     </main>
 
-                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
-                        <QuickNoteBar
-                            value={manualText}
-                            onChange={setManualText}
-                            onSave={() => { onAddNote(manualText); setManualText(''); }}
-                            onMic={toggleRecording}
-                            listening={isRecording}
-                            placeholder={supportError || "Añadir nota rápida"}
-                            helperText={supportError || "Guarda al instante o dicta con el micrófono."}
-                        />
+                    <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
+                        <div className="bg-white border rounded-xl shadow p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <input value={manualText} onChange={(e) => setManualText(e.target.value)} className="flex-1 border rounded-lg p-2 text-sm" placeholder="Añadir nota rápida" />
+                                <button onClick={() => { onAddNote(manualText); setManualText(''); }} disabled={!manualText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${manualText.trim() ? 'bg-slate-800 text-white hover:bg-slate-900' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
+                            </div>
+                            <p className="text-[11px] text-gray-500">Las notas de texto son secundarias: ocupan poco espacio y se guardan al instante.</p>
+                        </div>
+                    </div>
+
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                        {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                        <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
+                            {isRecording ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic className="text-white" />}
+                        </button>
                     </div>
                 </div>
             );
