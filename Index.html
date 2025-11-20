@@ -142,8 +142,6 @@
             const [testMsg, setTestMsg] = useState("");
             const [editingBook, setEditingBook] = useState({ id: null, title: "" });
             const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
-            const [newBookTitle, setNewBookTitle] = useState("");
-            const [newChapterTitle, setNewChapterTitle] = useState("");
 
             useEffect(() => {
                 const savedBooks = localStorage.getItem('voiceNotes_books');
@@ -161,7 +159,6 @@
 
             useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
-            useEffect(() => { setNewChapterTitle(""); setEditingChapter({ id: null, title: "" }); }, [activeBookId]);
 
             // Helpers de navegación y datos
             const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
@@ -178,18 +175,6 @@
             };
             const renameChapter = (bookId, chapterId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
-            };
-            const handleAddBook = () => {
-                const cleanTitle = newBookTitle.trim();
-                if (!cleanTitle) return;
-                addBook(cleanTitle);
-                setNewBookTitle("");
-            };
-            const handleAddChapter = () => {
-                const cleanTitle = newChapterTitle.trim();
-                if (!cleanTitle || !activeBookId) return;
-                addChapter(activeBookId, cleanTitle);
-                setNewChapterTitle("");
             };
             const addNote = (bookId, chapterId, content) => {
                 if (!content || !content.trim()) return;
@@ -392,31 +377,23 @@
                 return (
                     <div className="min-h-screen flex flex-col">
                         <Header title="Mis Libros" />
-                        <main className="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
-                            <div className="bg-blue-50 border border-blue-100 text-blue-900 text-sm p-4 rounded-xl shadow-sm">
-                                <p className="font-semibold mb-1">Organiza tus libros y capítulos</p>
-                                <p className="leading-snug">Renombra, reordena y borra con botones visibles. Usa el formulario inferior para crear nuevos libros sin depender de ventanas emergentes.</p>
-                            </div>
-
+                        <main className="flex-1 p-4 max-w-md mx-auto w-full">
                             {books.length === 0 && <div className="text-center py-10 text-gray-400"><p>No tienes libros creados.</p></div>}
-
                             <div className="space-y-3">
                                 {books.map((book, idx) => (
                                     <div key={book.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
-                                        <div onClick={() => goBook(book.id)} className="p-3 bg-blue-50 text-blue-600 rounded-lg cursor-pointer" aria-label={`Abrir ${book.title}`}>
-                                            <Icons.Book />
-                                        </div>
+                                        <div onClick={() => goBook(book.id)} className="p-2 bg-blue-50 text-blue-600 rounded-lg cursor-pointer"><Icons.Book /></div>
                                         <div className="flex-1">
                                             {editingBook.id === book.id ? (
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         value={editingBook.title}
-                                                        onChange={(e) => setEditingBook({ ...editingBook, title: e.target.value})}
+                                                        onChange={(e) => setEditingBook({ ...editingBook, title: e.target.value })}
                                                         className="w-full p-2 border rounded-md text-sm"
                                                         autoFocus
                                                     />
-                                                    <button onClick={saveBookEdit} className="px-3 py-1 rounded-md text-xs bg-green-100 text-green-700 font-semibold">Guardar</button>
-                                                    <button onClick={cancelBookEdit} className="px-3 py-1 rounded-md text-xs bg-gray-100 text-gray-600">Cancelar</button>
+                                                    <button onClick={saveBookEdit} className="text-green-600 text-sm font-semibold">Guardar</button>
+                                                    <button onClick={cancelBookEdit} className="text-gray-400 text-sm">Cancelar</button>
                                                 </div>
                                             ) : (
                                                 <div onClick={() => goBook(book.id)} className="cursor-pointer">
@@ -425,41 +402,23 @@
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 text-gray-600">
-                                            <button onClick={() => reorderBook(book.id, -1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-blue-300 hover:text-blue-700 text-xs" aria-label="Mover arriba">Arriba</button>
-                                            <button onClick={() => reorderBook(book.id, 1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-blue-300 hover:text-blue-700 text-xs" aria-label="Mover abajo">Abajo</button>
-                                            {editingBook.id === book.id ? null : <button onClick={() => startBookEdit(book)} className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-xs font-semibold">Renombrar</button>}
-                                            <button onClick={() => { if(confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); }} className="p-2 rounded-full hover:bg-red-50 text-red-600" aria-label={`Borrar ${book.title}`}><Icons.Trash /></button>
+                                        <div className="flex items-center gap-1 text-gray-400">
+                                            <button onClick={() => reorderBook(book.id, -1)} className="p-1 hover:text-blue-600">↑</button>
+                                            <button onClick={() => reorderBook(book.id, 1)} className="p-1 hover:text-blue-600">↓</button>
+                                            {editingBook.id === book.id ? null : <button onClick={() => startBookEdit(book)} className="p-1 hover:text-green-600">✎</button>}
+                                            <button onClick={() => { if(confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); }} className="p-1 hover:text-red-600"><Icons.Trash /></button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </main>
                         <div className="p-4 bg-white border-t sticky bottom-0">
-                            <div className="bg-gray-50 border rounded-xl p-3 space-y-2">
-                                <label className="text-xs font-semibold text-gray-600 uppercase">Crear nuevo libro</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        value={newBookTitle}
-                                        onChange={(e) => setNewBookTitle(e.target.value)}
-                                        placeholder="Ej. Guías de proyecto"
-                                        className="flex-1 p-2 rounded-lg border bg-white text-sm focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    <button
-                                        onClick={handleAddBook}
-                                        disabled={!newBookTitle.trim()}
-                                        className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow ${newBookTitle.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                                    >
-                                        <Icons.Plus />
-                                        Añadir
-                                    </button>
-                                </div>
-                                <p className="text-[11px] text-gray-500">El nombre se guarda al instante. Puedes reordenar con los botones de arriba/abajo visibles.</p>
-                            </div>
+                            <button onClick={() => { const title = prompt("Nuevo libro:"); if (title) addBook(title); }} className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-blue-700 transition"><Icons.Plus /> Nuevo Libro</button>
                         </div>
                     </div>
                 );
             }
+
             if (view === 'book' && activeBook) {
                 const handleStyleBook = async () => {
                     if(activeBook.chapters.length === 0) return alert("Libro vacío.");
@@ -502,20 +461,16 @@
                 return (
                     <div className="min-h-screen flex flex-col">
                         <Header title={activeBook.title} onBack={goHome} />
-                        <main className="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
-                            <div className="bg-emerald-50 border border-emerald-100 text-emerald-900 text-sm p-4 rounded-xl shadow-sm flex flex-col gap-2">
-                                <p className="font-semibold">Ajusta tus capítulos con claridad</p>
-                                <p className="leading-snug">Los controles de estilo y generación están siempre visibles. Usa los botones renombrar y reordenar para mantener el orden antes de aplicar IA.</p>
-                            </div>
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-full font-semibold border border-amber-200 shadow-sm">💡 Generar resumen</button>
-                                <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full font-semibold border border-purple-200 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
+                        <main className="flex-1 p-4 max-w-md mx-auto w-full">
+                            <div className="mb-4 flex justify-end gap-2">
+                                <button onClick={handleGenerateBook} className="text-xs flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full font-medium border border-amber-200">💡 Generar</button>
+                                <button onClick={handleStyleBook} className="text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full font-medium border border-purple-200"><Icons.Wand className="w-3 h-3" /> Estilo Libro</button>
                             </div>
                             {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
                             <div className="space-y-3">
                                 {activeBook.chapters.map((chap, idx) => (
                                     <div key={chap.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
-                                        <div onClick={() => goChapter(chap.id)} className="p-3 bg-indigo-50 text-indigo-600 rounded-lg cursor-pointer" aria-label={`Abrir ${chap.title}`}><Icons.Folder /></div>
+                                        <div onClick={() => goChapter(chap.id)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg cursor-pointer"><Icons.Folder /></div>
                                         <div className="flex-1">
                                             {editingChapter.id === chap.id ? (
                                                 <div className="flex items-center gap-2">
@@ -525,8 +480,8 @@
                                                         className="w-full p-2 border rounded-md text-sm"
                                                         autoFocus
                                                     />
-                                                    <button onClick={saveChapterEdit} className="px-3 py-1 rounded-md text-xs bg-green-100 text-green-700 font-semibold">Guardar</button>
-                                                    <button onClick={cancelChapterEdit} className="px-3 py-1 rounded-md text-xs bg-gray-100 text-gray-600">Cancelar</button>
+                                                    <button onClick={saveChapterEdit} className="text-green-600 text-sm font-semibold">Guardar</button>
+                                                    <button onClick={cancelChapterEdit} className="text-gray-400 text-sm">Cancelar</button>
                                                 </div>
                                             ) : (
                                                 <div onClick={() => goChapter(chap.id)} className="cursor-pointer">
@@ -534,38 +489,19 @@
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 text-gray-600 text-sm">
-                                            <button onClick={() => reorderChapter(activeBook.id, chap.id, -1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-indigo-300 hover:text-indigo-700" aria-label="Mover arriba">Arriba</button>
-                                            <button onClick={() => reorderChapter(activeBook.id, chap.id, 1)} className="px-2 py-1 rounded-full border border-gray-200 hover:border-indigo-300 hover:text-indigo-700" aria-label="Mover abajo">Abajo</button>
-                                            {editingChapter.id === chap.id ? null : <button onClick={() => startChapterEdit(chap)} className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 font-semibold">Renombrar</button>}
-                                            <button onClick={() => { const target = prompt('Mover a libro (escribe el nombre exacto).'); const targetBook = books.find(b => b.title === target); if(targetBook) moveChapterToBook(activeBook.id, chap.id, targetBook.id); }} className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100" title="Mover a otro libro">Mover</button>
-                                            <button onClick={() => { if(confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); }} className="p-2 rounded-full hover:bg-red-50 text-red-600" aria-label={`Borrar ${chap.title}`}><Icons.Trash /></button>
+                                        <div className="flex items-center gap-1 text-gray-400 text-sm">
+                                            <button onClick={() => reorderChapter(activeBook.id, chap.id, -1)} className="p-1 hover:text-blue-600">↑</button>
+                                            <button onClick={() => reorderChapter(activeBook.id, chap.id, 1)} className="p-1 hover:text-blue-600">↓</button>
+                                            {editingChapter.id === chap.id ? null : <button onClick={() => startChapterEdit(chap)} className="p-1 hover:text-green-600">✎</button>}
+                                            <button onClick={() => { const target = prompt('Mover a libro (escribe el nombre exacto)'); const targetBook = books.find(b => b.title === target); if(targetBook) moveChapterToBook(activeBook.id, chap.id, targetBook.id); }} className="p-1 hover:text-purple-600" title="Mover a otro libro">⇄</button>
+                                            <button onClick={() => { if(confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); }} className="p-1 hover:text-red-600"><Icons.Trash /></button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </main>
                         <div className="p-4 bg-white border-t sticky bottom-0">
-                            <div className="bg-indigo-50 border rounded-xl p-3 space-y-2">
-                                <label className="text-xs font-semibold text-indigo-800 uppercase">Añadir capítulo</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        value={newChapterTitle}
-                                        onChange={(e) => setNewChapterTitle(e.target.value)}
-                                        placeholder="Ej. Introducción clara"
-                                        className="flex-1 p-2 rounded-lg border bg-white text-sm focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                    <button
-                                        onClick={handleAddChapter}
-                                        disabled={!newChapterTitle.trim()}
-                                        className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow ${newChapterTitle.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                                    >
-                                        <Icons.Plus />
-                                        Crear
-                                    </button>
-                                </div>
-                                <p className="text-[11px] text-gray-600">Los nombres se pueden editar con el botón “Renombrar”. Usa mover para reorganizar antes de trabajar notas.</p>
-                            </div>
+                            <button onClick={() => { const title = prompt("Nuevo capítulo:"); if (title) addChapter(activeBook.id, title); }} className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-indigo-700 transition"><Icons.Plus /> Nuevo Capítulo</button>
                         </div>
                     </div>
                 );
