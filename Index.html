@@ -104,6 +104,32 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        const ActionSheet = ({ title, actions, onClose }) => (
+            <div
+                className="fixed inset-0 z-30 flex items-end justify-center bg-black/30"
+                onClick={onClose}
+            >
+                <div
+                    className="w-full max-w-md bg-white rounded-t-2xl p-4 space-y-2 shadow-xl"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-slate-900">{title}</p>
+                        <button onClick={onClose} className="text-slate-400 text-xs">Cerrar</button>
+                    </div>
+                    {actions.map((action, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => { action.onPress(); onClose(); }}
+                            className="w-full text-left px-3 py-2 rounded-lg bg-slate-50 text-sm font-medium hover:bg-slate-100"
+                        >
+                            {action.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+
         // --- ICONOS SVG ---
         const Icons = {
             Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
@@ -217,13 +243,13 @@
             const [view, setView] = useState('home');
             const [activeBookId, setActiveBookId] = useState(null);
             const [activeChapterId, setActiveChapterId] = useState(null);
+            const [activeNoteCtx, setActiveNoteCtx] = useState(null);
             const [loading, setLoading] = useState(false);
             const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
             const [testMsg, setTestMsg] = useState("");
-            const [editingBook, setEditingBook] = useState({ id: null, title: "" });
-            const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
             const [quickRootText, setQuickRootText] = useState("");
             const [quickBookText, setQuickBookText] = useState("");
+            const [actionSheet, setActionSheet] = useState(null);
             const recognitionRef = useRef(null);
             const [voiceTarget, setVoiceTarget] = useState(null);
 
@@ -364,26 +390,37 @@
                 setBooks(updatedBooks);
             };
 
+            const chooseDestination = () => {
+                const options = books.flatMap(b => b.chapters.map(c => ({ label: `${b.title} → ${c.title}`, bookId: b.id, chapterId: c.id })));
+                if (options.length === 0) { alert('No hay capítulos destino.'); return null; }
+                const list = options.map((o, idx) => `${idx + 1}. ${o.label}`).join('\n');
+                const input = prompt(`Selecciona destino (número)\n${list}`);
+                return options[Number(input) - 1] || null;
+            };
+
+            const reorderNote = (bookId, chapterId, noteId, direction) => {
+                const book = books.find(b => b.id === bookId);
+                const chapter = book?.chapters.find(c => c.id === chapterId);
+                if (!chapter) return;
+                const index = chapter.notes.findIndex(n => n.id === noteId);
+                const target = index + direction;
+                if (target < 0 || target >= chapter.notes.length) return;
+                const updated = moveItem(chapter.notes, index, target);
+                updateNotes(bookId, chapterId, updated);
+            };
+
+            const openNote = (bookId, chapterId, noteId) => {
+                setActiveNoteCtx({ bookId, chapterId, noteId });
+                setView('note');
+            };
+
+            const openSheet = (config) => setActionSheet(config);
+            const closeSheet = () => setActionSheet(null);
+
             const goHome = () => { setView('home'); setActiveBookId(null); setActiveChapterId(null); };
             const goBook = (id) => { setActiveBookId(id); setView('book'); };
             const goChapter = (id) => { setActiveChapterId(id); setView('chapter'); };
             const goSettings = () => setView('settings');
-
-            const startBookEdit = (book) => setEditingBook({ id: book.id, title: book.title });
-            const saveBookEdit = () => {
-                if (!editingBook.title.trim()) return;
-                renameBook(editingBook.id, editingBook.title.trim());
-                setEditingBook({ id: null, title: "" });
-            };
-            const cancelBookEdit = () => setEditingBook({ id: null, title: "" });
-
-            const startChapterEdit = (chapter) => setEditingChapter({ id: chapter.id, title: chapter.title });
-            const saveChapterEdit = () => {
-                if (!editingChapter.title.trim()) return;
-                renameChapter(activeBookId, editingChapter.id, editingChapter.title.trim());
-                setEditingChapter({ id: null, title: "" });
-            };
-            const cancelChapterEdit = () => setEditingChapter({ id: null, title: "" });
 
             const startVoiceNote = (target) => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -413,10 +450,18 @@
                     <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{note.content}</p>
                     <div className="flex items-center justify-between text-[11px] text-gray-500">
                         <span>{new Date(note.timestamp).toLocaleString()}</span>
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => { const updated = prompt('Editar nota', note.content); if(updated) onEdit(updated.trim()); }} className="text-gray-400 hover:text-blue-600 text-xs">✎</button>
-                            <button onClick={() => { if(confirm('¿Borrar esta nota?')) onDelete(); }} className="text-gray-400 hover:text-red-600 text-xs"><Icons.Trash /></button>
-                        </div>
+                        <button
+                            onClick={() => openSheet({
+                                title: 'Opciones de nota',
+                                actions: [
+                                    { label: 'Editar', onPress: () => { const updated = prompt('Editar nota', note.content); if(updated) onEdit(updated.trim()); } },
+                                    { label: 'Borrar', onPress: () => { if(confirm('¿Borrar esta nota?')) onDelete(); } }
+                                ]
+                            })}
+                            className="text-gray-400 hover:text-slate-900 text-xs"
+                        >
+                            ✎
+                        </button>
                     </div>
                 </div>
             );
@@ -463,6 +508,11 @@
                 </header>
             );
 
+            const activeBook = books.find(b => b.id === activeBookId);
+            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
+            const activeNote = activeNoteCtx ? books.find(b => b.id === activeNoteCtx.bookId)?.chapters.find(c => c.id === activeNoteCtx.chapterId)?.notes.find(n => n.id === activeNoteCtx.noteId) : null;
+            const sheetElement = actionSheet ? <ActionSheet {...actionSheet} onClose={closeSheet} /> : null;
+
             // --- VISTA: SETTINGS (Mejorada) ---
             if (view === 'settings') {
                 const testConnection = async () => {
@@ -481,7 +531,7 @@
                     <div className="min-h-screen bg-gray-50">
                         <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
                         <div className="p-4 max-w-md mx-auto space-y-6">
-                            
+
                             {/* Sección API */}
                             <div className="bg-white p-4 rounded-lg shadow space-y-4">
                                 <div>
@@ -493,8 +543,8 @@
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Modelo (Model Name)</label>
                                     <div className="flex gap-2">
-                                        <select 
-                                            value={settings.model} 
+                                        <select
+                                            value={settings.model}
                                             onChange={(e) => setSettings({...settings, model: e.target.value})}
                                             className="w-full p-2 border rounded-md bg-gray-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         >
@@ -505,8 +555,8 @@
                                         </select>
                                     </div>
                                     {/* Opción manual por si acaso */}
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={settings.model}
                                         onChange={(e) => setSettings({...settings, model: e.target.value})}
                                         placeholder="Nombre manual del modelo..."
@@ -516,10 +566,10 @@
 
                                 <button onClick={testConnection} disabled={testStatus === 'loading'}
                                     className={`w-full py-2 px-4 rounded text-sm font-medium border transition flex items-center justify-center gap-2
-                                    ${testStatus === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                    ${testStatus === 'success' ? 'bg-green-50 text-green-700 border-green-200' :
                                       testStatus === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                                    {testStatus === 'loading' ? <div className="loader w-4 h-4 border-2 border-gray-400 border-t-transparent"></div> : 
-                                     testStatus === 'success' ? <Icons.Check /> : 
+                                    {testStatus === 'loading' ? <div className="loader w-4 h-4 border-2 border-gray-400 border-t-transparent"></div> :
+                                     testStatus === 'success' ? <Icons.Check /> :
                                      testStatus === 'error' ? <Icons.Alert /> : "Probar Conexión"}
                                     {testStatus === 'loading' ? ' Probando...' : testStatus === 'success' ? ' Conectado' : testStatus === 'error' ? ' Error' : ' Probar Conexión'}
                                 </button>
@@ -551,12 +601,10 @@
                                 Guardar y Salir
                             </button>
                         </div>
+                        {sheetElement}
                     </div>
                 );
             }
-
-            const activeBook = books.find(b => b.id === activeBookId);
-            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
 
             if (view === 'home') {
                 return (
@@ -564,11 +612,6 @@
                         <Header title="Mis Libros" />
 
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
-                            <div className="bg-blue-50 border border-blue-100 text-blue-900 text-sm p-4 rounded-xl shadow-sm">
-                                <p className="font-semibold mb-1">Mantén la pantalla limpia</p>
-                                <p className="leading-snug">Haz una pulsación larga sobre un libro para desplegar sus opciones. Las notas sueltas ahora pueden vivir aquí mismo o dentro de cada libro.</p>
-                            </div>
-
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3 mt-4">
                                 <div className="flex items-center justify-between gap-2">
                                     <div>
@@ -601,72 +644,34 @@
                                         </button>
 
                                         <div className="flex-1">
-                                            {editingBook.id === book.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        value={editingBook.title}
-                                                        onChange={(e) =>
-                                                            setEditingBook({ ...editingBook, title: e.target.value })
-                                                        }
-                                                        className="w-full p-2 border rounded-md text-sm"
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={saveBookEdit}
-                                                        className="text-green-600 text-sm font-semibold"
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelBookEdit}
-                                                        className="text-gray-400 text-sm"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => goBook(book.id)}
-                                                    className="w-full text-left"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
-                                                        {book.title}
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        {book.chapters.length} capítulos
-                                                    </p>
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => goBook(book.id)}
+                                                className="w-full text-left"
+                                            >
+                                                <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                    {book.title}
+                                                </h3>
+                                                <p className="text-xs text-slate-500">
+                                                    {book.chapters.length} capítulos
+                                                </p>
+                                            </button>
                                         </div>
 
                                         <div className="flex items-center gap-1 text-slate-400">
                                             <button
-                                                onClick={() => reorderBook(book.id, -1)}
-                                                className="icon-btn-sm hover:text-blue-600"
+                                                onClick={() => openSheet({
+                                                    title: book.title,
+                                                    actions: [
+                                                        { label: 'Editar título', onPress: () => { const title = prompt('Renombra el libro', book.title); if(title) renameBook(book.id, title.trim()); } },
+                                                        { label: 'Subir', onPress: () => reorderBook(book.id, -1) },
+                                                        { label: 'Bajar', onPress: () => reorderBook(book.id, 1) },
+                                                        { label: 'Borrar', onPress: () => { if(confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); } }
+                                                    ]
+                                                })}
+                                                className="icon-btn-sm hover:text-slate-800"
+                                                title="Opciones"
                                             >
-                                                ↑
-                                            </button>
-                                            <button
-                                                onClick={() => reorderBook(book.id, 1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↓
-                                            </button>
-                                            {editingBook.id === book.id ? null : (
-                                                <button
-                                                    onClick={() => startBookEdit(book)}
-                                                    className="icon-btn-sm hover:text-green-600"
-                                                >
-                                                    ✎
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id);
-                                                }}
-                                                className="icon-btn-sm hover:text-red-600"
-                                            >
-                                                <Icons.Trash />
+                                                ✎
                                             </button>
                                         </div>
                                     </div>
@@ -695,6 +700,7 @@
                                 <span>Nuevo Libro</span>
                             </button>
                         </div>
+                        {sheetElement}
                     </div>
                 );
             }
@@ -742,10 +748,6 @@
                     <div className="min-h-screen flex flex-col bg-slate-100">
                         <Header title={activeBook.title} onBack={goHome} />
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
-                            <div className="bg-emerald-50 border border-emerald-100 text-emerald-900 text-sm p-4 rounded-xl shadow-sm flex flex-col gap-2">
-                                <p className="font-semibold">Ajusta tus capítulos con claridad</p>
-                                <p className="leading-snug">Haz pulsación larga sobre un capítulo para ver acciones. Las notas del libro pueden vivir aquí o en cada capítulo.</p>
-                            </div>
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-full font-semibold border border-amber-200 shadow-sm">💡 Generar resumen</button>
                                 <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full font-semibold border border-purple-200 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
@@ -777,85 +779,35 @@
                                         </button>
 
                                         <div className="flex-1">
-                                            {editingChapter.id === chap.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        value={editingChapter.title}
-                                                        onChange={(e) =>
-                                                            setEditingChapter({ ...editingChapter, title: e.target.value })
-                                                        }
-                                                        className="w-full p-2 border rounded-md text-sm"
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={saveChapterEdit}
-                                                        className="text-green-600 text-sm font-semibold"
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelChapterEdit}
-                                                        className="text-gray-400 text-sm"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => goChapter(chap.id)}
-                                                    className="w-full text-left"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
-                                                        {chap.title}
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        {chap.notes.length} notas
-                                                    </p>
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => goChapter(chap.id)}
+                                                className="w-full text-left"
+                                            >
+                                                <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                    {chap.title}
+                                                </h3>
+                                                <p className="text-xs text-slate-500">
+                                                    {chap.notes.length} notas
+                                                </p>
+                                            </button>
                                         </div>
 
                                         <div className="flex items-center gap-1 text-slate-400 text-xs">
                                             <button
-                                                onClick={() => reorderChapter(activeBook.id, chap.id, -1)}
-                                                className="icon-btn-sm hover:text-blue-600"
+                                                onClick={() => openSheet({
+                                                    title: chap.title,
+                                                    actions: [
+                                                        { label: 'Editar título', onPress: () => { const title = prompt('Renombra el capítulo', chap.title); if(title) renameChapter(activeBook.id, chap.id, title.trim()); } },
+                                                        { label: 'Subir', onPress: () => reorderChapter(activeBook.id, chap.id, -1) },
+                                                        { label: 'Bajar', onPress: () => reorderChapter(activeBook.id, chap.id, 1) },
+                                                        { label: 'Mover a otro libro', onPress: () => { const dest = prompt('Mover a libro (nombre exacto)'); const target = books.find(b => b.title === dest); if(target) moveChapterToBook(activeBook.id, chap.id, target.id); } },
+                                                        { label: 'Borrar', onPress: () => { if(confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); } }
+                                                    ]
+                                                })}
+                                                className="icon-btn-sm hover:text-slate-800"
+                                                title="Opciones"
                                             >
-                                                ↑
-                                            </button>
-                                            <button
-                                                onClick={() => reorderChapter(activeBook.id, chap.id, 1)}
-                                                className="icon-btn-sm hover:text-blue-600"
-                                            >
-                                                ↓
-                                            </button>
-                                            {editingChapter.id === chap.id ? null : (
-                                                <button
-                                                    onClick={() => startChapterEdit(chap)}
-                                                    className="icon-btn-sm hover:text-green-600"
-                                                >
-                                                    ✎
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    const target = prompt('Mover a libro (escribe el nombre exacto)');
-                                                    const targetBook = books.find(b => b.title === target);
-                                                    if (targetBook) moveChapterToBook(activeBook.id, chap.id, targetBook.id);
-                                                }}
-                                                className="icon-btn-sm hover:text-purple-600"
-                                                title="Mover a otro libro"
-                                            >
-                                                ⇄
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('¿Borrar capítulo y sus notas?')) {
-                                                        deleteChapter(activeBook.id, chap.id);
-                                                    }
-                                                }}
-                                                className="icon-btn-sm hover:text-red-600"
-                                            >
-                                                <Icons.Trash />
+                                                ✎
                                             </button>
                                         </div>
                                     </div>
@@ -884,25 +836,95 @@
                                 <span>Nuevo Capítulo</span>
                             </button>
                         </div>
+                        {sheetElement}
+                    </div>
+                );
+            }
+
+            if (view === 'note' && activeNote && activeNoteCtx) {
+                const parentBook = books.find(b => b.id === activeNoteCtx.bookId);
+                const parentChapter = parentBook?.chapters.find(c => c.id === activeNoteCtx.chapterId);
+
+                const handleStyle = async () => {
+                    const styleDesc = prompt("Describe el estilo para esta nota:");
+                    if (!styleDesc) return;
+                    setLoading(true);
+                    try {
+                        const promptText = settings.prompts.style.replace('{STYLE}', styleDesc);
+                        const result = await callGemini(settings.apiKey, settings.model, promptText, activeNote.content);
+                        editNote(activeNoteCtx.bookId, activeNoteCtx.chapterId, activeNoteCtx.noteId, result);
+                    } catch (e) { alert(e.message); } finally { setLoading(false); }
+                };
+
+                const handleGenerate = async () => {
+                    const promptText = prompt("¿Qué texto necesitas generar?");
+                    if (!promptText) return;
+                    setLoading(true);
+                    try {
+                        const finalPrompt = `${settings.prompts.generate}\n\nPetición: ${promptText}`;
+                        const result = await callGemini(settings.apiKey, settings.model, finalPrompt, activeNote.content);
+                        editNote(activeNoteCtx.bookId, activeNoteCtx.chapterId, activeNoteCtx.noteId, `${activeNote.content}\n\n${result}`);
+                    } catch (e) { alert(e.message); } finally { setLoading(false); }
+                };
+
+                const closeNoteView = () => { setActiveNoteCtx(null); setView('chapter'); };
+
+                const noteActions = () => openSheet({
+                    title: 'Opciones de nota',
+                    actions: [
+                        { label: 'Editar', onPress: () => { const updated = prompt('Editar nota', activeNote.content); if(updated) editNote(activeNoteCtx.bookId, activeNoteCtx.chapterId, activeNoteCtx.noteId, updated.trim()); } },
+                        { label: 'Reordenar arriba', onPress: () => reorderNote(activeNoteCtx.bookId, activeNoteCtx.chapterId, activeNoteCtx.noteId, -1) },
+                        { label: 'Reordenar abajo', onPress: () => reorderNote(activeNoteCtx.bookId, activeNoteCtx.chapterId, activeNoteCtx.noteId, 1) },
+                        { label: 'Mover', onPress: () => { const dest = chooseDestination(); if(dest) transferNote(activeNoteCtx.bookId, activeNoteCtx.chapterId, activeNoteCtx.noteId, dest.bookId, dest.chapterId, 'move'); closeNoteView(); } },
+                        { label: 'Borrar', onPress: () => { updateNotes(activeNoteCtx.bookId, activeNoteCtx.chapterId, (parentChapter?.notes || []).filter(n => n.id !== activeNoteCtx.noteId)); closeNoteView(); } }
+                    ]
+                });
+
+                return (
+                    <div className="min-h-screen flex flex-col bg-slate-100">
+                        <Header title={parentChapter?.title || 'Nota'} onBack={closeNoteView} />
+                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
+                            <div className="card p-4 space-y-3">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="space-y-1">
+                                        <p className="text-xs text-slate-500 uppercase">{parentBook?.title}</p>
+                                        <h2 className="text-base font-semibold text-slate-900">{parentChapter?.title}</h2>
+                                        <p className="text-[11px] text-slate-500">{new Date(activeNote.timestamp).toLocaleString()}</p>
+                                    </div>
+                                    <button onClick={noteActions} className="icon-btn-sm text-slate-500 hover:text-slate-900">✎</button>
+                                </div>
+                                <p className="text-sm leading-relaxed text-slate-900 whitespace-pre-wrap">{activeNote.content}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={handleStyle} className="text-xs flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-semibold active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo</button>
+                                <button onClick={handleGenerate} className="text-xs flex items-center justify-center gap-2 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-semibold active:scale-95 transition">💡 Generar texto</button>
+                            </div>
+                        </main>
+                        {sheetElement}
                     </div>
                 );
             }
 
             if (view === 'chapter' && activeChapter) {
-                return <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
-                    onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
-                    onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
-                    editNote={editNote}
-                    settings={settings} setLoading={setLoading} books={books} transferNote={transferNote} />;
+                return <>
+                    <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
+                        onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
+                        onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
+                        editNote={editNote}
+                        settings={settings} setLoading={setLoading} transferNote={transferNote}
+                        chooseDestination={chooseDestination} reorderNote={reorderNote} openSheet={openSheet}
+                        onOpenNote={(noteId) => openNote(activeBookId, activeChapter.id, noteId)}
+                    />
+                    {sheetElement}
+                </>;
             }
             return null;
         }
 
         // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, onBack, onAddNote, onUpdateNotes, editNote, settings, setLoading, books, transferNote }) {
+        function NoteManager({ bookId, chapter, onBack, onAddNote, onUpdateNotes, editNote, settings, setLoading, transferNote, chooseDestination, reorderNote, openSheet, onOpenNote }) {
             const [isRecording, setIsRecording] = useState(false);
-            const [selectedIds, setSelectedIds] = useState([]);
-            const [selectionMode, setSelectionMode] = useState(false);
             const [manualText, setManualText] = useState("");
             const recognitionRef = useRef(null);
             const [supportError, setSupportError] = useState(null);
@@ -927,88 +949,67 @@
             };
 
             const toggleRecording = () => isRecording ? recognitionRef.current?.stop() : startRecording();
-            const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
 
-            const reorderNote = (id, direction) => {
-                const index = chapter.notes.findIndex(n => n.id === id);
-                const target = index + direction;
-                if (target < 0 || target >= chapter.notes.length) return;
-                onUpdateNotes(moveItem(chapter.notes, index, target));
-            };
-
-            const chooseDestination = () => {
-                const options = books.flatMap(b => b.chapters.map(c => ({ label: `${b.title} → ${c.title}`, bookId: b.id, chapterId: c.id })));
-                if (options.length === 0) { alert('No hay capítulos destino.'); return null; }
-                const list = options.map((o, idx) => `${idx + 1}. ${o.label}`).join('\n');
-                const input = prompt(`Selecciona destino (número)\n${list}`);
-                const selected = options[Number(input) - 1];
-                return selected;
-            };
-
-            const processAI = async (type, scope) => {
-                const notes = scope === 'selection' ? chapter.notes.filter(n => selectedIds.includes(n.id)) : chapter.notes;
-                if (notes.length === 0) return alert("Sin notas seleccionadas.");
-                if (type === 'merge' && notes.length < 2) return alert("Selecciona 2+ notas.");
-
-                const extraPrompt = type === 'style' ? prompt("Describe el estilo:") : type === 'generate' ? prompt("¿Qué necesitas generar?") : null;
-                if ((type === 'style' || type === 'generate') && !extraPrompt) return;
-
+            const processAI = async (type) => {
+                if (chapter.notes.length === 0) return alert("Sin notas para procesar.");
+                const extraPrompt = type === 'style' ? prompt("Describe el estilo:") : prompt("¿Qué necesitas generar?");
+                if (!extraPrompt) return;
                 setLoading(true);
                 try {
-                    const text = notes.map(n => type === 'merge' ? `- ${n.content}` : n.content).join("\n\n");
-                    let promptText = settings.prompts.merge;
-                    if (type === 'style') promptText = settings.prompts.style.replace('{STYLE}', extraPrompt);
+                    const text = chapter.notes.map(n => n.content).join("\n\n");
+                    let promptText = settings.prompts.style.replace('{STYLE}', extraPrompt);
                     if (type === 'generate') promptText = `${settings.prompts.generate}\n\nPetición: ${extraPrompt}`;
                     const result = await callGemini(settings.apiKey, settings.model, promptText, text);
-
                     const newNote = { id: generateId(), content: result, timestamp: Date.now() };
-                    if (scope === 'selection') {
-                        const remaining = chapter.notes.filter(n => !selectedIds.includes(n.id));
-                        onUpdateNotes([...remaining, newNote]);
-                        setSelectedIds([]); setSelectionMode(false);
-                    } else {
-                        onUpdateNotes([newNote]);
-                    }
+                    onUpdateNotes([newNote]);
                 } catch (e) { alert(e.message); } finally { setLoading(false); }
             };
+
+            const openNoteOptions = (note) => openSheet({
+                title: 'Opciones de nota',
+                actions: [
+                    { label: 'Editar', onPress: () => { const updated = prompt('Editar nota', note.content); if(updated) editNote(bookId, chapter.id, note.id, updated.trim()); } },
+                    { label: 'Reordenar arriba', onPress: () => reorderNote(bookId, chapter.id, note.id, -1) },
+                    { label: 'Reordenar abajo', onPress: () => reorderNote(bookId, chapter.id, note.id, 1) },
+                    { label: 'Mover', onPress: () => { const dest = chooseDestination(); if(dest) transferNote(bookId, chapter.id, note.id, dest.bookId, dest.chapterId, 'move'); } },
+                    { label: 'Copiar', onPress: () => { const dest = chooseDestination(); if(dest) transferNote(bookId, chapter.id, note.id, dest.bookId, dest.chapterId, 'copy'); } },
+                    { label: 'Borrar', onPress: () => onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)) }
+                ]
+            });
 
             return (
                 <div className="min-h-screen flex flex-col bg-gray-50">
                     <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
                         <div className="flex items-center gap-2">
                             <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
-                            <div className="overflow-hidden"><h1 className="text-lg font-bold text-gray-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
+                            <div className="overflow-hidden">
+                                <h1 className="text-lg font-bold text-gray-800 truncate">{chapter.title}</h1>
+                                <p className="text-xs text-gray-500 truncate">{chapter.notes.length} notas</p>
+                            </div>
                         </div>
-                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
                     </header>
 
-                    <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto">
-                        <div className="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {selectionMode && selectedIds.length > 1 && <button onClick={() => processAI('merge', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 font-medium active:scale-95 transition" title="Fusiona y reemplaza la selección por una sola nota"><Icons.Merge className="w-3 h-3" /> Fusionar</button>}
-                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('style', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Sel)</button>}
-                    {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('generate', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-medium active:scale-95 transition">💡 Generar</button>}
-                    {!selectionMode && chapter.notes.length > 0 && <>
-                        <button onClick={() => processAI('style', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Todo)</button>
-                        <button onClick={() => processAI('generate', 'chapter')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-medium active:scale-95 transition">💡 Generar capítulo</button>
-                    </>}
-                </div>
+                    <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto space-y-4">
+                        {chapter.notes.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={() => processAI('style')} className="text-xs flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-semibold active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo</button>
+                                <button onClick={() => processAI('generate')} className="text-xs flex items-center justify-center gap-2 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 font-semibold active:scale-95 transition">💡 Generar</button>
+                            </div>
+                        )}
 
                         {chapter.notes.length === 0 && <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Mic className="w-12 h-12 mb-2 opacity-20" /><p>Graba una nota</p></div>}
 
                         <div className="space-y-3">
                             {chapter.notes.map(note => (
-                                <div key={note.id} onClick={() => selectionMode && toggleSelect(note.id)} className={`p-4 rounded-xl shadow-sm border transition relative ${selectedIds.includes(note.id) ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}>
-                                    <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
-                                    <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
+                                <div key={note.id} className="p-4 rounded-xl shadow-sm border bg-white border-gray-100">
+                                    <div className="flex items-start gap-3">
+                                        <button onClick={() => onOpenNote(note.id)} className="flex-1 text-left">
+                                            <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap line-clamp-3">{note.content}</p>
+                                        </button>
+                                        <button onClick={() => openNoteOptions(note)} className="icon-btn-sm text-slate-500 hover:text-slate-900">✎</button>
+                                    </div>
+                                    <div className="mt-2 text-[10px] text-gray-400 flex justify-between">
                                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                        {!selectionMode && <div className="flex items-center gap-1">
-                                            <button onClick={(e) => { e.stopPropagation(); const updated = prompt('Editar nota', note.content); if(updated) editNote(bookId, chapter.id, note.id, updated.trim()); }} className="text-gray-400 hover:text-green-600 p-1">✎</button>
-                                            <button onClick={(e) => { e.stopPropagation(); reorderNote(note.id, -1); }} className="text-gray-400 hover:text-blue-600 p-1">↑</button>
-                                            <button onClick={(e) => { e.stopPropagation(); reorderNote(note.id, 1); }} className="text-gray-400 hover:text-blue-600 p-1">↓</button>
-                                            <button onClick={(e) => { e.stopPropagation(); const dest = chooseDestination(); if(dest) transferNote(bookId, chapter.id, note.id, dest.bookId, dest.chapterId, 'move'); }} className="text-gray-400 hover:text-purple-600 p-1" title="Mover">⇄</button>
-                                            <button onClick={(e) => { e.stopPropagation(); const dest = chooseDestination(); if(dest) transferNote(bookId, chapter.id, note.id, dest.bookId, dest.chapterId, 'copy'); }} className="text-gray-400 hover:text-amber-600 p-1" title="Copiar">⧉</button>
-                                            <button onClick={(e) => { e.stopPropagation(); if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }} className="text-gray-300 hover:text-red-500 p-1"><Icons.Trash /></button>
-                                        </div>}
                                     </div>
                                 </div>
                             ))}
