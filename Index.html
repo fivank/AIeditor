@@ -220,7 +220,7 @@
                             <div className="relative">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setMenuOpen(o => !o); }}
-                                    className="p-1 text-gray-500 hover:text-blue-600 rounded-full bg-gray-100"
+                                    className="p-1.5 text-white bg-slate-600 hover:bg-slate-700 rounded-full shadow"
                                     title="Opciones de nota"
                                 >
                                     ✎
@@ -643,7 +643,7 @@
             }
 
             // Header
-            const Header = ({ title, onBack }) => (
+            const Header = ({ title, onBack, accentClass = 'text-slate-900' }) => (
                 <header
                     className="glass-panel safe-top sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-slate-200 shadow-sm"
                 >
@@ -657,7 +657,7 @@
                             </button>
                         )}
                         <div className="flex flex-col min-w-0">
-                            <h1 className="text-base font-semibold text-slate-900 truncate">
+                            <h1 className={`text-base font-semibold truncate ${accentClass}`}>
                                 {title}
                             </h1>
                         </div>
@@ -772,7 +772,7 @@
                 return (
                     <>
                     <div className="min-h-screen flex flex-col bg-blue-50">
-                        <Header title="Mis Libros" />
+                        <Header title="Mis Libros" accentClass="text-blue-800" />
 
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3 mt-4">
@@ -782,7 +782,6 @@
                                         <p className="text-xs text-gray-500">Fuera de cualquier libro.</p>
                                     </div>
                                 </div>
-                                <p className="text-[11px] text-gray-500">Usa el micrófono o el botón de notas flotante para crear nuevas notas.</p>
                                 {rootNotes.length > 0 && <div className="space-y-2 pt-2 border-t">
                                     {rootNotes.map(note => (
                                         <NoteChip
@@ -873,6 +872,19 @@
                                     </div>
                                 ))}
                             </div>
+
+                            <div className="mt-6">
+                                <button
+                                    onClick={() => {
+                                        const title = prompt("Nuevo libro:");
+                                        if (title) addBook(title);
+                                    }}
+                                    className="w-full flex items-center justify-center gap-2 bg-blue-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-blue-800 active:scale-[0.98] transition"
+                                >
+                                    <Icons.Plus />
+                                    <span>Nuevo Libro</span>
+                                </button>
+                            </div>
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
@@ -896,18 +908,6 @@
                             onClose={closeNoteModal}
                         />
 
-                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
-                            <button
-                                onClick={() => {
-                                    const title = prompt("Nuevo libro:");
-                                    if (title) addBook(title);
-                                }}
-                                className="w-full flex items-center justify-center gap-2 bg-blue-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-blue-800 active:scale-[0.98] transition"
-                            >
-                                <Icons.Plus />
-                                <span>Nuevo Libro</span>
-                            </button>
-                        </div>
                     </div>
                     {pickerPortal}
                     </>
@@ -955,7 +955,7 @@
                 return (
                     <>
                     <div className="min-h-screen flex flex-col bg-violet-50">
-                        <Header title={activeBook.title} onBack={goHome} />
+                        <Header title={activeBook.title} onBack={goHome} accentClass="text-violet-800" />
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-violet-100 text-violet-800 px-4 py-2 rounded-full font-semibold border border-violet-200 shadow-sm">💡 Generar resumen</button>
@@ -969,7 +969,6 @@
                                         <p className="text-xs text-gray-500">Sin asociar a capítulos.</p>
                                     </div>
                                 </div>
-                                <p className="text-[11px] text-gray-500">Usa el micrófono o el botón de notas flotante para añadir contenido al libro.</p>
                                 {activeBook.notes?.length > 0 && <div className="space-y-2 pt-2 border-t">
                                     {activeBook.notes.map(note => (
                                         <NoteChip
@@ -1064,6 +1063,19 @@
                                     </div>
                                 ))}
                             </div>
+
+                            <div className="mt-6">
+                                <button
+                                    onClick={() => {
+                                        const title = prompt("Nuevo capítulo:");
+                                        if (title) addChapter(activeBook.id, title);
+                                    }}
+                                    className="w-full flex items-center justify-center gap-2 bg-violet-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-violet-800 active:scale-[0.98] transition"
+                                >
+                                    <Icons.Plus />
+                                    <span>Nuevo Capítulo</span>
+                                </button>
+                            </div>
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
@@ -1087,18 +1099,6 @@
                             onClose={closeNoteModal}
                         />
 
-                        <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
-                            <button
-                                onClick={() => {
-                                    const title = prompt("Nuevo capítulo:");
-                                    if (title) addChapter(activeBook.id, title);
-                                }}
-                                className="w-full flex items-center justify-center gap-2 bg-violet-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-violet-800 active:scale-[0.98] transition"
-                            >
-                                <Icons.Plus />
-                                <span>Nuevo Capítulo</span>
-                            </button>
-                        </div>
                     </div>
                     {pickerPortal}
                     </>
@@ -1201,7 +1201,7 @@
                     <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
                         <div className="flex items-center gap-2">
                             <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
-                            <div className="overflow-hidden"><h1 className="text-lg font-bold text-gray-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
+                            <div className="overflow-hidden"><h1 className="text-lg font-bold text-emerald-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
                         </div>
                         <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
                     </header>
@@ -1246,7 +1246,7 @@
                             <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-lg shadow hover:bg-emerald-300" title="Escribir nota">
                                 📝
                             </button>
-                            <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-emerald-700 hover:bg-emerald-800 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
+                            <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 text-white ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-emerald-700 hover:bg-emerald-800 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
                                 {isRecording ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic className="text-white" />}
                             </button>
                         </div>
