@@ -147,6 +147,74 @@
             return options;
         };
 
+        const NoteModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-800">{title}</p>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+                        </div>
+                        <textarea
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="w-full min-h-[120px] border rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-200"
+                            placeholder="Escribe tu nota aquí..."
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button onClick={onClose} className="px-3 py-2 text-sm rounded-lg border text-gray-600 hover:bg-gray-50">Cancelar</button>
+                            <button onClick={onSave} className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick }) => {
+            const [menuOpen, setMenuOpen] = useState(false);
+            const { onEdit, onDelete, onMove, onCopy, onMoveUp, onMoveDown } = actions;
+            const hasActions = onEdit || onDelete || onMove || onCopy || onMoveUp || onMoveDown;
+
+            const handleAction = (callback) => {
+                if (callback) callback();
+                setMenuOpen(false);
+            };
+
+            return (
+                <div
+                    className={`p-4 rounded-xl shadow-sm border transition relative ${isSelected ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}
+                    onClick={onCardClick}
+                >
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                    <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
+                        <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        {hasActions && (
+                            <div className="relative">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setMenuOpen(o => !o); }}
+                                    className="p-1 text-gray-500 hover:text-blue-600 rounded-full bg-gray-100"
+                                    title="Opciones de nota"
+                                >
+                                    ✎
+                                </button>
+                                {menuOpen && (
+                                    <div className="absolute right-0 bottom-7 w-40 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                        {onEdit && <button onClick={(e) => { e.stopPropagation(); handleAction(onEdit); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Editar</button>}
+                                        {onMoveUp && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveUp); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Subir</button>}
+                                        {onMoveDown && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveDown); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Bajar</button>}
+                                        {onMove && <button onClick={(e) => { e.stopPropagation(); handleAction(onMove); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Mover</button>}
+                                        {onCopy && <button onClick={(e) => { e.stopPropagation(); handleAction(onCopy); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Copiar</button>}
+                                        {onDelete && <button onClick={(e) => { e.stopPropagation(); handleAction(onDelete); }} className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50">Eliminar</button>}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
         // --- API GEMINI ---
         async function callGemini(apiKey, model, prompt, content) {
             if (!apiKey || apiKey.length < 10) throw new Error("Falta la API Key.");
@@ -196,8 +264,8 @@
             const [testMsg, setTestMsg] = useState("");
             const [editingBook, setEditingBook] = useState({ id: null, title: "" });
             const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
-            const [quickRootText, setQuickRootText] = useState("");
-            const [quickBookText, setQuickBookText] = useState("");
+            const [noteModal, setNoteModal] = useState({ open: false, target: null });
+            const [noteDraft, setNoteDraft] = useState("");
             const recognitionRef = useRef(null);
             const [voiceTarget, setVoiceTarget] = useState(null);
 
@@ -228,7 +296,7 @@
             useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
-            useEffect(() => { setEditingChapter({ id: null, title: "" }); setQuickBookText(""); }, [activeBookId]);
+            useEffect(() => { setEditingChapter({ id: null, title: "" }); }, [activeBookId]);
 
             // Helpers de navegación y datos
             const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
@@ -415,24 +483,16 @@
                 recognitionRef.current = recognition;
             };
 
-            const renderNoteChip = (note, actions = {}) => {
-                const { onEdit, onDelete, onMove, onCopy, onMoveUp, onMoveDown } = actions;
-                return (
-                    <div key={note.id} className="p-3 rounded-lg border bg-white shadow-sm space-y-2">
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{note.content}</p>
-                        <div className="flex items-center justify-between text-[11px] text-gray-500">
-                            <span>{new Date(note.timestamp).toLocaleString()}</span>
-                            <div className="flex items-center gap-1">
-                                {onEdit && <button onClick={() => { const updated = prompt('Editar nota', note.content); if(updated) onEdit(updated.trim()); }} className="text-gray-400 hover:text-blue-600 text-xs">✎</button>}
-                                {onMoveUp && <button onClick={onMoveUp} className="text-gray-400 hover:text-blue-600 text-xs">↑</button>}
-                                {onMoveDown && <button onClick={onMoveDown} className="text-gray-400 hover:text-blue-600 text-xs">↓</button>}
-                                {onMove && <button onClick={onMove} className="text-gray-400 hover:text-purple-600 text-xs" title="Mover">⇄</button>}
-                                {onCopy && <button onClick={onCopy} className="text-gray-400 hover:text-amber-600 text-xs" title="Copiar">⧉</button>}
-                                {onDelete && <button onClick={onDelete} className="text-gray-400 hover:text-red-600 text-xs"><Icons.Trash /></button>}
-                            </div>
-                        </div>
-                    </div>
-                );
+            const openNoteModal = (target) => { setNoteDraft(""); setNoteModal({ open: true, target }); };
+            const closeNoteModal = () => { setNoteDraft(""); setNoteModal({ open: false, target: null }); };
+            const handleSaveTypedNote = () => {
+                const text = noteDraft.trim();
+                if (!text) return;
+                const target = noteModal.target;
+                if (!target) return;
+                if (target.type === 'root') addRootNote(text);
+                if (target.type === 'book') addBookNote(target.bookId, text);
+                closeNoteModal();
             };
 
             // Componente de Pantalla de Carga
@@ -584,24 +644,23 @@
                                         <p className="text-sm font-semibold text-gray-800">Notas rápidas</p>
                                         <p className="text-xs text-gray-500">Fuera de cualquier libro.</p>
                                     </div>
-                                    <button onClick={() => startVoiceNote({ type: 'root' })} className={`icon-btn ${voiceTarget?.type === 'root' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota">
-                                        <Icons.Mic />
-                                    </button>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <input value={quickRootText} onChange={(e) => setQuickRootText(e.target.value)} placeholder="Nota breve..." className="flex-1 p-2 rounded-lg border text-sm" />
-                                    <button onClick={() => { addRootNote(quickRootText); setQuickRootText(''); }} disabled={!quickRootText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${quickRootText.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
-                                </div>
-                                {voiceTarget?.type === 'root' && <p className="text-[11px] text-red-600">Escuchando... habla ahora.</p>}
+                                <p className="text-[11px] text-gray-500">Usa el micrófono o el botón de notas flotante para crear nuevas notas.</p>
                                 {rootNotes.length > 0 && <div className="space-y-2 pt-2 border-t">
-                                    {rootNotes.map(note => renderNoteChip(note, {
-                                        onEdit: (txt) => setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: txt } : n)),
-                                        onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
-                                        onMoveUp: () => reorderRootNote(note.id, -1),
-                                        onMoveDown: () => reorderRootNote(note.id, 1),
-                                        onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
-                                        onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
-                                    }))}
+                                    {rootNotes.map(note => (
+                                        <NoteChip
+                                            key={note.id}
+                                            note={note}
+                                            actions={{
+                                                onEdit: () => { const updated = prompt('Editar nota', note.content); if(updated) setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: updated.trim() } : n)); },
+                                                onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
+                                                onMoveUp: () => reorderRootNote(note.id, -1),
+                                                onMoveDown: () => reorderRootNote(note.id, 1),
+                                                onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
+                                                onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
+                                            }}
+                                        />
+                                    ))}
                                 </div>}
                             </div>
 
@@ -698,6 +757,27 @@
                             </div>
                         </main>
 
+                        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                            {voiceTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                            <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-full shadow-lg border px-3 py-2">
+                                <button onClick={() => openNoteModal({ type: 'root' })} className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg shadow hover:bg-amber-200" title="Escribir nota">
+                                    📝
+                                </button>
+                                <button onClick={() => startVoiceNote({ type: 'root' })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 text-white'}`}>
+                                    <Icons.Mic />
+                                </button>
+                            </div>
+                        </div>
+
+                        <NoteModal
+                            isOpen={noteModal.open && noteModal.target?.type === 'root'}
+                            title="Nueva nota rápida"
+                            value={noteDraft}
+                            onChange={setNoteDraft}
+                            onSave={handleSaveTypedNote}
+                            onClose={closeNoteModal}
+                        />
+
                         <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
                             <button
                                 onClick={() => {
@@ -767,24 +847,23 @@
                                         <p className="text-sm font-semibold text-gray-800">Notas del libro</p>
                                         <p className="text-xs text-gray-500">Sin asociar a capítulos.</p>
                                     </div>
-                                    <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`icon-btn ${voiceTarget?.bookId === activeBook.id ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`} title="Dictar nota del libro">
-                                        <Icons.Mic />
-                                    </button>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <input value={quickBookText} onChange={(e) => setQuickBookText(e.target.value)} placeholder="Nota breve..." className="flex-1 p-2 rounded-lg border text-sm" />
-                                    <button onClick={() => { addBookNote(activeBook.id, quickBookText); setQuickBookText(''); }} disabled={!quickBookText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${quickBookText.trim() ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
-                                </div>
-                                {voiceTarget?.bookId === activeBook.id && <p className="text-[11px] text-red-600">Escuchando... habla ahora.</p>}
+                                <p className="text-[11px] text-gray-500">Usa el micrófono o el botón de notas flotante para añadir contenido al libro.</p>
                                 {activeBook.notes?.length > 0 && <div className="space-y-2 pt-2 border-t">
-                                    {activeBook.notes.map(note => renderNoteChip(note, {
-                                        onEdit: (txt) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: txt } : n)),
-                                        onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
-                                        onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
-                                        onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
-                                        onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
-                                        onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
-                                    }))}
+                                    {activeBook.notes.map(note => (
+                                        <NoteChip
+                                            key={note.id}
+                                            note={note}
+                                            actions={{
+                                                onEdit: () => { const updated = prompt('Editar nota', note.content); if(updated) updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: updated.trim() } : n)); },
+                                                onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
+                                                onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
+                                                onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
+                                                onMove: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
+                                                onCopy: () => { const dest = chooseDestination(); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
+                                            }}
+                                        />
+                                    ))}
                                 </div>}
                             </div>
                             {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
@@ -888,6 +967,27 @@
                             </div>
                         </main>
 
+                        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                            {voiceTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                            <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-full shadow-lg border px-3 py-2">
+                                <button onClick={() => openNoteModal({ type: 'book', bookId: activeBook.id })} className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg shadow hover:bg-amber-200" title="Escribir nota del libro">
+                                    📝
+                                </button>
+                                <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 text-white'}`}>
+                                    <Icons.Mic />
+                                </button>
+                            </div>
+                        </div>
+
+                        <NoteModal
+                            isOpen={noteModal.open && noteModal.target?.type === 'book' && noteModal.target?.bookId === activeBook.id}
+                            title="Nota escrita para el libro"
+                            value={noteDraft}
+                            onChange={setNoteDraft}
+                            onSave={handleSaveTypedNote}
+                            onClose={closeNoteModal}
+                        />
+
                         <div className="safe-bottom px-4 pb-4 pt-2 bg-white border-t sticky bottom-0">
                             <button
                                 onClick={() => {
@@ -921,7 +1021,8 @@
             const [isRecording, setIsRecording] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             const [selectionMode, setSelectionMode] = useState(false);
-            const [manualText, setManualText] = useState("");
+            const [noteDraft, setNoteDraft] = useState("");
+            const [noteModalOpen, setNoteModalOpen] = useState(false);
             const recognitionRef = useRef(null);
             const [supportError, setSupportError] = useState(null);
 
@@ -946,6 +1047,14 @@
 
             const toggleRecording = () => isRecording ? recognitionRef.current?.stop() : startRecording();
             const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
+
+            const openNoteModal = () => { setNoteDraft(""); setNoteModalOpen(true); };
+            const closeNoteModal = () => { setNoteDraft(""); setNoteModalOpen(false); };
+            const saveTypedNote = () => {
+                if (!noteDraft.trim()) return;
+                onAddNote(noteDraft.trim());
+                closeNoteModal();
+            };
 
             const reorderNote = (id, direction) => {
                 const index = chapter.notes.findIndex(n => n.id === id);
@@ -1006,40 +1115,45 @@
 
                         <div className="space-y-3">
                             {chapter.notes.map(note => (
-                                <div key={note.id} onClick={() => selectionMode && toggleSelect(note.id)} className={`p-4 rounded-xl shadow-sm border transition relative ${selectedIds.includes(note.id) ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}>
-                                    <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
-                                    <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
-                                        <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                        {!selectionMode && <div className="flex items-center gap-1">
-                                            <button onClick={(e) => { e.stopPropagation(); const updated = prompt('Editar nota', note.content); if(updated) editNote(bookId, chapter.id, note.id, updated.trim()); }} className="text-gray-400 hover:text-green-600 p-1">✎</button>
-                                            <button onClick={(e) => { e.stopPropagation(); reorderNote(note.id, -1); }} className="text-gray-400 hover:text-blue-600 p-1">↑</button>
-                                            <button onClick={(e) => { e.stopPropagation(); reorderNote(note.id, 1); }} className="text-gray-400 hover:text-blue-600 p-1">↓</button>
-                                            <button onClick={(e) => { e.stopPropagation(); const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); }} className="text-gray-400 hover:text-purple-600 p-1" title="Mover">⇄</button>
-                                            <button onClick={(e) => { e.stopPropagation(); const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); }} className="text-gray-400 hover:text-amber-600 p-1" title="Copiar">⧉</button>
-                                            <button onClick={(e) => { e.stopPropagation(); if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }} className="text-gray-300 hover:text-red-500 p-1"><Icons.Trash /></button>
-                                        </div>}
-                                    </div>
-                                </div>
+                                <NoteChip
+                                    key={note.id}
+                                    note={note}
+                                    selectionMode={selectionMode}
+                                    isSelected={selectedIds.includes(note.id)}
+                                    onCardClick={selectionMode ? () => toggleSelect(note.id) : undefined}
+                                    actions={!selectionMode ? {
+                                        onEdit: () => { const updated = prompt('Editar nota', note.content); if(updated) editNote(bookId, chapter.id, note.id, updated.trim()); },
+                    onMoveUp: () => reorderNote(note.id, -1),
+                                        onMoveDown: () => reorderNote(note.id, 1),
+                                        onMove: () => { const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); },
+                                        onCopy: () => { const dest = chooseDestination(); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); },
+                                        onDelete: () => { if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }
+                                    } : {}}
+                                />
                             ))}
                         </div>
                     </main>
 
-                    <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
-                        <div className="bg-white border rounded-xl shadow p-3 space-y-2">
-                            <div className="flex items-center gap-2">
-                                <input value={manualText} onChange={(e) => setManualText(e.target.value)} className="flex-1 border rounded-lg p-2 text-sm" placeholder="Añadir nota rápida" />
-                                <button onClick={() => { onAddNote(manualText); setManualText(''); }} disabled={!manualText.trim()} className={`px-3 py-2 rounded-lg text-xs font-semibold ${manualText.trim() ? 'bg-slate-800 text-white hover:bg-slate-900' : 'bg-gray-200 text-gray-400'}`}>Guardar</button>
-                            </div>
-                            <p className="text-[11px] text-gray-500">Las notas de texto son secundarias: ocupan poco espacio y se guardan al instante.</p>
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                        {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                        <div className="flex items-center gap-3 bg-white/80 backdrop-blur rounded-full shadow-lg border px-3 py-2">
+                            <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg shadow hover:bg-amber-200" title="Escribir nota">
+                                📝
+                            </button>
+                            <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
+                                {isRecording ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic className="text-white" />}
+                            </button>
                         </div>
                     </div>
 
-                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                        {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                        <button onClick={toggleRecording} disabled={!!supportError} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed' : ''}`}>
-                            {isRecording ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic className="text-white" />}
-                        </button>
-                    </div>
+                    <NoteModal
+                        isOpen={noteModalOpen}
+                        title="Añadir nota escrita"
+                        value={noteDraft}
+                        onChange={setNoteDraft}
+                        onSave={saveTypedNote}
+                        onClose={closeNoteModal}
+                    />
                 </div>
             );
         }
