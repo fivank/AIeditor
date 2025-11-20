@@ -508,11 +508,6 @@
                 </header>
             );
 
-            const activeBook = books.find(b => b.id === activeBookId);
-            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
-            const activeNote = activeNoteCtx ? books.find(b => b.id === activeNoteCtx.bookId)?.chapters.find(c => c.id === activeNoteCtx.chapterId)?.notes.find(n => n.id === activeNoteCtx.noteId) : null;
-            const sheetElement = actionSheet ? <ActionSheet {...actionSheet} onClose={closeSheet} /> : null;
-
             // --- VISTA: SETTINGS (Mejorada) ---
             if (view === 'settings') {
                 const testConnection = async () => {
@@ -531,7 +526,7 @@
                     <div className="min-h-screen bg-gray-50">
                         <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
                         <div className="p-4 max-w-md mx-auto space-y-6">
-
+                            
                             {/* Sección API */}
                             <div className="bg-white p-4 rounded-lg shadow space-y-4">
                                 <div>
@@ -543,8 +538,8 @@
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Modelo (Model Name)</label>
                                     <div className="flex gap-2">
-                                        <select
-                                            value={settings.model}
+                                        <select 
+                                            value={settings.model} 
                                             onChange={(e) => setSettings({...settings, model: e.target.value})}
                                             className="w-full p-2 border rounded-md bg-gray-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         >
@@ -555,8 +550,8 @@
                                         </select>
                                     </div>
                                     {/* Opción manual por si acaso */}
-                                    <input
-                                        type="text"
+                                    <input 
+                                        type="text" 
                                         value={settings.model}
                                         onChange={(e) => setSettings({...settings, model: e.target.value})}
                                         placeholder="Nombre manual del modelo..."
@@ -566,10 +561,10 @@
 
                                 <button onClick={testConnection} disabled={testStatus === 'loading'}
                                     className={`w-full py-2 px-4 rounded text-sm font-medium border transition flex items-center justify-center gap-2
-                                    ${testStatus === 'success' ? 'bg-green-50 text-green-700 border-green-200' :
+                                    ${testStatus === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 
                                       testStatus === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                                    {testStatus === 'loading' ? <div className="loader w-4 h-4 border-2 border-gray-400 border-t-transparent"></div> :
-                                     testStatus === 'success' ? <Icons.Check /> :
+                                    {testStatus === 'loading' ? <div className="loader w-4 h-4 border-2 border-gray-400 border-t-transparent"></div> : 
+                                     testStatus === 'success' ? <Icons.Check /> : 
                                      testStatus === 'error' ? <Icons.Alert /> : "Probar Conexión"}
                                     {testStatus === 'loading' ? ' Probando...' : testStatus === 'success' ? ' Conectado' : testStatus === 'error' ? ' Error' : ' Probar Conexión'}
                                 </button>
@@ -605,6 +600,11 @@
                     </div>
                 );
             }
+
+            const activeBook = books.find(b => b.id === activeBookId);
+            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
+            const activeNote = activeNoteCtx ? books.find(b => b.id === activeNoteCtx.bookId)?.chapters.find(c => c.id === activeNoteCtx.chapterId)?.notes.find(n => n.id === activeNoteCtx.noteId) : null;
+            const sheetElement = actionSheet ? <ActionSheet {...actionSheet} onClose={closeSheet} /> : null;
 
             if (view === 'home') {
                 return (
