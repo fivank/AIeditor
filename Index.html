@@ -96,6 +96,34 @@
             background: rgba(255, 255, 255, 0.96);
             backdrop-filter: blur(16px);
         }
+
+        /* Estilos del editor y visualización de notas */
+        .editor-content h1 {
+            font-size: 12px;
+            font-weight: 700;
+            margin: 0 0 0.4rem;
+        }
+        .editor-content h2 {
+            font-size: 10px;
+            font-weight: 700;
+            text-decoration: underline;
+            margin: 0 0 0.3rem;
+        }
+        .editor-content p,
+        .editor-content li {
+            font-size: 10px;
+            line-height: 1.5;
+        }
+        .editor-content ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin: 0.25rem 0 0.5rem;
+        }
+        .editor-content ol {
+            list-style-type: decimal;
+            padding-left: 1.25rem;
+            margin: 0.25rem 0 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -186,9 +214,23 @@
         const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
             const editorRef = useRef(null);
             const [fontFamily, setFontFamily] = useState('Calibri');
-            const [fontSize, setFontSize] = useState(12);
+            const [fontSize, setFontSize] = useState(10);
             const [highlightColor, setHighlightColor] = useState('#fff59d');
             const [textColor, setTextColor] = useState('#1d4ed8');
+            const [activeFormats, setActiveFormats] = useState({
+                bold: false,
+                italic: false,
+                underline: false,
+                h1: false,
+                h2: false,
+                paragraph: true,
+                unorderedList: false,
+                orderedList: false,
+                alignLeft: true,
+                alignCenter: false,
+                alignRight: false,
+                alignJustify: false,
+            });
 
             useEffect(() => {
                 if (isOpen && editorRef.current) {
@@ -198,14 +240,42 @@
                         editorRef.current.innerHTML = '<p></p>';
                     }
                     editorRef.current.focus();
+                    syncCommandStates();
                 }
             }, [isOpen, value]);
+
+            useEffect(() => {
+                if (!isOpen) return;
+                const handleSelectionChange = () => syncCommandStates();
+                document.addEventListener('selectionchange', handleSelectionChange);
+                return () => document.removeEventListener('selectionchange', handleSelectionChange);
+            }, [isOpen]);
+
+            const syncCommandStates = () => {
+                if (!editorRef.current) return;
+                const currentBlock = (document.queryCommandValue('formatBlock') || '').toLowerCase();
+                setActiveFormats({
+                    bold: document.queryCommandState('bold'),
+                    italic: document.queryCommandState('italic'),
+                    underline: document.queryCommandState('underline'),
+                    h1: currentBlock === 'h1',
+                    h2: currentBlock === 'h2',
+                    paragraph: currentBlock === 'p' || currentBlock === 'div' || !currentBlock,
+                    unorderedList: document.queryCommandState('insertUnorderedList'),
+                    orderedList: document.queryCommandState('insertOrderedList'),
+                    alignLeft: document.queryCommandState('justifyLeft'),
+                    alignCenter: document.queryCommandState('justifyCenter'),
+                    alignRight: document.queryCommandState('justifyRight'),
+                    alignJustify: document.queryCommandState('justifyFull'),
+                });
+            };
 
             const format = (command, arg = null) => {
                 if (!editorRef.current) return;
                 document.execCommand(command, false, arg);
                 editorRef.current.focus();
                 onChange(editorRef.current.innerHTML);
+                syncCommandStates();
             };
 
             const applyFontFamily = (family) => {
@@ -244,9 +314,12 @@
 
             const handleInput = () => {
                 if (editorRef.current) onChange(editorRef.current.innerHTML);
+                syncCommandStates();
             };
 
             const toolbarButtonClass = "px-2 py-1 rounded-md border bg-white shadow-sm text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-1";
+            const activeToolbarClass = "bg-blue-50 border-blue-500 text-blue-700 shadow-inner";
+            const getButtonClasses = (isActive = false) => `${toolbarButtonClass} ${isActive ? activeToolbarClass : ''}`;
 
             if (!isOpen) return null;
             return (
@@ -300,22 +373,21 @@
                         </div>
 
                         <div className="flex flex-wrap items-center gap-1">
-                            <button onClick={() => format('bold')} className={`${toolbarButtonClass} font-semibold`}><strong>B</strong></button>
-                            <button onClick={() => format('italic')} className={`${toolbarButtonClass} italic`}>I</button>
-                            <button onClick={() => format('underline')} className={`${toolbarButtonClass} underline`}>U</button>
-                            <button onClick={() => format('formatBlock', 'H1')} className={toolbarButtonClass}>H1</button>
-                            <button onClick={() => format('formatBlock', 'H2')} className={toolbarButtonClass}>H2</button>
-                            <button onClick={() => format('formatBlock', 'P')} className={toolbarButtonClass}>Párrafo</button>
-                            <button onClick={() => format('formatBlock', 'BLOCKQUOTE')} className={toolbarButtonClass}>“ Cita”</button>
+                            <button onClick={() => format('bold')} className={getButtonClasses(activeFormats.bold) + ' font-semibold'}><strong>B</strong></button>
+                            <button onClick={() => format('italic')} className={getButtonClasses(activeFormats.italic) + ' italic'}>I</button>
+                            <button onClick={() => format('underline')} className={getButtonClasses(activeFormats.underline) + ' underline'}>U</button>
+                            <button onClick={() => format('formatBlock', 'H1')} className={getButtonClasses(activeFormats.h1)}>H1</button>
+                            <button onClick={() => format('formatBlock', 'H2')} className={getButtonClasses(activeFormats.h2)}>H2</button>
+                            <button onClick={() => format('formatBlock', 'P')} className={getButtonClasses(activeFormats.paragraph)}>Párrafo</button>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-1">
-                            <button onClick={() => format('justifyLeft')} className={toolbarButtonClass}>↤</button>
-                            <button onClick={() => format('justifyCenter')} className={toolbarButtonClass}>↔</button>
-                            <button onClick={() => format('justifyRight')} className={toolbarButtonClass}>↦</button>
-                            <button onClick={() => format('justifyFull')} className={toolbarButtonClass}>☰</button>
-                            <button onClick={() => format('insertUnorderedList')} className={toolbarButtonClass}>• Lista</button>
-                            <button onClick={() => format('insertOrderedList')} className={toolbarButtonClass}>1. Lista</button>
+                            <button onClick={() => format('justifyLeft')} className={getButtonClasses(activeFormats.alignLeft)}>↤</button>
+                            <button onClick={() => format('justifyCenter')} className={getButtonClasses(activeFormats.alignCenter)}>↔</button>
+                            <button onClick={() => format('justifyRight')} className={getButtonClasses(activeFormats.alignRight)}>↦</button>
+                            <button onClick={() => format('justifyFull')} className={getButtonClasses(activeFormats.alignJustify)}>☰</button>
+                            <button onClick={() => format('insertUnorderedList')} className={getButtonClasses(activeFormats.unorderedList)}>• Lista</button>
+                            <button onClick={() => format('insertOrderedList')} className={getButtonClasses(activeFormats.orderedList)}>1. Lista</button>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto bg-white">
@@ -323,7 +395,7 @@
                             ref={editorRef}
                             contentEditable
                             onInput={handleInput}
-                            className="max-w-4xl mx-auto p-6 min-h-[60vh] prose prose-slate focus:outline-none"
+                            className="max-w-4xl mx-auto p-6 min-h-[60vh] prose prose-slate focus:outline-none editor-content"
                             placeholder="Escribe o pega tu nota con formato..."
                         ></div>
                     </div>
@@ -348,7 +420,7 @@
                     className={`p-4 rounded-xl shadow-sm border transition relative ${isSelected ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}
                     onClick={onCardClick}
                 >
-                    <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed" dangerouslySetInnerHTML={{ __html: note.content }} />
+                    <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         {hasActions && (
