@@ -627,6 +627,11 @@
             const [noteDraft, setNoteDraft] = useState('<p></p>');
             const recognitionRef = useRef(null);
             const [voiceTarget, setVoiceTarget] = useState(null);
+            const voiceLockRef = useRef(false);
+            const lockedSessionRef = useRef(false);
+            const skipNextClickRef = useRef(false);
+            const holdTimerRef = useRef(null);
+            const isHoldingRef = useRef(false);
             const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
 
             useEffect(() => {
@@ -859,7 +864,7 @@
             };
             const cancelChapterEdit = () => setEditingChapter({ id: null, title: "" });
 
-            const startVoiceNote = (target) => {
+            const startVoiceNote = (target, { locked = false } = {}) => {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
                     alert('Tu navegador no soporta dictado de voz.');
@@ -867,7 +872,7 @@
                 }
                 const recognition = new SpeechRecognition();
                 recognition.lang = 'es-ES';
-                recognition.continuous = false;
+                recognition.continuous = locked;
                 recognition.interimResults = false;
                 recognition.onresult = (e) => {
                     const transcript = e.results[0][0].transcript.trim();
@@ -875,11 +880,51 @@
                     if (target.type === 'root') addRootNote(transcript);
                     if (target.type === 'book') addBookNote(target.bookId, transcript);
                 };
-                recognition.onerror = () => setVoiceTarget(null);
-                recognition.onend = () => setVoiceTarget(null);
-                setVoiceTarget(target);
+                recognition.onerror = () => { voiceLockRef.current = false; setVoiceTarget(null); };
+                recognition.onend = () => {
+                    if (voiceLockRef.current) {
+                        recognition.start();
+                    } else {
+                        setVoiceTarget(null);
+                    }
+                };
+                voiceLockRef.current = locked;
+                lockedSessionRef.current = locked;
+                setVoiceTarget({ ...target, locked });
                 recognition.start();
                 recognitionRef.current = recognition;
+            };
+
+            const stopVoiceNote = () => {
+                skipNextClickRef.current = skipNextClickRef.current || lockedSessionRef.current;
+                lockedSessionRef.current = false;
+                voiceLockRef.current = false;
+                recognitionRef.current?.stop();
+            };
+
+            const startHoldRecording = (target) => {
+                isHoldingRef.current = true;
+                holdTimerRef.current = setTimeout(() => {
+                    if (isHoldingRef.current) startVoiceNote(target, { locked: true });
+                }, 250);
+            };
+
+            const endHoldRecording = () => {
+                isHoldingRef.current = false;
+                if (holdTimerRef.current) {
+                    clearTimeout(holdTimerRef.current);
+                    holdTimerRef.current = null;
+                }
+                if (voiceLockRef.current) stopVoiceNote();
+            };
+
+            const handleMicClick = (target) => {
+                if (skipNextClickRef.current) {
+                    skipNextClickRef.current = false;
+                    return;
+                }
+                if (voiceLockRef.current) return;
+                startVoiceNote(target);
             };
 
             const openNoteModal = (target) => {
@@ -1165,7 +1210,16 @@
                                 <button onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html) => addRootNote(html) })} className="w-12 h-12 rounded-full bg-blue-200 text-blue-900 flex items-center justify-center text-lg shadow hover:bg-blue-300" title="Escribir nota">
                                     📝
                                 </button>
-                                <button onClick={() => startVoiceNote({ type: 'root' })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-700 hover:bg-blue-800 hover:scale-105 text-white'}`}>
+                                <button
+                                    onClick={() => handleMicClick({ type: 'root' })}
+                                    onMouseDown={() => startHoldRecording({ type: 'root' })}
+                                    onMouseUp={endHoldRecording}
+                                    onMouseLeave={endHoldRecording}
+                                    onTouchStart={() => startHoldRecording({ type: 'root' })}
+                                    onTouchEnd={endHoldRecording}
+                                    onTouchCancel={endHoldRecording}
+                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-700 hover:bg-blue-800 hover:scale-105 text-white'}`}
+                                >
                                     <Icons.Mic />
                                 </button>
                             </div>
@@ -1355,7 +1409,16 @@
                                 <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html) => addBookNote(activeBook.id, html) })} className="w-12 h-12 rounded-full bg-violet-200 text-violet-900 flex items-center justify-center text-lg shadow hover:bg-violet-300" title="Escribir nota del libro">
                                     📝
                                 </button>
-                                <button onClick={() => startVoiceNote({ type: 'book', bookId: activeBook.id })} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-violet-700 hover:bg-violet-800 hover:scale-105 text-white'}`}>
+                                <button
+                                    onClick={() => handleMicClick({ type: 'book', bookId: activeBook.id })}
+                                    onMouseDown={() => startHoldRecording({ type: 'book', bookId: activeBook.id })}
+                                    onMouseUp={endHoldRecording}
+                                    onMouseLeave={endHoldRecording}
+                                    onTouchStart={() => startHoldRecording({ type: 'book', bookId: activeBook.id })}
+                                    onTouchEnd={endHoldRecording}
+                                    onTouchCancel={endHoldRecording}
+                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-violet-700 hover:bg-violet-800 hover:scale-105 text-white'}`}
+                                >
                                     <Icons.Mic />
                                 </button>
                             </div>
