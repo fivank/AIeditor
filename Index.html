@@ -111,7 +111,7 @@
         }
         .editor-content p,
         .editor-content li {
-            font-size: 10px;
+            font-size: 12px;
             line-height: 1.5;
         }
         .editor-content ul {
@@ -214,16 +214,13 @@
         const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
             const editorRef = useRef(null);
             const [fontFamily, setFontFamily] = useState('Calibri');
-            const [fontSize, setFontSize] = useState(10);
+            const [fontSize, setFontSize] = useState(12);
             const [highlightColor, setHighlightColor] = useState('#fff59d');
             const [textColor, setTextColor] = useState('#1d4ed8');
             const [activeFormats, setActiveFormats] = useState({
                 bold: false,
                 italic: false,
                 underline: false,
-                h1: false,
-                h2: false,
-                paragraph: true,
                 unorderedList: false,
                 orderedList: false,
                 alignLeft: true,
@@ -253,14 +250,10 @@
 
             const syncCommandStates = () => {
                 if (!editorRef.current) return;
-                const currentBlock = (document.queryCommandValue('formatBlock') || '').toLowerCase();
                 setActiveFormats({
                     bold: document.queryCommandState('bold'),
                     italic: document.queryCommandState('italic'),
                     underline: document.queryCommandState('underline'),
-                    h1: currentBlock === 'h1',
-                    h2: currentBlock === 'h2',
-                    paragraph: currentBlock === 'p' || currentBlock === 'div' || !currentBlock,
                     unorderedList: document.queryCommandState('insertUnorderedList'),
                     orderedList: document.queryCommandState('insertOrderedList'),
                     alignLeft: document.queryCommandState('justifyLeft'),
@@ -376,18 +369,47 @@
                             <button onClick={() => format('bold')} className={getButtonClasses(activeFormats.bold) + ' font-semibold'}><strong>B</strong></button>
                             <button onClick={() => format('italic')} className={getButtonClasses(activeFormats.italic) + ' italic'}>I</button>
                             <button onClick={() => format('underline')} className={getButtonClasses(activeFormats.underline) + ' underline'}>U</button>
-                            <button onClick={() => format('formatBlock', 'H1')} className={getButtonClasses(activeFormats.h1)}>H1</button>
-                            <button onClick={() => format('formatBlock', 'H2')} className={getButtonClasses(activeFormats.h2)}>H2</button>
-                            <button onClick={() => format('formatBlock', 'P')} className={getButtonClasses(activeFormats.paragraph)}>Párrafo</button>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-1">
-                            <button onClick={() => format('justifyLeft')} className={getButtonClasses(activeFormats.alignLeft)}>↤</button>
-                            <button onClick={() => format('justifyCenter')} className={getButtonClasses(activeFormats.alignCenter)}>↔</button>
-                            <button onClick={() => format('justifyRight')} className={getButtonClasses(activeFormats.alignRight)}>↦</button>
-                            <button onClick={() => format('justifyFull')} className={getButtonClasses(activeFormats.alignJustify)}>☰</button>
-                            <button onClick={() => format('insertUnorderedList')} className={getButtonClasses(activeFormats.unorderedList)}>• Lista</button>
-                            <button onClick={() => format('insertOrderedList')} className={getButtonClasses(activeFormats.orderedList)}>1. Lista</button>
+                            <button onClick={() => format('justifyLeft')} className={getButtonClasses(activeFormats.alignLeft)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 6h16" /><path d="M4 10h10" /><path d="M4 14h16" /><path d="M4 18h10" />
+                                </svg>
+                                <span className="sr-only">Alinear a la izquierda</span>
+                            </button>
+                            <button onClick={() => format('justifyCenter')} className={getButtonClasses(activeFormats.alignCenter)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M6 6h12" /><path d="M4 10h16" /><path d="M6 14h12" /><path d="M4 18h16" />
+                                </svg>
+                                <span className="sr-only">Centrar</span>
+                            </button>
+                            <button onClick={() => format('justifyRight')} className={getButtonClasses(activeFormats.alignRight)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 6h16" /><path d="M10 10h10" /><path d="M4 14h16" /><path d="M10 18h10" />
+                                </svg>
+                                <span className="sr-only">Alinear a la derecha</span>
+                            </button>
+                            <button onClick={() => format('justifyFull')} className={getButtonClasses(activeFormats.alignJustify)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 6h16" /><path d="M4 10h16" /><path d="M4 14h16" /><path d="M4 18h16" />
+                                </svg>
+                                <span className="sr-only">Justificar</span>
+                            </button>
+                            <button onClick={() => format('insertUnorderedList')} className={getButtonClasses(activeFormats.unorderedList)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="5" cy="6" r="1" /><circle cx="5" cy="12" r="1" /><circle cx="5" cy="18" r="1" />
+                                    <path d="M9 6h10" /><path d="M9 12h10" /><path d="M9 18h10" />
+                                </svg>
+                                <span className="sr-only">Lista con viñetas</span>
+                            </button>
+                            <button onClick={() => format('insertOrderedList')} className={getButtonClasses(activeFormats.orderedList)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 5h2" /><path d="M6 4v6" /><path d="M5 11h2" /><path d="M4 14h2l-2 3h3" /><path d="M4 20h3" />
+                                    <path d="M9 6h10" /><path d="M9 12h10" /><path d="M9 18h10" />
+                                </svg>
+                                <span className="sr-only">Lista numerada</span>
+                            </button>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto bg-white">
