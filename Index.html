@@ -266,19 +266,19 @@
                             <div className="relative">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setMenuOpen(o => !o); }}
-                                    className="w-9 h-9 rounded-full text-white shadow-md flex items-center justify-center bg-slate-600 hover:bg-slate-700"
+                                    className="p-1.5 text-white bg-slate-600 hover:bg-slate-700 rounded-full shadow"
                                     title="Opciones de nota"
                                 >
                                     ✎
                                 </button>
                                 {menuOpen && (
-                                    <div className="absolute right-0 bottom-12 w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden">
-                                        {onEdit && <button onClick={(e) => { e.stopPropagation(); handleAction(onEdit); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Editar</button>}
-                                        {onMoveUp && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveUp); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Subir</button>}
-                                        {onMoveDown && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveDown); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Bajar</button>}
-                                        {onMove && <button onClick={(e) => { e.stopPropagation(); handleAction(onMove); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Mover</button>}
-                                        {onCopy && <button onClick={(e) => { e.stopPropagation(); handleAction(onCopy); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Copiar</button>}
-                                        {onDelete && <button onClick={(e) => { e.stopPropagation(); handleAction(onDelete); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">Eliminar</button>}
+                                    <div className="absolute right-0 bottom-7 w-40 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                        {onEdit && <button onClick={(e) => { e.stopPropagation(); handleAction(onEdit); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Editar</button>}
+                                        {onMoveUp && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveUp); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Subir</button>}
+                                        {onMoveDown && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveDown); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Bajar</button>}
+                                        {onMove && <button onClick={(e) => { e.stopPropagation(); handleAction(onMove); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Mover</button>}
+                                        {onCopy && <button onClick={(e) => { e.stopPropagation(); handleAction(onCopy); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50">Copiar</button>}
+                                        {onDelete && <button onClick={(e) => { e.stopPropagation(); handleAction(onDelete); }} className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50">Eliminar</button>}
                                     </div>
                                 )}
                             </div>
@@ -306,7 +306,7 @@
                         ✎
                     </button>
                     {open && (
-                        <div className="absolute right-0 bottom-12 w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden">
+                        <div className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden">
                             {options.map(opt => (
                                 <button
                                     key={opt.label}
@@ -823,6 +823,35 @@
                         <Header title="Mis Libros" accentClass="text-blue-800" />
 
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3 mt-4">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-800">Notas rápidas</p>
+                                        <p className="text-xs text-gray-500">Fuera de cualquier libro.</p>
+                                    </div>
+                                </div>
+                                {rootNotes.length > 0 && <div className="space-y-2 pt-2 border-t">
+                                    {rootNotes.map(note => (
+                                        <NoteChip
+                                            key={note.id}
+                                            note={note}
+                                            actions={{
+                                                onEdit: () => openNoteModal({
+                                                    title: 'Editar nota',
+                                                    initialContent: note.content,
+                                                    onSave: (html) => setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                }),
+                                                onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
+                                                onMoveUp: () => reorderRootNote(note.id, -1),
+                                                onMoveDown: () => reorderRootNote(note.id, 1),
+                                                onMove: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
+                                                onCopy: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
+                                            }}
+                                        />
+                                    ))}
+                                </div>}
+                            </div>
+
                             {books.length === 0 && (
                                 <div className="text-center py-10 text-gray-400">
                                     <p>No tienes libros creados.</p>
@@ -895,29 +924,6 @@
                                     </div>
                                 ))}
                             </div>
-
-                            {rootNotes.length > 0 && (
-                                <div className="space-y-2 mt-4">
-                                    {rootNotes.map(note => (
-                                        <NoteChip
-                                            key={note.id}
-                                            note={note}
-                                            actions={{
-                                                onEdit: () => openNoteModal({
-                                                    title: 'Editar nota',
-                                                    initialContent: note.content,
-                                                    onSave: (html) => setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                }),
-                                                onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
-                                                onMoveUp: () => reorderRootNote(note.id, -1),
-                                                onMoveDown: () => reorderRootNote(note.id, 1),
-                                                onMove: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
-                                                onCopy: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            )}
 
                             <div className="mt-6">
                                 <button
@@ -1008,6 +1014,34 @@
                                 <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-violet-200 text-violet-900 px-4 py-2 rounded-full font-semibold border border-violet-300 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
                             </div>
 
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-800">Notas del libro</p>
+                                        <p className="text-xs text-gray-500">Sin asociar a capítulos.</p>
+                                    </div>
+                                </div>
+                                {activeBook.notes?.length > 0 && <div className="space-y-2 pt-2 border-t">
+                                    {activeBook.notes.map(note => (
+                                                <NoteChip
+                                                    key={note.id}
+                                                    note={note}
+                                                    actions={{
+                                                        onEdit: () => openNoteModal({
+                                                            title: 'Editar nota',
+                                                            initialContent: note.content,
+                                                            onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                        }),
+                                                onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
+                                                onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
+                                                onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
+                                                onMove: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
+                                                onCopy: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
+                                            }}
+                                        />
+                                    ))}
+                                </div>}
+                            </div>
                             {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
                             <div className="space-y-3">
                                 {activeBook.chapters.map((chap) => (
@@ -1085,29 +1119,6 @@
                                     </div>
                                 ))}
                             </div>
-
-                            {activeBook.notes?.length > 0 && (
-                                <div className="space-y-2">
-                                    {activeBook.notes.map(note => (
-                                        <NoteChip
-                                            key={note.id}
-                                            note={note}
-                                            actions={{
-                                                onEdit: () => openNoteModal({
-                                                    title: 'Editar nota',
-                                                    initialContent: note.content,
-                                                    onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                }),
-                                                onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
-                                                onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
-                                                onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
-                                                onMove: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
-                                                onCopy: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            )}
 
                             <div className="mt-6">
                                 <button
