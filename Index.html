@@ -227,6 +227,8 @@
                 alignCenter: false,
                 alignRight: false,
                 alignJustify: false,
+                highlight: false,
+                textColor: false,
             });
 
             useEffect(() => {
@@ -248,8 +250,28 @@
                 return () => document.removeEventListener('selectionchange', handleSelectionChange);
             }, [isOpen]);
 
+            const normalizeHex = (value) => {
+                if (!value) return '';
+                const temp = document.createElement('div');
+                temp.style.color = value;
+                document.body.appendChild(temp);
+                const rgb = getComputedStyle(temp).color;
+                document.body.removeChild(temp);
+
+                const match = rgb.match(/(\d+)/g);
+                if (!match) return value.toLowerCase();
+                const toHex = (n) => Number(n).toString(16).padStart(2, '0');
+                const [r, g, b] = match;
+                return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            };
+
+            const colorsEqual = (a, b) => normalizeHex(a) === normalizeHex(b);
+
             const syncCommandStates = () => {
                 if (!editorRef.current) return;
+                const highlightValue = document.queryCommandValue('hiliteColor');
+                const textColorValue = document.queryCommandValue('foreColor');
+
                 setActiveFormats({
                     bold: document.queryCommandState('bold'),
                     italic: document.queryCommandState('italic'),
@@ -260,6 +282,8 @@
                     alignCenter: document.queryCommandState('justifyCenter'),
                     alignRight: document.queryCommandState('justifyRight'),
                     alignJustify: document.queryCommandState('justifyFull'),
+                    highlight: colorsEqual(highlightValue, highlightColor),
+                    textColor: colorsEqual(textColorValue, textColor),
                 });
             };
 
@@ -296,13 +320,17 @@
             };
 
             const applyHighlight = (color) => {
+                const current = document.queryCommandValue('hiliteColor');
+                const shouldClear = colorsEqual(current, color);
                 setHighlightColor(color);
-                format('hiliteColor', color);
+                format('hiliteColor', shouldClear ? 'transparent' : color);
             };
 
             const applyTextColor = (color) => {
+                const current = document.queryCommandValue('foreColor');
+                const shouldClear = colorsEqual(current, color);
                 setTextColor(color);
-                format('foreColor', color);
+                format('foreColor', shouldClear ? '#000000' : color);
             };
 
             const handleInput = () => {
@@ -349,7 +377,7 @@
                             </select>
                             <button
                                 onClick={() => applyHighlight('#fff59d')}
-                                className={toolbarButtonClass}
+                                className={getButtonClasses(activeFormats.highlight)}
                                 title="Resaltar"
                             >
                                 <span className="inline-flex h-4 w-4 rounded-sm border" style={{ backgroundColor: highlightColor }}></span>
@@ -357,7 +385,7 @@
                             </button>
                             <button
                                 onClick={() => applyTextColor('#2563eb')}
-                                className={toolbarButtonClass}
+                                className={getButtonClasses(activeFormats.textColor)}
                                 title="Color de texto"
                             >
                                 <span className="inline-flex h-4 w-4 rounded-sm border" style={{ backgroundColor: textColor }}></span>
