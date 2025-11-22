@@ -229,20 +229,7 @@
                 }
             };
 
-            const stopDragging = () => {
-                clearTimer();
-                if (draggingRef.current) {
-                    draggingRef.current = false;
-                    activeIndexRef.current = -1;
-                    setDraggingId(null);
-                    document.body.style.userSelect = '';
-                    window.removeEventListener('pointermove', handlePointerMove, { passive: false });
-                    window.removeEventListener('pointerup', stopDragging);
-                    window.removeEventListener('pointercancel', stopDragging);
-                }
-            };
-
-            const handlePointerMove = (event) => {
+            const handlePointerMove = useCallback((event) => {
                 if (!draggingRef.current) return;
                 event.preventDefault();
 
@@ -258,9 +245,22 @@
                     onReorderRef.current?.(activeIndexRef.current, targetIndex);
                     activeIndexRef.current = targetIndex;
                 }
-            };
+            }, []);
 
-            const startPress = (event, id) => {
+            const stopDragging = useCallback(() => {
+                clearTimer();
+                if (draggingRef.current) {
+                    draggingRef.current = false;
+                    activeIndexRef.current = -1;
+                    setDraggingId(null);
+                    document.body.style.userSelect = '';
+                    window.removeEventListener('pointermove', handlePointerMove, { passive: false });
+                    window.removeEventListener('pointerup', stopDragging);
+                    window.removeEventListener('pointercancel', stopDragging);
+                }
+            }, [handlePointerMove]);
+
+            const startPress = useCallback((event, id) => {
                 clearTimer();
                 const pointerId = event.pointerId;
                 pressTimer.current = setTimeout(() => {
@@ -277,9 +277,9 @@
                     window.addEventListener('pointerup', stopDragging);
                     window.addEventListener('pointercancel', stopDragging);
                 }, longPressMs);
-            };
+            }, [handlePointerMove, longPressMs, stopDragging]);
 
-            useEffect(() => () => stopDragging(), []);
+            useEffect(() => () => stopDragging(), [stopDragging]);
 
             const getItemProps = (id) => ({
                 'data-draggable-item': 'true',
