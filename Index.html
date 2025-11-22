@@ -228,7 +228,7 @@
                 longPressTriggered.current = false;
                 pressTimer.current = setTimeout(() => {
                     longPressTriggered.current = true;
-                    setMoveModeId(id);
+                    setMoveModeId(prev => prev === id ? null : id);
                 }, duration);
             };
 
@@ -242,7 +242,7 @@
                 onPointerLeave: cancelPress,
                 onPointerCancel: cancelPress,
                 onClick: (e) => {
-                    if (moveModeId === id && longPressTriggered.current) {
+                    if (longPressTriggered.current) {
                         e.preventDefault();
                         e.stopPropagation();
                         longPressTriggered.current = false;
@@ -941,9 +941,16 @@
                 }));
             };
 
-            const goHome = () => { setView('home'); setActiveBookId(null); setActiveChapterId(null); };
-            const goBook = (id) => { setActiveBookId(id); setView('book'); };
-            const goChapter = (id) => { setActiveChapterId(id); setView('chapter'); };
+            const resetMoveModes = () => {
+                booksMoveMode.exitMoveMode();
+                rootNotesMoveMode.exitMoveMode();
+                bookNotesMoveMode.exitMoveMode();
+                chaptersMoveMode.exitMoveMode();
+            };
+
+            const goHome = () => { resetMoveModes(); setView('home'); setActiveBookId(null); setActiveChapterId(null); };
+            const goBook = (id) => { resetMoveModes(); setActiveBookId(id); setView('book'); };
+            const goChapter = (id) => { resetMoveModes(); setActiveChapterId(id); setView('chapter'); };
             const goSettings = () => setView('settings');
 
             const startBookEdit = (book) => setEditingBook({ id: book.id, title: book.title });
