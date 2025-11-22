@@ -130,7 +130,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         // --- ICONOS SVG ---
         const Icons = {
@@ -209,6 +209,88 @@
             }
 
             return options;
+        };
+
+        const useLongPressDrag = (items, onReorder, { longPressMs = 180 } = {}) => {
+            const [draggingId, setDraggingId] = useState(null);
+            const pressTimer = useRef(null);
+            const activeIndexRef = useRef(-1);
+            const itemsRef = useRef(items);
+            const draggingRef = useRef(false);
+            const onReorderRef = useRef(onReorder);
+
+            useEffect(() => { itemsRef.current = items; }, [items]);
+            useEffect(() => { onReorderRef.current = onReorder; }, [onReorder]);
+
+            const clearTimer = () => {
+                if (pressTimer.current) {
+                    clearTimeout(pressTimer.current);
+                    pressTimer.current = null;
+                }
+            };
+
+            const stopDragging = () => {
+                clearTimer();
+                if (draggingRef.current) {
+                    draggingRef.current = false;
+                    activeIndexRef.current = -1;
+                    setDraggingId(null);
+                    document.body.style.userSelect = '';
+                    window.removeEventListener('pointermove', handlePointerMove, { passive: false });
+                    window.removeEventListener('pointerup', stopDragging);
+                    window.removeEventListener('pointercancel', stopDragging);
+                }
+            };
+
+            const handlePointerMove = (event) => {
+                if (!draggingRef.current) return;
+                event.preventDefault();
+
+                const target = document.elementFromPoint(event.clientX, event.clientY);
+                const itemEl = target?.closest('[data-draggable-item]');
+                if (!itemEl) return;
+
+                const targetId = itemEl.dataset.id;
+                const list = itemsRef.current || [];
+                const targetIndex = list.findIndex((it) => it.id === targetId);
+
+                if (targetIndex !== -1 && targetIndex !== activeIndexRef.current) {
+                    onReorderRef.current?.(activeIndexRef.current, targetIndex);
+                    activeIndexRef.current = targetIndex;
+                }
+            };
+
+            const startPress = (event, id) => {
+                clearTimer();
+                const pointerId = event.pointerId;
+                pressTimer.current = setTimeout(() => {
+                    const currentIndex = (itemsRef.current || []).findIndex((it) => it.id === id);
+                    if (currentIndex === -1) return;
+                    draggingRef.current = true;
+                    activeIndexRef.current = currentIndex;
+                    setDraggingId(id);
+                    document.body.style.userSelect = 'none';
+                    if (event.currentTarget?.setPointerCapture && pointerId !== undefined) {
+                        event.currentTarget.setPointerCapture(pointerId);
+                    }
+                    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+                    window.addEventListener('pointerup', stopDragging);
+                    window.addEventListener('pointercancel', stopDragging);
+                }, longPressMs);
+            };
+
+            useEffect(() => () => stopDragging(), []);
+
+            const getItemProps = (id) => ({
+                'data-draggable-item': 'true',
+                'data-id': id,
+                onPointerDown: (e) => startPress(e, id),
+                onPointerUp: stopDragging,
+                onPointerCancel: stopDragging,
+                onPointerLeave: () => clearTimer(),
+            });
+
+            return { draggingId, getItemProps, isDragging: draggingRef.current };
         };
 
         const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
@@ -453,7 +535,7 @@
             );
         };
 
-        const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick }) => {
+        const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, dragProps = {}, dragging = false }) => {
             const [menuOpen, setMenuOpen] = useState(false);
             const [menuDirection, setMenuDirection] = useState('up');
             const menuButtonRef = useRef(null);
@@ -467,8 +549,10 @@
 
             return (
                 <div
-                    className={`p-4 rounded-xl shadow-sm border transition relative ${isSelected ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}
+                    {...dragProps}
+                    className={`p-4 rounded-xl shadow-sm border transition relative cursor-grab active:cursor-grabbing select-none ${isSelected ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'} ${dragging ? 'ring-2 ring-blue-200 scale-[0.99]' : ''}`}
                     onClick={onCardClick}
+                    style={{ touchAction: dragging ? 'none' : 'manipulation' }}
                 >
                     <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
@@ -671,6 +755,9 @@
             const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
             const renameBook = (id, title) => setBooks(books.map(b => b.id === id ? { ...b, title } : b));
             const deleteBook = (id) => setBooks(books.filter(b => b.id !== id));
+            const reorderBooksByIndex = useCallback((from, to) => {
+                setBooks(prev => moveItem(prev, from, to));
+            }, []);
             const reorderBook = (id, direction) => {
                 const index = books.findIndex(b => b.id === id);
                 const target = index + direction;
@@ -715,6 +802,9 @@
             const renameChapter = (bookId, chapterId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
             };
+            const reorderChaptersByIndex = useCallback((bookId, from, to) => {
+                setBooks(prev => prev.map(b => b.id === bookId ? { ...b, chapters: moveItem(b.chapters, from, to) } : b));
+            }, []);
             const addNote = (bookId, chapterId, content) => {
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
@@ -730,6 +820,9 @@
                 const cleanContent = normalizeContent(content);
                 setRootNotes([...rootNotes, { id: generateId(), content: cleanContent, timestamp: Date.now() }]);
             };
+            const reorderRootNotesByIndex = useCallback((from, to) => {
+                setRootNotes(prev => moveItem(prev, from, to));
+            }, []);
             const reorderRootNote = (noteId, direction) => {
                 const index = rootNotes.findIndex(n => n.id === noteId);
                 if (index < 0) return;
@@ -746,6 +839,9 @@
                 if (target < 0 || !book.notes || target >= book.notes.length) return;
                 updateBookNotes(bookId, moveItem(book.notes, index, target));
             };
+            const reorderBookNotesByIndex = useCallback((bookId, from, to) => {
+                setBooks(prev => prev.map(b => b.id === bookId ? { ...b, notes: moveItem(b.notes || [], from, to) } : b));
+            }, []);
             const chooseDestination = async (source) => {
                 const options = buildDestinations(books, source);
                 if (options.length === 0) { alert('No hay destinos disponibles.'); return null; }
@@ -1065,6 +1161,17 @@
             const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
             const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
 
+            const booksDrag = useLongPressDrag(books, reorderBooksByIndex);
+            const rootNotesDrag = useLongPressDrag(rootNotes, reorderRootNotesByIndex);
+            const bookNotesDrag = useLongPressDrag(activeBook?.notes || [], (from, to) => {
+                if (!activeBook) return;
+                reorderBookNotesByIndex(activeBook.id, from, to);
+            });
+            const chaptersDrag = useLongPressDrag(activeBook?.chapters || [], (from, to) => {
+                if (!activeBook) return;
+                reorderChaptersByIndex(activeBook.id, from, to);
+            });
+
             if (view === 'home') {
                 return (
                     <>
@@ -1082,7 +1189,9 @@
                                 {books.map((book) => (
                                     <div
                                         key={book.id}
-                                        className="card card-tap p-4 flex items-center gap-3"
+                                        {...booksDrag.getItemProps(book.id)}
+                                        className={`card card-tap p-4 flex items-center gap-3 cursor-grab active:cursor-grabbing ${booksDrag.draggingId === book.id ? 'ring-2 ring-blue-200 scale-[0.99]' : ''}`}
+                                        style={{ touchAction: booksDrag.draggingId === book.id ? 'none' : 'manipulation' }}
                                     >
                                         <button
                                             onClick={() => goBook(book.id)}
@@ -1147,24 +1256,29 @@
 
                             {rootNotes.length > 0 && (
                                 <div className="space-y-2 mt-4">
-                                    {rootNotes.map(note => (
-                                        <NoteChip
-                                            key={note.id}
-                                            note={note}
-                                            actions={{
-                                                onEdit: () => openNoteModal({
-                                                    title: 'Editar nota',
-                                                    initialContent: note.content,
-                                                    onSave: (html) => setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                }),
-                                                onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
-                                                onMoveUp: () => reorderRootNote(note.id, -1),
-                                                onMoveDown: () => reorderRootNote(note.id, 1),
-                                                onMove: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
-                                                onCopy: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
-                                            }}
-                                        />
-                                    ))}
+                                    {rootNotes.map(note => {
+                                        const dragProps = rootNotesDrag.getItemProps(note.id);
+                                        return (
+                                            <NoteChip
+                                                key={note.id}
+                                                note={note}
+                                                dragProps={dragProps}
+                                                dragging={rootNotesDrag.draggingId === note.id}
+                                                actions={{
+                                                    onEdit: () => openNoteModal({
+                                                        title: 'Editar nota',
+                                                        initialContent: note.content,
+                                                        onSave: (html) => setRootNotes(rootNotes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                    }),
+                                                    onDelete: () => setRootNotes(rootNotes.filter(n => n.id !== note.id)),
+                                                    onMoveUp: () => reorderRootNote(note.id, -1),
+                                                    onMoveDown: () => reorderRootNote(note.id, 1),
+                                                    onMove: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
+                                                    onCopy: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
+                                                }}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             )}
 
@@ -1263,10 +1377,14 @@
 
                             {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
                             <div className="space-y-3">
-                                {activeBook.chapters.map((chap) => (
+                                {activeBook.chapters.map((chap) => {
+                                    const dragProps = chaptersDrag.getItemProps(chap.id);
+                                    return (
                                     <div
                                         key={chap.id}
-                                        className="card card-tap p-4 flex items-center gap-3"
+                                        {...dragProps}
+                                        className={`card card-tap p-4 flex items-center gap-3 cursor-grab active:cursor-grabbing ${chaptersDrag.draggingId === chap.id ? 'ring-2 ring-violet-200 scale-[0.99]' : ''}`}
+                                        style={{ touchAction: chaptersDrag.draggingId === chap.id ? 'none' : 'manipulation' }}
                                     >
                                         <button
                                             onClick={() => goChapter(chap.id)}
@@ -1336,29 +1454,35 @@
                                             ]}
                                         />
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {activeBook.notes?.length > 0 && (
                                 <div className="space-y-2">
-                                    {activeBook.notes.map(note => (
-                                        <NoteChip
-                                            key={note.id}
-                                            note={note}
-                                            actions={{
-                                                onEdit: () => openNoteModal({
-                                                    title: 'Editar nota',
-                                                    initialContent: note.content,
-                                                    onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                }),
-                                                onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
-                                                onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
-                                                onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
-                                                onMove: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
-                                                onCopy: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
-                                            }}
-                                        />
-                                    ))}
+                                    {activeBook.notes.map(note => {
+                                        const dragProps = bookNotesDrag.getItemProps(note.id);
+                                        return (
+                                            <NoteChip
+                                                key={note.id}
+                                                note={note}
+                                                dragProps={dragProps}
+                                                dragging={bookNotesDrag.draggingId === note.id}
+                                                actions={{
+                                                    onEdit: () => openNoteModal({
+                                                        title: 'Editar nota',
+                                                        initialContent: note.content,
+                                                        onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                    }),
+                                                    onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
+                                                    onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
+                                                    onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
+                                                    onMove: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
+                                                    onCopy: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
+                                                }}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             )}
 
@@ -1434,6 +1558,11 @@
             const [editingNoteId, setEditingNoteId] = useState(null);
             const recognitionRef = useRef(null);
             const [supportError, setSupportError] = useState(null);
+
+            const reorderNotesByIndex = useCallback((from, to) => {
+                onUpdateNotes(moveItem(chapter.notes, from, to));
+            }, [chapter.notes, onUpdateNotes]);
+            const noteDrag = useLongPressDrag(chapter.notes || [], reorderNotesByIndex);
 
             useEffect(() => {
                 if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) setSupportError("Navegador sin soporte de voz");
@@ -1527,23 +1656,28 @@
                         {chapter.notes.length === 0 && <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Mic className="w-12 h-12 mb-2 opacity-20" /><p>Graba una nota</p></div>}
 
                         <div className="space-y-3">
-                            {chapter.notes.map(note => (
-                                <NoteChip
-                                    key={note.id}
-                                    note={note}
-                                    selectionMode={selectionMode}
-                                    isSelected={selectedIds.includes(note.id)}
-                                    onCardClick={selectionMode ? () => toggleSelect(note.id) : undefined}
-                                    actions={!selectionMode ? {
-                                        onEdit: () => openNoteModal(note),
-                    onMoveUp: () => reorderNote(note.id, -1),
-                                        onMoveDown: () => reorderNote(note.id, 1),
-                                        onMove: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); },
-                                        onCopy: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); },
-                                        onDelete: () => { if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }
-                                    } : {}}
-                                />
-                            ))}
+                            {chapter.notes.map(note => {
+                                const dragProps = noteDrag.getItemProps(note.id);
+                                return (
+                                    <NoteChip
+                                        key={note.id}
+                                        note={note}
+                                        dragProps={dragProps}
+                                        dragging={noteDrag.draggingId === note.id}
+                                        selectionMode={selectionMode}
+                                        isSelected={selectedIds.includes(note.id)}
+                                        onCardClick={selectionMode ? () => toggleSelect(note.id) : undefined}
+                                        actions={!selectionMode ? {
+                                            onEdit: () => openNoteModal(note),
+                                            onMoveUp: () => reorderNote(note.id, -1),
+                                            onMoveDown: () => reorderNote(note.id, 1),
+                                            onMove: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); },
+                                            onCopy: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); },
+                                            onDelete: () => { if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }
+                                        } : {}}
+                                    />
+                                );
+                            })}
                         </div>
                     </main>
 
