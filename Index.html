@@ -626,12 +626,9 @@
             const [noteModal, setNoteModal] = useState({ open: false, target: null });
             const [noteDraft, setNoteDraft] = useState('<p></p>');
             const recognitionRef = useRef(null);
-            const [voiceTarget, setVoiceTarget] = useState(null);
-            const voiceLockRef = useRef(false);
-            const lockedSessionRef = useRef(false);
-            const skipNextClickRef = useRef(false);
-            const holdTimerRef = useRef(null);
-            const isHoldingRef = useRef(false);
+            const [recordingTarget, setRecordingTarget] = useState(null);
+            const [isRecording, setIsRecording] = useState(false);
+            const [micSupportError, setMicSupportError] = useState(null);
             const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
 
             useEffect(() => {
@@ -662,6 +659,13 @@
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
             useEffect(() => { setEditingChapter({ id: null, title: "" }); }, [activeBookId]);
+
+            useEffect(() => {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    setMicSupportError("Navegador sin soporte de voz");
+                }
+                return () => { if (recognitionRef.current) recognitionRef.current.stop(); };
+            }, []);
 
             // Helpers de navegación y datos
             const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
@@ -864,67 +868,41 @@
             };
             const cancelChapterEdit = () => setEditingChapter({ id: null, title: "" });
 
-            const startVoiceNote = (target, { locked = false } = {}) => {
+            const startDictation = (target) => {
+                if (micSupportError) return alert(micSupportError);
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SpeechRecognition) {
-                    alert('Tu navegador no soporta dictado de voz.');
-                    return;
-                }
                 const recognition = new SpeechRecognition();
                 recognition.lang = 'es-ES';
-                recognition.continuous = locked;
-                recognition.interimResults = false;
+                recognition.continuous = false;
+                recognition.onstart = () => setIsRecording(true);
                 recognition.onresult = (e) => {
-                    const transcript = e.results[0][0].transcript.trim();
+                    const transcript = e.results[0][0].transcript?.trim();
                     if (!transcript) return;
                     if (target.type === 'root') addRootNote(transcript);
                     if (target.type === 'book') addBookNote(target.bookId, transcript);
                 };
-                recognition.onerror = () => { voiceLockRef.current = false; setVoiceTarget(null); };
-                recognition.onend = () => {
-                    if (voiceLockRef.current) {
-                        recognition.start();
-                    } else {
-                        setVoiceTarget(null);
-                    }
+                recognition.onerror = (event) => {
+                    console.error(event);
+                    setIsRecording(false);
+                    setRecordingTarget(null);
+                    if (event.error === 'not-allowed') alert("Permiso de micrófono denegado.");
                 };
-                voiceLockRef.current = locked;
-                lockedSessionRef.current = locked;
-                setVoiceTarget({ ...target, locked });
+                recognition.onend = () => {
+                    setIsRecording(false);
+                    setRecordingTarget(null);
+                };
+                setRecordingTarget(target);
                 recognition.start();
                 recognitionRef.current = recognition;
             };
 
-            const stopVoiceNote = () => {
-                skipNextClickRef.current = skipNextClickRef.current || lockedSessionRef.current;
-                lockedSessionRef.current = false;
-                voiceLockRef.current = false;
-                recognitionRef.current?.stop();
-            };
-
-            const startHoldRecording = (target) => {
-                isHoldingRef.current = true;
-                holdTimerRef.current = setTimeout(() => {
-                    if (isHoldingRef.current) startVoiceNote(target, { locked: true });
-                }, 250);
-            };
-
-            const endHoldRecording = () => {
-                isHoldingRef.current = false;
-                if (holdTimerRef.current) {
-                    clearTimeout(holdTimerRef.current);
-                    holdTimerRef.current = null;
+            const toggleDictation = (target) => {
+                if (isRecording && recordingTarget?.type === target.type && recordingTarget?.bookId === target.bookId) {
+                    recognitionRef.current?.stop();
+                } else {
+                    if (isRecording) recognitionRef.current?.stop();
+                    startDictation(target);
                 }
-                if (voiceLockRef.current) stopVoiceNote();
-            };
-
-            const handleMicClick = (target) => {
-                if (skipNextClickRef.current) {
-                    skipNextClickRef.current = false;
-                    return;
-                }
-                if (voiceLockRef.current) return;
-                startVoiceNote(target);
             };
 
             const openNoteModal = (target) => {
@@ -1205,22 +1183,17 @@
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                            {voiceTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                            {isRecording && recordingTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
                             <div className="flex items-center gap-3 bg-white/85 backdrop-blur rounded-full shadow-lg border px-3 py-2">
                                 <button onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html) => addRootNote(html) })} className="w-12 h-12 rounded-full bg-blue-200 text-blue-900 flex items-center justify-center text-lg shadow hover:bg-blue-300" title="Escribir nota">
                                     📝
                                 </button>
                                 <button
-                                    onClick={() => handleMicClick({ type: 'root' })}
-                                    onMouseDown={() => startHoldRecording({ type: 'root' })}
-                                    onMouseUp={endHoldRecording}
-                                    onMouseLeave={endHoldRecording}
-                                    onTouchStart={() => startHoldRecording({ type: 'root' })}
-                                    onTouchEnd={endHoldRecording}
-                                    onTouchCancel={endHoldRecording}
-                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-blue-700 hover:bg-blue-800 hover:scale-105 text-white'}`}
+                                    onClick={() => toggleDictation({ type: 'root' })}
+                                    disabled={!!micSupportError}
+                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 text-white ${isRecording && recordingTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-700 hover:bg-blue-800 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100 hover:bg-gray-400' : ''}`}
                                 >
-                                    <Icons.Mic />
+                                    {isRecording && recordingTarget?.type === 'root' ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic />}
                                 </button>
                             </div>
                         </div>
@@ -1404,22 +1377,17 @@
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                            {voiceTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                            {isRecording && recordingTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
                             <div className="flex items-center gap-3 bg-white/85 backdrop-blur rounded-full shadow-lg border px-3 py-2">
                                 <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html) => addBookNote(activeBook.id, html) })} className="w-12 h-12 rounded-full bg-violet-200 text-violet-900 flex items-center justify-center text-lg shadow hover:bg-violet-300" title="Escribir nota del libro">
                                     📝
                                 </button>
                                 <button
-                                    onClick={() => handleMicClick({ type: 'book', bookId: activeBook.id })}
-                                    onMouseDown={() => startHoldRecording({ type: 'book', bookId: activeBook.id })}
-                                    onMouseUp={endHoldRecording}
-                                    onMouseLeave={endHoldRecording}
-                                    onTouchStart={() => startHoldRecording({ type: 'book', bookId: activeBook.id })}
-                                    onTouchEnd={endHoldRecording}
-                                    onTouchCancel={endHoldRecording}
-                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${voiceTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110 text-white' : 'bg-violet-700 hover:bg-violet-800 hover:scale-105 text-white'}`}
+                                    onClick={() => toggleDictation({ type: 'book', bookId: activeBook.id })}
+                                    disabled={!!micSupportError}
+                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 text-white ${isRecording && recordingTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110' : 'bg-violet-700 hover:bg-violet-800 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100 hover:bg-gray-400' : ''}`}
                                 >
-                                    <Icons.Mic />
+                                    {isRecording && recordingTarget?.bookId === activeBook.id ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic />}
                                 </button>
                             </div>
                         </div>
