@@ -218,6 +218,8 @@
             const itemsRef = useRef(items);
             const draggingRef = useRef(false);
             const onReorderRef = useRef(onReorder);
+            const pointerTargetRef = useRef(null);
+            const pointerIdRef = useRef(null);
 
             useEffect(() => { itemsRef.current = items; }, [items]);
             useEffect(() => { onReorderRef.current = onReorder; }, [onReorder]);
@@ -229,20 +231,13 @@
                 }
             };
 
-            const stopDragging = () => {
-                clearTimer();
-                if (draggingRef.current) {
-                    draggingRef.current = false;
-                    activeIndexRef.current = -1;
-                    setDraggingId(null);
-                    document.body.style.userSelect = '';
-                    window.removeEventListener('pointermove', handlePointerMove, { passive: false });
-                    window.removeEventListener('pointerup', stopDragging);
-                    window.removeEventListener('pointercancel', stopDragging);
+            const cancelIfIdle = () => {
+                if (!draggingRef.current) {
+                    clearTimer();
                 }
             };
 
-            const handlePointerMove = (event) => {
+            const handlePointerMove = useCallback((event) => {
                 if (!draggingRef.current) return;
                 event.preventDefault();
 
@@ -258,11 +253,34 @@
                     onReorderRef.current?.(activeIndexRef.current, targetIndex);
                     activeIndexRef.current = targetIndex;
                 }
-            };
+            }, []);
 
-            const startPress = (event, id) => {
+            const stopDragging = useCallback(() => {
+                cancelIfIdle();
+                if (draggingRef.current) {
+                    draggingRef.current = false;
+                    activeIndexRef.current = -1;
+                    setDraggingId(null);
+                    document.body.style.userSelect = '';
+                    document.body.style.touchAction = '';
+                    if (pointerTargetRef.current?.releasePointerCapture && pointerIdRef.current !== null) {
+                        try { pointerTargetRef.current.releasePointerCapture(pointerIdRef.current); } catch (_) {}
+                    }
+                    pointerTargetRef.current = null;
+                    pointerIdRef.current = null;
+                    window.removeEventListener('pointermove', handlePointerMove, { passive: false });
+                    window.removeEventListener('pointerup', stopDragging);
+                    window.removeEventListener('pointercancel', stopDragging);
+                }
+            }, [handlePointerMove]);
+
+            const startPress = useCallback((event, id) => {
                 clearTimer();
-                const pointerId = event.pointerId;
+                pointerTargetRef.current = event.currentTarget;
+                pointerIdRef.current = event.pointerId;
+                if (event.pointerType === 'touch') {
+                    event.preventDefault();
+                }
                 pressTimer.current = setTimeout(() => {
                     const currentIndex = (itemsRef.current || []).findIndex((it) => it.id === id);
                     if (currentIndex === -1) return;
@@ -270,24 +288,27 @@
                     activeIndexRef.current = currentIndex;
                     setDraggingId(id);
                     document.body.style.userSelect = 'none';
-                    if (event.currentTarget?.setPointerCapture && pointerId !== undefined) {
-                        event.currentTarget.setPointerCapture(pointerId);
+                    document.body.style.touchAction = 'none';
+                    if (pointerTargetRef.current?.setPointerCapture && pointerIdRef.current !== undefined) {
+                        try { pointerTargetRef.current.setPointerCapture(pointerIdRef.current); } catch (_) {}
                     }
                     window.addEventListener('pointermove', handlePointerMove, { passive: false });
                     window.addEventListener('pointerup', stopDragging);
                     window.addEventListener('pointercancel', stopDragging);
                 }, longPressMs);
-            };
+            }, [handlePointerMove, longPressMs, stopDragging]);
 
-            useEffect(() => () => stopDragging(), []);
+            useEffect(() => () => stopDragging(), [stopDragging]);
 
             const getItemProps = (id) => ({
                 'data-draggable-item': 'true',
                 'data-id': id,
+                style: { touchAction: 'manipulation' },
+                onContextMenu: (e) => e.preventDefault(),
                 onPointerDown: (e) => startPress(e, id),
                 onPointerUp: stopDragging,
                 onPointerCancel: stopDragging,
-                onPointerLeave: () => clearTimer(),
+                onPointerLeave: cancelIfIdle,
             });
 
             return { draggingId, getItemProps, isDragging: draggingRef.current };
