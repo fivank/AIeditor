@@ -231,6 +231,12 @@
                 }
             };
 
+            const cancelIfIdle = () => {
+                if (!draggingRef.current) {
+                    clearTimer();
+                }
+            };
+
             const handlePointerMove = useCallback((event) => {
                 if (!draggingRef.current) return;
                 event.preventDefault();
@@ -250,7 +256,7 @@
             }, []);
 
             const stopDragging = useCallback(() => {
-                clearTimer();
+                cancelIfIdle();
                 if (draggingRef.current) {
                     draggingRef.current = false;
                     activeIndexRef.current = -1;
@@ -272,6 +278,9 @@
                 clearTimer();
                 pointerTargetRef.current = event.currentTarget;
                 pointerIdRef.current = event.pointerId;
+                if (event.pointerType === 'touch') {
+                    event.preventDefault();
+                }
                 pressTimer.current = setTimeout(() => {
                     const currentIndex = (itemsRef.current || []).findIndex((it) => it.id === id);
                     if (currentIndex === -1) return;
@@ -294,11 +303,12 @@
             const getItemProps = (id) => ({
                 'data-draggable-item': 'true',
                 'data-id': id,
+                style: { touchAction: 'manipulation' },
                 onContextMenu: (e) => e.preventDefault(),
                 onPointerDown: (e) => startPress(e, id),
                 onPointerUp: stopDragging,
                 onPointerCancel: stopDragging,
-                onPointerLeave: () => clearTimer(),
+                onPointerLeave: cancelIfIdle,
             });
 
             return { draggingId, getItemProps, isDragging: draggingRef.current };
