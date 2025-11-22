@@ -211,16 +211,10 @@
             return options;
         };
 
-        const useLongPressDrag = (items, onReorder, { longPressMs = 180 } = {}) => {
-            const [draggingId, setDraggingId] = useState(null);
+        const useLongPressMoveMode = (duration = 500) => {
+            const [moveModeId, setMoveModeId] = useState(null);
             const pressTimer = useRef(null);
-            const activeIndexRef = useRef(-1);
-            const itemsRef = useRef(items);
-            const draggingRef = useRef(false);
-            const onReorderRef = useRef(onReorder);
-            const pointerTargetRef = useRef(null);
-            const pointerIdRef = useRef(null);
-            const pressStartRef = useRef({ x: 0, y: 0 });
+            const longPressTriggered = useRef(false);
 
             const clearPressTimer = () => {
                 if (pressTimer.current) {
@@ -229,108 +223,42 @@
                 }
             };
 
-            useEffect(() => { itemsRef.current = items; }, [items]);
-            useEffect(() => { onReorderRef.current = onReorder; }, [onReorder]);
-
-            const cancelIfIdle = () => {
-                if (!draggingRef.current) {
-                    clearPressTimer();
-                }
+            const startPress = (id) => {
+                clearPressTimer();
+                longPressTriggered.current = false;
+                pressTimer.current = setTimeout(() => {
+                    longPressTriggered.current = true;
+                    setMoveModeId(id);
+                }, duration);
             };
 
-            const handlePreDragMove = useCallback((event) => {
-                if (draggingRef.current || !pressTimer.current) return;
-                const dx = Math.abs(event.clientX - pressStartRef.current.x);
-                const dy = Math.abs(event.clientY - pressStartRef.current.y);
-                if (dx > 8 || dy > 8) {
-                    clearPressTimer();
-                    window.removeEventListener('pointermove', handlePreDragMove);
-                }
-            }, []);
-
-            const handlePointerMove = useCallback((event) => {
-                if (!draggingRef.current) return;
-                event.preventDefault();
-
-                const target = document.elementFromPoint(event.clientX, event.clientY);
-                const itemEl = target?.closest('[data-draggable-item]');
-                if (!itemEl) return;
-
-                const targetId = itemEl.dataset.id;
-                const list = itemsRef.current || [];
-                const targetIndex = list.findIndex((it) => it.id === targetId);
-
-                if (targetIndex !== -1 && targetIndex !== activeIndexRef.current) {
-                    onReorderRef.current?.(activeIndexRef.current, targetIndex);
-                    activeIndexRef.current = targetIndex;
-                }
-            }, []);
-
-            const stopDragging = useCallback(() => {
-                cancelIfIdle();
-                if (draggingRef.current) {
-                    draggingRef.current = false;
-                    activeIndexRef.current = -1;
-                    setDraggingId(null);
-                    document.body.style.userSelect = '';
-                    document.body.style.touchAction = '';
-                    if (pointerTargetRef.current?.releasePointerCapture && pointerIdRef.current !== null) {
-                        try { pointerTargetRef.current.releasePointerCapture(pointerIdRef.current); } catch (_) {}
-                    }
-                    pointerTargetRef.current = null;
-                    pointerIdRef.current = null;
-                    window.removeEventListener('pointermove', handlePointerMove, { passive: false });
-                    window.removeEventListener('pointerup', stopDragging);
-                    window.removeEventListener('pointercancel', stopDragging);
-                }
-                window.removeEventListener('pointermove', handlePreDragMove);
-            }, [handlePointerMove]);
-
-            const startPress = useCallback((event, id) => {
+            const cancelPress = () => {
                 clearPressTimer();
-                pointerTargetRef.current = event.currentTarget;
-                pointerIdRef.current = event.pointerId;
-                pressStartRef.current = { x: event.clientX, y: event.clientY };
-                if (pointerTargetRef.current?.setPointerCapture && pointerIdRef.current !== undefined) {
-                    try { pointerTargetRef.current.setPointerCapture(pointerIdRef.current); } catch (_) {}
-                }
-                if (event.pointerType === 'touch') {
-                    event.preventDefault();
-                }
-                window.addEventListener('pointermove', handlePreDragMove, { passive: true });
-                pressTimer.current = setTimeout(() => {
-                    const currentIndex = (itemsRef.current || []).findIndex((it) => it.id === id);
-                    if (currentIndex === -1) return;
-                    pressTimer.current = null;
-                    window.removeEventListener('pointermove', handlePreDragMove);
-                    draggingRef.current = true;
-                    activeIndexRef.current = currentIndex;
-                    setDraggingId(id);
-                    document.body.style.userSelect = 'none';
-                    document.body.style.touchAction = 'none';
-                    if (pointerTargetRef.current?.setPointerCapture && pointerIdRef.current !== undefined) {
-                        try { pointerTargetRef.current.setPointerCapture(pointerIdRef.current); } catch (_) {}
-                    }
-                    window.addEventListener('pointermove', handlePointerMove, { passive: false });
-                    window.addEventListener('pointerup', stopDragging);
-                    window.addEventListener('pointercancel', stopDragging);
-                }, longPressMs);
-            }, [handlePointerMove, longPressMs, stopDragging]);
-
-            useEffect(() => () => stopDragging(), [stopDragging]);
+            };
 
             const getItemProps = (id) => ({
-                'data-draggable-item': 'true',
-                'data-id': id,
-                style: { touchAction: 'manipulation' },
-                onContextMenu: (e) => e.preventDefault(),
-                onPointerDown: (e) => startPress(e, id),
-                onPointerUp: stopDragging,
-                onPointerCancel: stopDragging,
-                onPointerLeave: cancelIfIdle,
+                onPointerDown: () => startPress(id),
+                onPointerUp: cancelPress,
+                onPointerLeave: cancelPress,
+                onPointerCancel: cancelPress,
+                onClick: (e) => {
+                    if (moveModeId === id && longPressTriggered.current) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        longPressTriggered.current = false;
+                    }
+                },
             });
 
-            return { draggingId, getItemProps, isDragging: draggingRef.current };
+            useEffect(() => () => clearPressTimer(), []);
+
+            const exitMoveMode = () => {
+                setMoveModeId(null);
+                longPressTriggered.current = false;
+                clearPressTimer();
+            };
+
+            return { moveModeId, getItemProps, exitMoveMode };
         };
 
         const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
@@ -575,7 +503,28 @@
             );
         };
 
-        const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, dragProps = {}, dragging = false }) => {
+        const MoveControls = ({ onMoveUp, onMoveDown, accentClass = 'text-slate-700' }) => (
+            <div className="flex flex-col items-center justify-center gap-1 bg-white/90 rounded-full border border-slate-200 shadow-sm p-1">
+                <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 active:scale-95 ${accentClass}`}
+                    aria-label="Mover hacia arriba"
+                >
+                    ▲
+                </button>
+                <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 active:scale-95 ${accentClass}`}
+                    aria-label="Mover hacia abajo"
+                >
+                    ▼
+                </button>
+            </div>
+        );
+
+        const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, moveHandlers = {}, moveModeActive = false }) => {
             const [menuOpen, setMenuOpen] = useState(false);
             const [menuDirection, setMenuDirection] = useState('up');
             const menuButtonRef = useRef(null);
@@ -589,38 +538,47 @@
 
             return (
                 <div
-                    {...dragProps}
-                    className={`p-4 rounded-xl shadow-sm border transition relative cursor-grab active:cursor-grabbing select-none ${isSelected ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'} ${dragging ? 'ring-2 ring-blue-200 scale-[0.99]' : ''}`}
-                    onClick={onCardClick}
-                    style={{ touchAction: dragging ? 'none' : 'manipulation' }}
+                    {...moveHandlers}
+                    className={`p-4 rounded-xl shadow-sm border transition relative cursor-pointer select-none ${isSelected ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400' : 'bg-white border-gray-100'}`}
+                    onClick={(e) => {
+                        moveHandlers.onClick?.(e);
+                        if (e.defaultPrevented) return;
+                        onCardClick?.(e);
+                    }}
                 >
                     <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         {hasActions && (
                             <div className="relative">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        setMenuDirection(rect.top >= window.innerHeight / 2 ? 'up' : 'down');
-                                        setMenuOpen(o => !o);
-                                    }}
-                                    className="w-9 h-9 rounded-full text-white shadow-md flex items-center justify-center bg-slate-600 hover:bg-slate-700"
-                                    title="Opciones de nota"
-                                    ref={menuButtonRef}
-                                >
-                                    <Icons.Edit />
-                                </button>
-                                {menuOpen && (
-                                    <div className={`absolute right-0 ${menuDirection === 'up' ? 'bottom-12' : 'top-12'} w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden`}>
-                                        {onEdit && <button onClick={(e) => { e.stopPropagation(); handleAction(onEdit); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Editar</button>}
-                                        {onMoveUp && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveUp); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Subir</button>}
-                                        {onMoveDown && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveDown); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Bajar</button>}
-                                        {onMove && <button onClick={(e) => { e.stopPropagation(); handleAction(onMove); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Mover</button>}
-                                        {onCopy && <button onClick={(e) => { e.stopPropagation(); handleAction(onCopy); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Copiar</button>}
-                                        {onDelete && <button onClick={(e) => { e.stopPropagation(); handleAction(onDelete); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">Eliminar</button>}
-                                    </div>
+                                {moveModeActive ? (
+                                    <MoveControls onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                setMenuDirection(rect.top >= window.innerHeight / 2 ? 'up' : 'down');
+                                                setMenuOpen(o => !o);
+                                            }}
+                                            className="w-9 h-9 rounded-full text-white shadow-md flex items-center justify-center bg-slate-600 hover:bg-slate-700"
+                                            title="Opciones de nota"
+                                            ref={menuButtonRef}
+                                        >
+                                            <Icons.Edit />
+                                        </button>
+                                        {menuOpen && (
+                                            <div className={`absolute right-0 ${menuDirection === 'up' ? 'bottom-12' : 'top-12'} w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden`}>
+                                                {onEdit && <button onClick={(e) => { e.stopPropagation(); handleAction(onEdit); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Editar</button>}
+                                                {onMoveUp && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveUp); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Subir</button>}
+                                                {onMoveDown && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveDown); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Bajar</button>}
+                                                {onMove && <button onClick={(e) => { e.stopPropagation(); handleAction(onMove); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Mover</button>}
+                                                {onCopy && <button onClick={(e) => { e.stopPropagation(); handleAction(onCopy); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Copiar</button>}
+                                                {onDelete && <button onClick={(e) => { e.stopPropagation(); handleAction(onDelete); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">Eliminar</button>}
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}
@@ -1201,16 +1159,10 @@
             const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
             const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
 
-            const booksDrag = useLongPressDrag(books, reorderBooksByIndex);
-            const rootNotesDrag = useLongPressDrag(rootNotes, reorderRootNotesByIndex);
-            const bookNotesDrag = useLongPressDrag(activeBook?.notes || [], (from, to) => {
-                if (!activeBook) return;
-                reorderBookNotesByIndex(activeBook.id, from, to);
-            });
-            const chaptersDrag = useLongPressDrag(activeBook?.chapters || [], (from, to) => {
-                if (!activeBook) return;
-                reorderChaptersByIndex(activeBook.id, from, to);
-            });
+            const booksMoveMode = useLongPressMoveMode(500);
+            const rootNotesMoveMode = useLongPressMoveMode(500);
+            const bookNotesMoveMode = useLongPressMoveMode(500);
+            const chaptersMoveMode = useLongPressMoveMode(500);
 
             if (view === 'home') {
                 return (
@@ -1226,12 +1178,14 @@
                             )}
 
                             <div className="space-y-3 mt-4">
-                                {books.map((book) => (
+                                {books.map((book) => {
+                                    const moveProps = booksMoveMode.getItemProps(book.id);
+                                    const moveModeActive = booksMoveMode.moveModeId === book.id;
+                                    return (
                                     <div
                                         key={book.id}
-                                        {...booksDrag.getItemProps(book.id)}
-                                        className={`card card-tap p-4 flex items-center gap-3 cursor-grab active:cursor-grabbing ${booksDrag.draggingId === book.id ? 'ring-2 ring-blue-200 scale-[0.99]' : ''}`}
-                                        style={{ touchAction: booksDrag.draggingId === book.id ? 'none' : 'manipulation' }}
+                                        {...moveProps}
+                                        className={`card card-tap p-4 flex items-center gap-3 ${moveModeActive ? 'ring-2 ring-blue-200' : ''}`}
                                     >
                                         <button
                                             onClick={() => goBook(book.id)}
@@ -1279,31 +1233,40 @@
                                             )}
                                         </div>
 
-                                        <ActionMenu
-                                            colorClass="bg-blue-700"
-                                            options={[
-                                                { label: 'Cambiar nombre', onClick: () => startBookEdit(book) },
-                                                { label: 'Mover', onClick: () => moveBookToPosition(book.id) },
-                                                { label: 'Subir', onClick: () => reorderBook(book.id, -1) },
-                                                { label: 'Bajar', onClick: () => reorderBook(book.id, 1) },
-                                                { label: 'Copiar libro', onClick: () => duplicateBook(book.id) },
-                                                { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); } },
-                                            ]}
-                                        />
+                                        {moveModeActive ? (
+                                            <MoveControls
+                                                accentClass="text-blue-700"
+                                                onMoveUp={() => reorderBook(book.id, -1)}
+                                                onMoveDown={() => reorderBook(book.id, 1)}
+                                            />
+                                        ) : (
+                                            <ActionMenu
+                                                colorClass="bg-blue-700"
+                                                options={[
+                                                    { label: 'Cambiar nombre', onClick: () => startBookEdit(book) },
+                                                    { label: 'Mover', onClick: () => moveBookToPosition(book.id) },
+                                                    { label: 'Subir', onClick: () => reorderBook(book.id, -1) },
+                                                    { label: 'Bajar', onClick: () => reorderBook(book.id, 1) },
+                                                    { label: 'Copiar libro', onClick: () => duplicateBook(book.id) },
+                                                    { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); } },
+                                                ]}
+                                            />
+                                        )}
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {rootNotes.length > 0 && (
                                 <div className="space-y-2 mt-4">
                                     {rootNotes.map(note => {
-                                        const dragProps = rootNotesDrag.getItemProps(note.id);
+                                        const moveProps = rootNotesMoveMode.getItemProps(note.id);
                                         return (
                                             <NoteChip
                                                 key={note.id}
                                                 note={note}
-                                                dragProps={dragProps}
-                                                dragging={rootNotesDrag.draggingId === note.id}
+                                                moveHandlers={moveProps}
+                                                moveModeActive={rootNotesMoveMode.moveModeId === note.id}
                                                 actions={{
                                                     onEdit: () => openNoteModal({
                                                         title: 'Editar nota',
@@ -1418,13 +1381,13 @@
                             {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
                             <div className="space-y-3">
                                 {activeBook.chapters.map((chap) => {
-                                    const dragProps = chaptersDrag.getItemProps(chap.id);
+                                    const moveProps = chaptersMoveMode.getItemProps(chap.id);
+                                    const moveModeActive = chaptersMoveMode.moveModeId === chap.id;
                                     return (
                                     <div
                                         key={chap.id}
-                                        {...dragProps}
-                                        className={`card card-tap p-4 flex items-center gap-3 cursor-grab active:cursor-grabbing ${chaptersDrag.draggingId === chap.id ? 'ring-2 ring-violet-200 scale-[0.99]' : ''}`}
-                                        style={{ touchAction: chaptersDrag.draggingId === chap.id ? 'none' : 'manipulation' }}
+                                        {...moveProps}
+                                        className={`card card-tap p-4 flex items-center gap-3 ${moveModeActive ? 'ring-2 ring-violet-200' : ''}`}
                                     >
                                         <button
                                             onClick={() => goChapter(chap.id)}
@@ -1472,27 +1435,35 @@
                                             )}
                                         </div>
 
-                                        <ActionMenu
-                                            colorClass="bg-violet-700"
-                                            options={[
-                                                { label: 'Cambiar nombre', onClick: () => startChapterEdit(chap) },
-                                                { label: 'Mover', onClick: async () => {
-                                                    const available = books.filter(b => b.id !== activeBook.id);
-                                                    if (available.length === 0) return alert('No hay otros libros disponibles.');
-                                                    const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Mover a libro');
-                                                    if (choice?.bookId) moveChapterToBook(activeBook.id, chap.id, choice.bookId);
-                                                } },
-                                                { label: 'Copiar', onClick: async () => {
-                                                    const available = books.filter(b => b.id !== activeBook.id);
-                                                    if (available.length === 0) return alert('No hay otros libros disponibles.');
-                                                    const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Copiar a libro');
-                                                    if (choice?.bookId) copyChapterToBook(activeBook.id, chap.id, choice.bookId);
-                                                } },
-                                                { label: 'Subir', onClick: () => reorderChapter(activeBook.id, chap.id, -1) },
-                                                { label: 'Bajar', onClick: () => reorderChapter(activeBook.id, chap.id, 1) },
-                                                { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); } },
-                                            ]}
-                                        />
+                                        {moveModeActive ? (
+                                            <MoveControls
+                                                accentClass="text-violet-700"
+                                                onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
+                                                onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
+                                            />
+                                        ) : (
+                                            <ActionMenu
+                                                colorClass="bg-violet-700"
+                                                options={[
+                                                    { label: 'Cambiar nombre', onClick: () => startChapterEdit(chap) },
+                                                    { label: 'Mover', onClick: async () => {
+                                                        const available = books.filter(b => b.id !== activeBook.id);
+                                                        if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                        const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Mover a libro');
+                                                        if (choice?.bookId) moveChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                    } },
+                                                    { label: 'Copiar', onClick: async () => {
+                                                        const available = books.filter(b => b.id !== activeBook.id);
+                                                        if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                        const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Copiar a libro');
+                                                        if (choice?.bookId) copyChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                    } },
+                                                    { label: 'Subir', onClick: () => reorderChapter(activeBook.id, chap.id, -1) },
+                                                    { label: 'Bajar', onClick: () => reorderChapter(activeBook.id, chap.id, 1) },
+                                                    { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); } },
+                                                ]}
+                                            />
+                                        )}
                                     </div>
                                     );
                                 })}
@@ -1501,13 +1472,13 @@
                             {activeBook.notes?.length > 0 && (
                                 <div className="space-y-2">
                                     {activeBook.notes.map(note => {
-                                        const dragProps = bookNotesDrag.getItemProps(note.id);
+                                        const moveProps = bookNotesMoveMode.getItemProps(note.id);
                                         return (
                                             <NoteChip
                                                 key={note.id}
                                                 note={note}
-                                                dragProps={dragProps}
-                                                dragging={bookNotesDrag.draggingId === note.id}
+                                                moveHandlers={moveProps}
+                                                moveModeActive={bookNotesMoveMode.moveModeId === note.id}
                                                 actions={{
                                                     onEdit: () => openNoteModal({
                                                         title: 'Editar nota',
@@ -1602,7 +1573,7 @@
             const reorderNotesByIndex = useCallback((from, to) => {
                 onUpdateNotes(moveItem(chapter.notes, from, to));
             }, [chapter.notes, onUpdateNotes]);
-            const noteDrag = useLongPressDrag(chapter.notes || [], reorderNotesByIndex);
+            const noteMoveMode = useLongPressMoveMode(500);
 
             useEffect(() => {
                 if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) setSupportError("Navegador sin soporte de voz");
@@ -1697,13 +1668,13 @@
 
                         <div className="space-y-3">
                             {chapter.notes.map(note => {
-                                const dragProps = noteDrag.getItemProps(note.id);
+                                const moveProps = noteMoveMode.getItemProps(note.id);
                                 return (
                                     <NoteChip
                                         key={note.id}
                                         note={note}
-                                        dragProps={dragProps}
-                                        dragging={noteDrag.draggingId === note.id}
+                                        moveHandlers={moveProps}
+                                        moveModeActive={noteMoveMode.moveModeId === note.id}
                                         selectionMode={selectionMode}
                                         isSelected={selectedIds.includes(note.id)}
                                         onCardClick={selectionMode ? () => toggleSelect(note.id) : undefined}
