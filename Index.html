@@ -144,8 +144,7 @@
             Merge: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3"/><path d="M12 12.3v9.3"/><path d="m8 18 4 4 4-4"/></svg>,
             Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
             Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
-            Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         };
 
         // --- CONFIGURACIÓN INICIAL ---
@@ -575,16 +574,8 @@
         );
 
         const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, moveHandlers = {}, moveModeActive = false }) => {
-            const [menuOpen, setMenuOpen] = useState(false);
-            const [menuDirection, setMenuDirection] = useState('up');
-            const menuButtonRef = useRef(null);
-            const { onEdit, onDelete, onMove, onCopy, onMoveUp, onMoveDown } = actions;
-            const hasActions = moveModeActive || onEdit || onDelete || onMove || onCopy || onMoveUp || onMoveDown;
-
-            const handleAction = (callback) => {
-                if (callback) callback();
-                setMenuOpen(false);
-            };
+            const { onEdit, onMoveUp, onMoveDown } = actions;
+            const showMoveControls = moveModeActive && (onMoveUp || onMoveDown);
 
             return (
                 <div
@@ -607,84 +598,12 @@
                     <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        {hasActions && (
+                        {showMoveControls && (
                             <div className="relative">
-                                {moveModeActive ? (
-                                    <MoveControls onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
-                                ) : (
-                                    <>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                setMenuDirection(rect.top >= window.innerHeight / 2 ? 'up' : 'down');
-                                                setMenuOpen(o => !o);
-                                            }}
-                                            className="w-9 h-9 rounded-full text-white shadow-md flex items-center justify-center bg-slate-600 hover:bg-slate-700"
-                                            title="Opciones de nota"
-                                            ref={menuButtonRef}
-                                        >
-                                            <Icons.Edit />
-                                        </button>
-                                        {menuOpen && (
-                                            <div className={`absolute right-0 ${menuDirection === 'up' ? 'bottom-12' : 'top-12'} w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden`}>
-                                                {onEdit && <button onClick={(e) => { e.stopPropagation(); handleAction(onEdit); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Editar</button>}
-                                                {onMoveUp && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveUp); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Subir</button>}
-                                                {onMoveDown && <button onClick={(e) => { e.stopPropagation(); handleAction(onMoveDown); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Bajar</button>}
-                                                {onMove && <button onClick={(e) => { e.stopPropagation(); handleAction(onMove); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Mover</button>}
-                                                {onCopy && <button onClick={(e) => { e.stopPropagation(); handleAction(onCopy); }} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Copiar</button>}
-                                                {onDelete && <button onClick={(e) => { e.stopPropagation(); handleAction(onDelete); }} className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">Eliminar</button>}
-                                            </div>
-                                        )}
-                                    </>
-                                )}
+                                <MoveControls onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
                             </div>
                         )}
                     </div>
-                </div>
-            );
-        };
-
-        const ActionMenu = ({ colorClass = 'bg-slate-600', onToggle = () => {}, options = [] }) => {
-            const [open, setOpen] = useState(false);
-            const [direction, setDirection] = useState('up');
-            const triggerRef = useRef(null);
-
-            const handleOption = (action) => {
-                action();
-                setOpen(false);
-            };
-
-            return (
-                <div className="relative">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setDirection(rect.top >= window.innerHeight / 2 ? 'up' : 'down');
-                            setOpen(o => !o);
-                            onToggle();
-                        }}
-                        className={`w-9 h-9 rounded-full text-white shadow-md flex items-center justify-center ${colorClass}`}
-                        title="Opciones"
-                        ref={triggerRef}
-                    >
-                        <Icons.Edit />
-                    </button>
-                    {open && (
-                        <div className={`absolute right-0 ${direction === 'up' ? 'bottom-12' : 'top-12'} w-48 bg-white border rounded-xl shadow-xl z-30 overflow-hidden`}>
-                            {options.map(opt => (
-                                <button
-                                    key={opt.label}
-                                    onClick={(e) => { e.stopPropagation(); handleOption(opt.onClick); }}
-                                    className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between"
-                                >
-                                    <span>{opt.label}</span>
-                                    {opt.badge && <span className="text-[10px] text-slate-400">{opt.badge}</span>}
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
             );
         };
@@ -1550,29 +1469,15 @@
                                             </button>
                                         </div>
 
-                                        <div className="flex-shrink-0 flex items-center">
-                                            {showMoveControls ? (
+                                        {showMoveControls && (
+                                            <div className="flex-shrink-0 flex items-center">
                                                 <MoveControls
                                                     onMoveUp={() => reorderBook(book.id, -1)}
                                                     onMoveDown={() => reorderBook(book.id, 1)}
                                                     accentClass="text-blue-800"
                                                 />
-                                            ) : (
-                                                !bookSelectionMode && (
-                                                    <ActionMenu
-                                                        colorClass="bg-blue-700"
-                                                        options={[
-                                                            { label: 'Cambiar nombre', onClick: () => renameBookWithPrompt(book) },
-                                                            { label: 'Mover', onClick: () => moveBookToPosition(book.id) },
-                                                            { label: 'Subir', onClick: () => reorderBook(book.id, -1) },
-                                                            { label: 'Bajar', onClick: () => reorderBook(book.id, 1) },
-                                                            { label: 'Copiar libro', onClick: () => duplicateBook(book.id) },
-                                                            { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); } },
-                                                        ]}
-                                                    />
-                                                )
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                     );
                                 })}
@@ -1594,11 +1499,8 @@
                                                         initialContent: note.content,
                                                         onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
                                                     }),
-                                                    onDelete: () => setRootNotes((notes) => notes.filter(n => n.id !== note.id)),
                                                     onMoveUp: () => reorderRootNote(note.id, -1),
-                                                    onMoveDown: () => reorderRootNote(note.id, 1),
-                                                    onMove: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
-                                                    onCopy: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'copy'); }
+                                                    onMoveDown: () => reorderRootNote(note.id, 1)
                                                 }}
                                             />
                                         );
@@ -1770,39 +1672,15 @@
                                             </button>
                                         </div>
 
-                                        <div className="flex-shrink-0 flex items-center">
-                                            {showMoveControls ? (
+                                        {showMoveControls && (
+                                            <div className="flex-shrink-0 flex items-center">
                                                 <MoveControls
                                                     onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
                                                     onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
                                                     accentClass="text-violet-800"
                                                 />
-                                            ) : (
-                                                !chapterSelectionMode && (
-                                                    <ActionMenu
-                                                        colorClass="bg-violet-700"
-                                                        options={[
-                                                            { label: 'Cambiar nombre', onClick: () => renameChapterWithPrompt(chap) },
-                                                            { label: 'Mover', onClick: async () => {
-                                                                const available = books.filter(b => b.id !== activeBook.id);
-                                                                if (available.length === 0) return alert('No hay otros libros disponibles.');
-                                                                const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Mover a libro');
-                                                                if (choice?.bookId) moveChapterToBook(activeBook.id, chap.id, choice.bookId);
-                                                            } },
-                                                            { label: 'Copiar', onClick: async () => {
-                                                                const available = books.filter(b => b.id !== activeBook.id);
-                                                                if (available.length === 0) return alert('No hay otros libros disponibles.');
-                                                                const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Copiar a libro');
-                                                                if (choice?.bookId) copyChapterToBook(activeBook.id, chap.id, choice.bookId);
-                                                            } },
-                                                            { label: 'Subir', onClick: () => reorderChapter(activeBook.id, chap.id, -1)},
-                                                            { label: 'Bajar', onClick: () => reorderChapter(activeBook.id, chap.id, 1) },
-                                                            { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); } },
-                                                        ]}
-                                                    />
-                                                )
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                     );
                                 })}
@@ -1824,11 +1702,8 @@
                                                         initialContent: note.content,
                                                         onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
                                                     }),
-                                                    onDelete: () => updateBookNotes(activeBook.id, activeBook.notes.filter(n => n.id !== note.id)),
                                                     onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
-                                                    onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1),
-                                                    onMove: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'move'); },
-                                                    onCopy: async () => { const dest = await chooseDestination({ type: 'book', bookId: activeBook.id }); if (dest) relocateNote({ type: 'book', bookId: activeBook.id }, dest, note.id, 'copy'); }
+                                                    onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1)
                                                 }}
                                             />
                                         );
@@ -2049,29 +1924,26 @@
                         <div className="space-y-3">
                             {chapter.notes.map(note => {
                                 const moveProps = noteMoveMode.getItemProps(note.id);
-                                const baseActions = {
-                                    onMoveUp: () => reorderNote(note.id, -1),
-                                    onMoveDown: () => reorderNote(note.id, 1),
-                                };
-                                return (
-                                    <NoteChip
-                                        key={note.id}
-                                        note={note}
-                                        moveHandlers={moveProps}
-                                        moveModeActive={noteMoveMode.moveModeId === note.id}
-                                        selectionMode={selectionMode}
-                                        isSelected={selectedIds.includes(note.id)}
-                                        onCardClick={selectionMode ? () => handleSelectClick(note.id) : undefined}
-                                        actions={selectionMode ? baseActions : {
-                                            ...baseActions,
-                                            onEdit: () => openNoteModal(note),
-                                            onMove: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); },
-                                            onCopy: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); },
-                                            onDelete: () => { if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }
-                                        }}
-                                    />
-                                );
-                            })}
+                                        const baseActions = {
+                                            onMoveUp: () => reorderNote(note.id, -1),
+                                            onMoveDown: () => reorderNote(note.id, 1),
+                                        };
+                                        return (
+                                            <NoteChip
+                                                key={note.id}
+                                                note={note}
+                                                moveHandlers={moveProps}
+                                                moveModeActive={noteMoveMode.moveModeId === note.id}
+                                                selectionMode={selectionMode}
+                                                isSelected={selectedIds.includes(note.id)}
+                                                onCardClick={selectionMode ? () => handleSelectClick(note.id) : undefined}
+                                                actions={selectionMode ? baseActions : {
+                                                    ...baseActions,
+                                                    onEdit: () => openNoteModal(note)
+                                                }}
+                                            />
+                                        );
+                                    })}
                         </div>
                     </main>
 
