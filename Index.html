@@ -256,13 +256,21 @@
 
             useEffect(() => () => clearPressTimer(), []);
 
+            const activateMoveMode = (id) => {
+                setMoveModeId(prev => {
+                    const nextId = id ?? null;
+                    if (nextId && nextId !== prev) onEnterMoveMode?.(nextId);
+                    return nextId;
+                });
+            };
+
             const exitMoveMode = () => {
                 setMoveModeId(null);
                 longPressTriggered.current = false;
                 clearPressTimer();
             };
 
-            return { moveModeId, getItemProps, exitMoveMode };
+            return { moveModeId, getItemProps, exitMoveMode, activateMoveMode };
         };
 
         const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
@@ -533,7 +541,7 @@
             const [menuDirection, setMenuDirection] = useState('up');
             const menuButtonRef = useRef(null);
             const { onEdit, onDelete, onMove, onCopy, onMoveUp, onMoveDown } = actions;
-            const hasActions = onEdit || onDelete || onMove || onCopy || onMoveUp || onMoveDown;
+            const hasActions = moveModeActive || onEdit || onDelete || onMove || onCopy || onMoveUp || onMoveDown;
 
             const handleAction = (callback) => {
                 if (callback) callback();
@@ -1612,6 +1620,10 @@
 
             const toggleRecording = () => isRecording ? recognitionRef.current?.stop() : startRecording();
             const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
+            const handleSelectClick = (id) => {
+                toggleSelect(id);
+                noteMoveMode.activateMoveMode(id);
+            };
 
             const openNoteModal = (note = null) => { setNoteDraft(note?.content || '<p></p>'); setEditingNoteId(note?.id || null); setNoteModalOpen(true); };
             const closeNoteModal = () => { setNoteDraft('<p></p>'); setEditingNoteId(null); setNoteModalOpen(false); };
@@ -1666,7 +1678,7 @@
                             <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
                             <div className="overflow-hidden"><h1 className="text-lg font-bold text-emerald-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
                         </div>
-                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
+                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); noteMoveMode.exitMoveMode(); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
                     </header>
 
                     <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto">
@@ -1685,6 +1697,10 @@
                         <div className="space-y-3">
                             {chapter.notes.map(note => {
                                 const moveProps = noteMoveMode.getItemProps(note.id);
+                                const baseActions = {
+                                    onMoveUp: () => reorderNote(note.id, -1),
+                                    onMoveDown: () => reorderNote(note.id, 1),
+                                };
                                 return (
                                     <NoteChip
                                         key={note.id}
@@ -1693,15 +1709,14 @@
                                         moveModeActive={noteMoveMode.moveModeId === note.id}
                                         selectionMode={selectionMode}
                                         isSelected={selectedIds.includes(note.id)}
-                                        onCardClick={selectionMode ? () => toggleSelect(note.id) : undefined}
-                                        actions={!selectionMode ? {
+                                        onCardClick={selectionMode ? () => handleSelectClick(note.id) : undefined}
+                                        actions={selectionMode ? baseActions : {
+                                            ...baseActions,
                                             onEdit: () => openNoteModal(note),
-                                            onMoveUp: () => reorderNote(note.id, -1),
-                                            onMoveDown: () => reorderNote(note.id, 1),
                                             onMove: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'move'); },
                                             onCopy: async () => { const dest = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id }); if(dest) relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, dest, note.id, 'copy'); },
                                             onDelete: () => { if(confirm("¿Borrar?")) onUpdateNotes(chapter.notes.filter(n => n.id !== note.id)); }
-                                        } : {}}
+                                        }}
                                     />
                                 );
                             })}
