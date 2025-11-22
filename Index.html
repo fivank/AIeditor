@@ -835,6 +835,27 @@
             }, [dataLoaded]);
 
             useEffect(() => {
+                if (!dataLoaded || rootNotes.length === 0) return;
+
+                setBooks(prevBooks => {
+                    const noteCopies = rootNotes.map(note => ({ ...note }));
+                    const ensured = ensureTempBookAndChapter(prevBooks);
+                    const { books: withTemp, tempBookId, tempChapterId } = ensured;
+
+                    if (!tempBookId || !tempChapterId) return prevBooks;
+
+                    return updateChapterNotesInBooks(
+                        withTemp,
+                        tempBookId,
+                        tempChapterId,
+                        (notes) => [...notes, ...noteCopies]
+                    );
+                });
+
+                setRootNotes([]);
+            }, [dataLoaded, rootNotes]);
+
+            useEffect(() => {
                 if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                     setMicSupportError("Navegador sin soporte de voz");
                 }
@@ -920,7 +941,23 @@
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
                 const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
-                setRootNotes(prev => [...prev, note]);
+
+                setBooks(prevBooks => {
+                    let updated = [...prevBooks];
+                    const hasActiveBook = !!activeBookId && updated.some(b => b.id === activeBookId);
+
+                    if (hasActiveBook) {
+                        const ensured = ensureTempChapterInBook(updated, activeBookId);
+                        if (!ensured.chapterId) return prevBooks;
+                        updated = ensured.books;
+                        return updateChapterNotesInBooks(updated, activeBookId, ensured.chapterId, (notes) => [...notes, note]);
+                    }
+
+                    const ensured = ensureTempBookAndChapter(updated);
+                    if (!ensured.tempBookId || !ensured.tempChapterId) return prevBooks;
+                    updated = ensured.books;
+                    return updateChapterNotesInBooks(updated, ensured.tempBookId, ensured.tempChapterId, (notes) => [...notes, note]);
+                });
             };
 
             const reorderRootNotesByIndex = useCallback((from, to) => {
