@@ -156,6 +156,8 @@
             style: "Reescribe el siguiente contenido aplicando estrictamente el siguiente estilo o tono: {STYLE}. Mantén la información original pero cambia la forma de expresarla.",
             generate: "Crea una nota nueva usando el siguiente contexto. Respeta el idioma y el nivel de detalle del material."
         };
+        const TEMP_CHAPTER_TITLE = 'temporary';
+        const TEMP_BOOK_TITLE = 'temp notes';
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
         const moveItem = (array, from, to) => {
@@ -164,6 +166,7 @@
             arr.splice(to, 0, item);
             return arr;
         };
+        const matchTitle = (value, target) => (value || '').trim().toLowerCase() === target;
         const cloneNote = (note) => ({ ...note, id: generateId(), timestamp: Date.now() });
         const escapeHtml = (text) => text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         const normalizeContent = (content) => {
@@ -768,7 +771,7 @@
             }, []);
 
             // Helpers de navegación y datos
-            const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [] }]);
+            const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [], notes: [] }]);
             const renameBook = (id, title) => setBooks(books.map(b => b.id === id ? { ...b, title } : b));
             const deleteBook = (id) => setBooks(books.filter(b => b.id !== id));
             const reorderBooksByIndex = useCallback((from, to) => {
@@ -829,12 +832,65 @@
             const addBookNote = (bookId, content) => {
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
-                setBooks(books.map(b => b.id === bookId ? { ...b, notes: [...(b.notes || []), { id: generateId(), content: cleanContent, timestamp: Date.now() }] } : b));
+                let tempChapterId = null;
+                setBooks(prevBooks => prevBooks.map(book => {
+                    if (book.id !== bookId) return book;
+                    const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
+                    const temporary = book.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
+                    if (temporary) {
+                        tempChapterId = temporary.id;
+                        return {
+                            ...book,
+                            chapters: book.chapters.map(c => c.id === temporary.id ? { ...c, notes: [...c.notes, note] } : c)
+                        };
+                    }
+                    const newChapterId = generateId();
+                    tempChapterId = newChapterId;
+                    return {
+                        ...book,
+                        chapters: [...book.chapters, { id: newChapterId, title: TEMP_CHAPTER_TITLE, notes: [note] }]
+                    };
+                }));
+
+                if (tempChapterId) {
+                    setActiveBookId(bookId);
+                    goChapter(tempChapterId);
+                }
             };
             const addRootNote = (content) => {
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
-                setRootNotes([...rootNotes, { id: generateId(), content: cleanContent, timestamp: Date.now() }]);
+                let targetBookId = null;
+                let tempChapterId = null;
+                setBooks(prevBooks => {
+                    let updatedBooks = [...prevBooks];
+                    let tempBook = updatedBooks.find(b => matchTitle(b.title, TEMP_BOOK_TITLE));
+                    if (!tempBook) {
+                        tempBook = { id: generateId(), title: TEMP_BOOK_TITLE, chapters: [], notes: [] };
+                        updatedBooks = [...updatedBooks, tempBook];
+                    }
+                    targetBookId = tempBook.id;
+                    const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
+                    const temporary = tempBook.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
+                    if (temporary) {
+                        tempChapterId = temporary.id;
+                        updatedBooks = updatedBooks.map(b => b.id === tempBook.id
+                            ? { ...tempBook, chapters: tempBook.chapters.map(c => c.id === temporary.id ? { ...c, notes: [...c.notes, note] } : c) }
+                            : b);
+                    } else {
+                        tempChapterId = generateId();
+                        const newChapter = { id: tempChapterId, title: TEMP_CHAPTER_TITLE, notes: [note] };
+                        updatedBooks = updatedBooks.map(b => b.id === tempBook.id
+                            ? { ...tempBook, chapters: [...tempBook.chapters, newChapter] }
+                            : b);
+                    }
+                    return updatedBooks;
+                });
+
+                if (targetBookId && tempChapterId) {
+                    setActiveBookId(targetBookId);
+                    goChapter(tempChapterId);
+                }
             };
             const reorderRootNotesByIndex = useCallback((from, to) => {
                 setRootNotes(prev => moveItem(prev, from, to));
