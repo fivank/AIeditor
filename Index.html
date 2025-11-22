@@ -593,6 +593,14 @@
                     onClick={(e) => {
                         moveHandlers.onClick?.(e);
                         if (e.defaultPrevented) return;
+                        if (selectionMode) {
+                            onCardClick?.(e);
+                            return;
+                        }
+                        if (onEdit && !moveModeActive) {
+                            onEdit();
+                            return;
+                        }
                         onCardClick?.(e);
                     }}
                 >
@@ -754,8 +762,6 @@
             const [loading, setLoading] = useState(false);
             const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
             const [testMsg, setTestMsg] = useState("");
-            const [editingBook, setEditingBook] = useState({ id: null, title: "" });
-            const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
             const [selectedBookIds, setSelectedBookIds] = useState([]);
             const [bookSelectionMode, setBookSelectionMode] = useState(false);
             const [activeSelectedBookId, setActiveSelectedBookId] = useState(null);
@@ -798,8 +804,6 @@
             useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
-            useEffect(() => { setEditingChapter({ id: null, title: "" }); }, [activeBookId]);
-
             useEffect(() => {
                 if (!dataLoaded) return;
                 setBooks(prevBooks => {
@@ -1104,21 +1108,23 @@
             const goChapter = (id) => { resetMoveModes(); setActiveChapterId(id); setView('chapter'); };
             const goSettings = () => setView('settings');
 
-            const startBookEdit = (book) => setEditingBook({ id: book.id, title: book.title });
-            const saveBookEdit = () => {
-                if (!editingBook.title.trim()) return;
-                renameBook(editingBook.id, editingBook.title.trim());
-                setEditingBook({ id: null, title: "" });
+            const promptForName = (message, defaultValue = '') => {
+                const response = prompt(message, defaultValue ?? '');
+                const trimmed = response?.trim();
+                return trimmed ? trimmed : null;
             };
-            const cancelBookEdit = () => setEditingBook({ id: null, title: "" });
 
-            const startChapterEdit = (chapter) => setEditingChapter({ id: chapter.id, title: chapter.title });
-            const saveChapterEdit = () => {
-                if (!editingChapter.title.trim()) return;
-                renameChapter(activeBookId, editingChapter.id, editingChapter.title.trim());
-                setEditingChapter({ id: null, title: "" });
+            const renameBookWithPrompt = (book) => {
+                const newTitle = promptForName('Renombra el libro:', book?.title || '');
+                if (!newTitle || !book?.id) return;
+                renameBook(book.id, newTitle);
             };
-            const cancelChapterEdit = () => setEditingChapter({ id: null, title: "" });
+
+            const renameChapterWithPrompt = (chapter) => {
+                const newTitle = promptForName('Renombra el capítulo:', chapter?.title || '');
+                if (!newTitle || !activeBookId || !chapter?.id) return;
+                renameChapter(activeBookId, chapter.id, newTitle);
+            };
 
             const startDictation = (target) => {
                 if (micSupportError) return alert(micSupportError);
@@ -1436,7 +1442,7 @@
                 if (!primaryBookId) return;
                 const book = books.find(b => b.id === primaryBookId);
                 if (!book) return;
-                startBookEdit(book);
+                renameBookWithPrompt(book);
                 cancelBookSelection();
             };
 
@@ -1444,7 +1450,7 @@
                 if (!primaryChapterId) return;
                 const chapter = activeBook?.chapters.find(c => c.id === primaryChapterId);
                 if (!chapter) return;
-                startChapterEdit(chapter);
+                renameChapterWithPrompt(chapter);
                 cancelChapterSelection();
             };
 
@@ -1524,49 +1530,24 @@
                                         </button>
 
                                         <div className="flex-1">
-                                            {editingBook.id === book.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        value={editingBook.title}
-                                                        onChange={(e) =>
-                                                            setEditingBook({ ...editingBook, title: e.target.value })
-                                                        }
-                                                        className="w-full p-2 border rounded-md text-sm"
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={saveBookEdit}
-                                                        className="text-green-600 text-sm font-semibold"
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelBookEdit}
-                                                        className="text-gray-400 text-sm"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (bookSelectionMode) {
-                                                            toggleBookSelection(book.id);
-                                                        } else {
-                                                            goBook(book.id);
-                                                        }
-                                                    }}
-                                                    className="w-full text-left"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
-                                                        {book.title}
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        {book.chapters.length} capítulos
-                                                    </p>
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (bookSelectionMode) {
+                                                        toggleBookSelection(book.id);
+                                                    } else {
+                                                        goBook(book.id);
+                                                    }
+                                                }}
+                                                className="w-full text-left"
+                                            >
+                                                <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                    {book.title}
+                                                </h3>
+                                                <p className="text-xs text-slate-500">
+                                                    {book.chapters.length} capítulos
+                                                </p>
+                                            </button>
                                         </div>
 
                                         <div className="flex-shrink-0 flex items-center">
@@ -1581,7 +1562,7 @@
                                                     <ActionMenu
                                                         colorClass="bg-blue-700"
                                                         options={[
-                                                            { label: 'Cambiar nombre', onClick: () => startBookEdit(book) },
+                                                            { label: 'Cambiar nombre', onClick: () => renameBookWithPrompt(book) },
                                                             { label: 'Mover', onClick: () => moveBookToPosition(book.id) },
                                                             { label: 'Subir', onClick: () => reorderBook(book.id, -1) },
                                                             { label: 'Bajar', onClick: () => reorderBook(book.id, 1) },
@@ -1628,7 +1609,7 @@
                             <div className="mt-6">
                                 <button
                                     onClick={() => {
-                                        const title = prompt("Nuevo libro:");
+                                        const title = promptForName("Nuevo libro:");
                                         if (title) addBook(title);
                                     }}
                                     className="w-full flex items-center justify-center gap-2 bg-blue-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-blue-800 active:scale-[0.98] transition"
@@ -1769,49 +1750,24 @@
                                         </button>
 
                                         <div className="flex-1">
-                                            {editingChapter.id === chap.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        value={editingChapter.title}
-                                                        onChange={(e) =>
-                                                            setEditingChapter({ ...editingChapter, title: e.target.value })
-                                                        }
-                                                        className="w-full p-2 border rounded-md text-sm"
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={saveChapterEdit}
-                                                        className="text-green-600 text-sm font-semibold"
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelChapterEdit}
-                                                        className="text-gray-400 text-sm"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (chapterSelectionMode) {
-                                                            toggleChapterSelection(chap.id);
-                                                        } else {
-                                                            goChapter(chap.id);
-                                                        }
-                                                    }}
-                                                    className="w-full text-left"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
-                                                        {chap.title}
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        {chap.notes.length} notas
-                                                    </p>
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (chapterSelectionMode) {
+                                                        toggleChapterSelection(chap.id);
+                                                    } else {
+                                                        goChapter(chap.id);
+                                                    }
+                                                }}
+                                                className="w-full text-left"
+                                            >
+                                                <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                    {chap.title}
+                                                </h3>
+                                                <p className="text-xs text-slate-500">
+                                                    {chap.notes.length} notas
+                                                </p>
+                                            </button>
                                         </div>
 
                                         <div className="flex-shrink-0 flex items-center">
@@ -1826,7 +1782,7 @@
                                                     <ActionMenu
                                                         colorClass="bg-violet-700"
                                                         options={[
-                                                            { label: 'Cambiar nombre', onClick: () => startChapterEdit(chap) },
+                                                            { label: 'Cambiar nombre', onClick: () => renameChapterWithPrompt(chap) },
                                                             { label: 'Mover', onClick: async () => {
                                                                 const available = books.filter(b => b.id !== activeBook.id);
                                                                 if (available.length === 0) return alert('No hay otros libros disponibles.');
@@ -1883,7 +1839,7 @@
                             <div className="mt-6">
                                 <button
                                     onClick={() => {
-                                        const title = prompt("Nuevo capítulo:");
+                                        const title = promptForName("Nuevo capítulo:");
                                         if (title) addChapter(activeBook.id, title);
                                     }}
                                     className="w-full flex items-center justify-center gap-2 bg-violet-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-violet-800 active:scale-[0.98] transition"
