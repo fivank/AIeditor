@@ -211,7 +211,7 @@
             return options;
         };
 
-        const useLongPressMoveMode = (duration = 500) => {
+        const useLongPressMoveMode = (duration = 500, { onEnterMoveMode } = {}) => {
             const [moveModeId, setMoveModeId] = useState(null);
             const pressTimer = useRef(null);
             const longPressTriggered = useRef(false);
@@ -228,7 +228,11 @@
                 longPressTriggered.current = false;
                 pressTimer.current = setTimeout(() => {
                     longPressTriggered.current = true;
-                    setMoveModeId(prev => prev === id ? null : id);
+                    setMoveModeId(prev => {
+                        const nextId = prev === id ? null : id;
+                        if (nextId) onEnterMoveMode?.(nextId);
+                        return nextId;
+                    });
                 }, duration);
             };
 
@@ -1580,7 +1584,12 @@
             const reorderNotesByIndex = useCallback((from, to) => {
                 onUpdateNotes(moveItem(chapter.notes, from, to));
             }, [chapter.notes, onUpdateNotes]);
-            const noteMoveMode = useLongPressMoveMode(500);
+            const noteMoveMode = useLongPressMoveMode(500, {
+                onEnterMoveMode: (id) => {
+                    setSelectionMode(true);
+                    setSelectedIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+                }
+            });
 
             useEffect(() => {
                 if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) setSupportError("Navegador sin soporte de voz");
