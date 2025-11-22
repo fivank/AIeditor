@@ -220,22 +220,33 @@
             const onReorderRef = useRef(onReorder);
             const pointerTargetRef = useRef(null);
             const pointerIdRef = useRef(null);
+            const pressStartRef = useRef({ x: 0, y: 0 });
 
-            useEffect(() => { itemsRef.current = items; }, [items]);
-            useEffect(() => { onReorderRef.current = onReorder; }, [onReorder]);
-
-            const clearTimer = () => {
+            const clearPressTimer = () => {
                 if (pressTimer.current) {
                     clearTimeout(pressTimer.current);
                     pressTimer.current = null;
                 }
             };
 
+            useEffect(() => { itemsRef.current = items; }, [items]);
+            useEffect(() => { onReorderRef.current = onReorder; }, [onReorder]);
+
             const cancelIfIdle = () => {
                 if (!draggingRef.current) {
-                    clearTimer();
+                    clearPressTimer();
                 }
             };
+
+            const handlePreDragMove = useCallback((event) => {
+                if (draggingRef.current || !pressTimer.current) return;
+                const dx = Math.abs(event.clientX - pressStartRef.current.x);
+                const dy = Math.abs(event.clientY - pressStartRef.current.y);
+                if (dx > 8 || dy > 8) {
+                    clearPressTimer();
+                    window.removeEventListener('pointermove', handlePreDragMove);
+                }
+            }, []);
 
             const handlePointerMove = useCallback((event) => {
                 if (!draggingRef.current) return;
@@ -272,18 +283,26 @@
                     window.removeEventListener('pointerup', stopDragging);
                     window.removeEventListener('pointercancel', stopDragging);
                 }
+                window.removeEventListener('pointermove', handlePreDragMove);
             }, [handlePointerMove]);
 
             const startPress = useCallback((event, id) => {
-                clearTimer();
+                clearPressTimer();
                 pointerTargetRef.current = event.currentTarget;
                 pointerIdRef.current = event.pointerId;
+                pressStartRef.current = { x: event.clientX, y: event.clientY };
+                if (pointerTargetRef.current?.setPointerCapture && pointerIdRef.current !== undefined) {
+                    try { pointerTargetRef.current.setPointerCapture(pointerIdRef.current); } catch (_) {}
+                }
                 if (event.pointerType === 'touch') {
                     event.preventDefault();
                 }
+                window.addEventListener('pointermove', handlePreDragMove, { passive: true });
                 pressTimer.current = setTimeout(() => {
                     const currentIndex = (itemsRef.current || []).findIndex((it) => it.id === id);
                     if (currentIndex === -1) return;
+                    pressTimer.current = null;
+                    window.removeEventListener('pointermove', handlePreDragMove);
                     draggingRef.current = true;
                     activeIndexRef.current = currentIndex;
                     setDraggingId(id);
