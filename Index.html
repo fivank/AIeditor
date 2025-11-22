@@ -1104,6 +1104,47 @@
                 closePicker();
             };
 
+            const activeBook = books.find(b => b.id === activeBookId);
+            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
+
+            const pushAsLast = (list, id) => {
+                const filtered = list.filter(item => item !== id);
+                return [...filtered, id];
+            };
+
+            const booksMoveMode = useLongPressMoveMode(500, {
+                onEnterMoveMode: (id) => {
+                    setBookSelectionMode(true);
+                    setSelectedBookIds((prev) => {
+                        const updated = pushAsLast(prev, id);
+                        setActiveSelectedBookId(id);
+                        return updated;
+                    });
+                }
+            });
+            const rootNotesMoveMode = useLongPressMoveMode(500);
+            const bookNotesMoveMode = useLongPressMoveMode(500);
+            const chaptersMoveMode = useLongPressMoveMode(500, {
+                onEnterMoveMode: (id) => {
+                    setChapterSelectionMode(true);
+                    setSelectedChapterIds((prev) => {
+                        const updated = pushAsLast(prev, id);
+                        setActiveSelectedChapterId(id);
+                        return updated;
+                    });
+                }
+            });
+
+            const primaryBookId = selectedBookIds.includes(activeSelectedBookId)
+                ? activeSelectedBookId
+                : selectedBookIds[selectedBookIds.length - 1];
+            const primaryChapterId = selectedChapterIds.includes(activeSelectedChapterId)
+                ? activeSelectedChapterId
+                : selectedChapterIds[selectedChapterIds.length - 1];
+            const primaryChapter = activeBook?.chapters.find(c => c.id === primaryChapterId);
+
+            const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
+
             // Componente de Pantalla de Carga
             if (loading) {
                 return (
@@ -1237,45 +1278,6 @@
                     </div>
                 );
             }
-
-            const activeBook = books.find(b => b.id === activeBookId);
-            const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
-            const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
-
-            const pushAsLast = (list, id) => {
-                const filtered = list.filter(item => item !== id);
-                return [...filtered, id];
-            };
-
-            const booksMoveMode = useLongPressMoveMode(500, {
-                onEnterMoveMode: (id) => {
-                    setBookSelectionMode(true);
-                    setSelectedBookIds((prev) => {
-                        const updated = pushAsLast(prev, id);
-                        setActiveSelectedBookId(id);
-                        return updated;
-                    });
-                }
-            });
-            const rootNotesMoveMode = useLongPressMoveMode(500);
-            const bookNotesMoveMode = useLongPressMoveMode(500);
-            const chaptersMoveMode = useLongPressMoveMode(500, {
-                onEnterMoveMode: (id) => {
-                    setChapterSelectionMode(true);
-                    setSelectedChapterIds((prev) => {
-                        const updated = pushAsLast(prev, id);
-                        setActiveSelectedChapterId(id);
-                        return updated;
-                    });
-                }
-            });
-
-            const primaryBookId = selectedBookIds.includes(activeSelectedBookId)
-                ? activeSelectedBookId
-                : selectedBookIds[selectedBookIds.length - 1];
-            const primaryChapterId = selectedChapterIds.includes(activeSelectedChapterId)
-                ? activeSelectedChapterId
-                : selectedChapterIds[selectedChapterIds.length - 1];
 
             const toggleBookSelection = (id) => {
                 setBookSelectionMode(true);
