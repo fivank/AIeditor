@@ -1349,8 +1349,6 @@
                                         <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        <button disabled={!primaryBookId} onClick={() => handleBookReorder(-1)} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Subir</button>
-                                        <button disabled={!primaryBookId} onClick={() => handleBookReorder(1)} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Bajar</button>
                                         <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
                                         <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
                                         <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
@@ -1368,6 +1366,7 @@
                                 {books.map((book) => {
                                     const moveProps = booksMoveMode.getItemProps(book.id);
                                     const isSelected = selectedBookIds.includes(book.id);
+                                    const showMoveControls = bookSelectionMode && primaryBookId === book.id;
                                     return (
                                     <div
                                         key={book.id}
@@ -1443,19 +1442,29 @@
                                             )}
                                         </div>
 
-                                        {!bookSelectionMode && (
-                                            <ActionMenu
-                                                colorClass="bg-blue-700"
-                                                options={[
-                                                    { label: 'Cambiar nombre', onClick: () => startBookEdit(book) },
-                                                    { label: 'Mover', onClick: () => moveBookToPosition(book.id) },
-                                                    { label: 'Subir', onClick: () => reorderBook(book.id, -1) },
-                                                    { label: 'Bajar', onClick: () => reorderBook(book.id, 1) },
-                                                    { label: 'Copiar libro', onClick: () => duplicateBook(book.id) },
-                                                    { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); } },
-                                                ]}
-                                            />
-                                        )}
+                                        <div className="flex-shrink-0 flex items-center">
+                                            {showMoveControls ? (
+                                                <MoveControls
+                                                    onMoveUp={() => reorderBook(book.id, -1)}
+                                                    onMoveDown={() => reorderBook(book.id, 1)}
+                                                    accentClass="text-blue-800"
+                                                />
+                                            ) : (
+                                                !bookSelectionMode && (
+                                                    <ActionMenu
+                                                        colorClass="bg-blue-700"
+                                                        options={[
+                                                            { label: 'Cambiar nombre', onClick: () => startBookEdit(book) },
+                                                            { label: 'Mover', onClick: () => moveBookToPosition(book.id) },
+                                                            { label: 'Subir', onClick: () => reorderBook(book.id, -1) },
+                                                            { label: 'Bajar', onClick: () => reorderBook(book.id, 1) },
+                                                            { label: 'Copiar libro', onClick: () => duplicateBook(book.id) },
+                                                            { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); } },
+                                                        ]}
+                                                    />
+                                                )
+                                            )}
+                                        </div>
                                     </div>
                                     );
                                 })}
@@ -1589,8 +1598,6 @@
                                         <button onClick={cancelChapterSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        <button disabled={!primaryChapterId} onClick={() => handleChapterReorder(-1)} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Subir</button>
-                                        <button disabled={!primaryChapterId} onClick={() => handleChapterReorder(1)} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Bajar</button>
                                         <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('move')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover de libro</button>
                                         <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('copy')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
                                         <button disabled={!primaryChapterId} onClick={handleRenameChapter} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-100 text-violet-900 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
@@ -1604,6 +1611,7 @@
                                 {activeBook.chapters.map((chap) => {
                                     const moveProps = chaptersMoveMode.getItemProps(chap.id);
                                     const isSelected = selectedChapterIds.includes(chap.id);
+                                    const showMoveControls = chapterSelectionMode && primaryChapterId === chap.id;
                                     return (
                                     <div
                                         key={chap.id}
@@ -1679,29 +1687,39 @@
                                             )}
                                         </div>
 
-                                        {!chapterSelectionMode && (
-                                            <ActionMenu
-                                                colorClass="bg-violet-700"
-                                                options={[
-                                                    { label: 'Cambiar nombre', onClick: () => startChapterEdit(chap) },
-                                                    { label: 'Mover', onClick: async () => {
-                                                        const available = books.filter(b => b.id !== activeBook.id);
-                                                        if (available.length === 0) return alert('No hay otros libros disponibles.');
-                                                        const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Mover a libro');
-                                                        if (choice?.bookId) moveChapterToBook(activeBook.id, chap.id, choice.bookId);
-                                                    } },
-                                                    { label: 'Copiar', onClick: async () => {
-                                                        const available = books.filter(b => b.id !== activeBook.id);
-                                                        if (available.length === 0) return alert('No hay otros libros disponibles.');
-                                                        const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Copiar a libro');
-                                                        if (choice?.bookId) copyChapterToBook(activeBook.id, chap.id, choice.bookId);
-                                                    } },
-                                                    { label: 'Subir', onClick: () => reorderChapter(activeBook.id, chap.id, -1) },
-                                                    { label: 'Bajar', onClick: () => reorderChapter(activeBook.id, chap.id, 1) },
-                                                    { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); } },
-                                                ]}
-                                            />
-                                        )}
+                                        <div className="flex-shrink-0 flex items-center">
+                                            {showMoveControls ? (
+                                                <MoveControls
+                                                    onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
+                                                    onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
+                                                    accentClass="text-violet-800"
+                                                />
+                                            ) : (
+                                                !chapterSelectionMode && (
+                                                    <ActionMenu
+                                                        colorClass="bg-violet-700"
+                                                        options={[
+                                                            { label: 'Cambiar nombre', onClick: () => startChapterEdit(chap) },
+                                                            { label: 'Mover', onClick: async () => {
+                                                                const available = books.filter(b => b.id !== activeBook.id);
+                                                                if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                                const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Mover a libro');
+                                                                if (choice?.bookId) moveChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                            } },
+                                                            { label: 'Copiar', onClick: async () => {
+                                                                const available = books.filter(b => b.id !== activeBook.id);
+                                                                if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                                const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Copiar a libro');
+                                                                if (choice?.bookId) copyChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                            } },
+                                                            { label: 'Subir', onClick: () => reorderChapter(activeBook.id, chap.id, -1)},
+                                                            { label: 'Bajar', onClick: () => reorderChapter(activeBook.id, chap.id, 1) },
+                                                            { label: 'Eliminar', onClick: () => { if (confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); } },
+                                                        ]}
+                                                    />
+                                                )
+                                            )}
+                                        </div>
                                     </div>
                                     );
                                 })}
