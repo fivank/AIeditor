@@ -719,8 +719,10 @@
             const [editingChapter, setEditingChapter] = useState({ id: null, title: "" });
             const [selectedBookIds, setSelectedBookIds] = useState([]);
             const [bookSelectionMode, setBookSelectionMode] = useState(false);
+            const [activeSelectedBookId, setActiveSelectedBookId] = useState(null);
             const [selectedChapterIds, setSelectedChapterIds] = useState([]);
             const [chapterSelectionMode, setChapterSelectionMode] = useState(false);
+            const [activeSelectedChapterId, setActiveSelectedChapterId] = useState(null);
             const [noteModal, setNoteModal] = useState({ open: false, target: null });
             const [noteDraft, setNoteDraft] = useState('<p></p>');
             const recognitionRef = useRef(null);
@@ -964,8 +966,10 @@
                 chaptersMoveMode.exitMoveMode();
                 setBookSelectionMode(false);
                 setSelectedBookIds([]);
+                setActiveSelectedBookId(null);
                 setChapterSelectionMode(false);
                 setSelectedChapterIds([]);
+                setActiveSelectedChapterId(null);
             };
 
             const goHome = () => { resetMoveModes(); setView('home'); setActiveBookId(null); setActiveChapterId(null); };
@@ -1186,10 +1190,19 @@
             const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
             const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
 
+            const pushAsLast = (list, id) => {
+                const filtered = list.filter(item => item !== id);
+                return [...filtered, id];
+            };
+
             const booksMoveMode = useLongPressMoveMode(500, {
                 onEnterMoveMode: (id) => {
                     setBookSelectionMode(true);
-                    setSelectedBookIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+                    setSelectedBookIds((prev) => {
+                        const updated = pushAsLast(prev, id);
+                        setActiveSelectedBookId(id);
+                        return updated;
+                    });
                 }
             });
             const rootNotesMoveMode = useLongPressMoveMode(500);
@@ -1197,34 +1210,64 @@
             const chaptersMoveMode = useLongPressMoveMode(500, {
                 onEnterMoveMode: (id) => {
                     setChapterSelectionMode(true);
-                    setSelectedChapterIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+                    setSelectedChapterIds((prev) => {
+                        const updated = pushAsLast(prev, id);
+                        setActiveSelectedChapterId(id);
+                        return updated;
+                    });
                 }
             });
 
-            const primaryBookId = selectedBookIds[0];
-            const primaryChapterId = selectedChapterIds[0];
+            const primaryBookId = selectedBookIds.includes(activeSelectedBookId)
+                ? activeSelectedBookId
+                : selectedBookIds[selectedBookIds.length - 1];
+            const primaryChapterId = selectedChapterIds.includes(activeSelectedChapterId)
+                ? activeSelectedChapterId
+                : selectedChapterIds[selectedChapterIds.length - 1];
 
             const toggleBookSelection = (id) => {
                 setBookSelectionMode(true);
-                setSelectedBookIds(prev => prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]);
+                setSelectedBookIds(prev => {
+                    const updated = prev.includes(id)
+                        ? prev.filter(b => b !== id)
+                        : [...prev, id];
+                    const preferred = updated.includes(id) ? id : activeSelectedBookId;
+                    const nextPrimary = preferred && updated.includes(preferred)
+                        ? preferred
+                        : (updated[updated.length - 1] || null);
+                    setActiveSelectedBookId(nextPrimary);
+                    return updated;
+                });
                 booksMoveMode.exitMoveMode();
             };
 
             const toggleChapterSelection = (id) => {
                 setChapterSelectionMode(true);
-                setSelectedChapterIds(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+                setSelectedChapterIds(prev => {
+                    const updated = prev.includes(id)
+                        ? prev.filter(c => c !== id)
+                        : [...prev, id];
+                    const preferred = updated.includes(id) ? id : activeSelectedChapterId;
+                    const nextPrimary = preferred && updated.includes(preferred)
+                        ? preferred
+                        : (updated[updated.length - 1] || null);
+                    setActiveSelectedChapterId(nextPrimary);
+                    return updated;
+                });
                 chaptersMoveMode.exitMoveMode();
             };
 
             const cancelBookSelection = () => {
                 setBookSelectionMode(false);
                 setSelectedBookIds([]);
+                setActiveSelectedBookId(null);
                 booksMoveMode.exitMoveMode();
             };
 
             const cancelChapterSelection = () => {
                 setChapterSelectionMode(false);
                 setSelectedChapterIds([]);
+                setActiveSelectedChapterId(null);
                 chaptersMoveMode.exitMoveMode();
             };
 
