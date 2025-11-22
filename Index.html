@@ -769,11 +769,6 @@
             const [isRecording, setIsRecording] = useState(false);
             const [micSupportError, setMicSupportError] = useState(null);
             const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
-            const tempNotesContext = React.useMemo(() => {
-                const tempBook = books.find(b => matchTitle(b.title, TEMP_BOOK_TITLE));
-                const tempChapter = tempBook?.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
-                return { tempBook, tempChapter, notes: tempChapter?.notes || [] };
-            }, [books]);
 
             useEffect(() => {
                 const savedBooks = localStorage.getItem('voiceNotes_books');
@@ -840,20 +835,6 @@
             }, [dataLoaded]);
 
             useEffect(() => {
-                if (!dataLoaded) return;
-                if (rootNotes.length === 0) return;
-
-                setBooks(prevBooks => {
-                    const ensured = ensureTempBookAndChapter(prevBooks);
-                    const notesToAdd = rootNotes.map(n => ({ ...n }));
-                    const updated = updateChapterNotesInBooks(ensured.books, ensured.tempBookId, ensured.tempChapterId, notes => [...notes, ...notesToAdd]);
-                    return updated;
-                });
-
-                setRootNotes([]);
-            }, [dataLoaded, rootNotes]);
-
-            useEffect(() => {
                 if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                     setMicSupportError("Navegador sin soporte de voz");
                 }
@@ -914,13 +895,6 @@
             const reorderChaptersByIndex = useCallback((bookId, from, to) => {
                 setBooks(prev => prev.map(b => b.id === bookId ? { ...b, chapters: moveItem(b.chapters, from, to) } : b));
             }, []);
-            const updateTempNotes = (updater) => {
-                setBooks(prevBooks => {
-                    const ensured = ensureTempBookAndChapter(prevBooks);
-                    return updateChapterNotesInBooks(ensured.books, ensured.tempBookId, ensured.tempChapterId, updater);
-                });
-            };
-
             const updateBookTempNotes = (bookId, updater) => {
                 setBooks(prevBooks => {
                     const ensured = ensureTempChapterInBook(prevBooks, bookId);
@@ -946,20 +920,20 @@
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
                 const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
-                updateTempNotes((notes) => [...notes, note]);
+                setRootNotes(prev => [...prev, note]);
             };
 
             const reorderRootNotesByIndex = useCallback((from, to) => {
-                updateTempNotes((notes) => moveItem(notes, from, to));
+                setRootNotes(prev => moveItem(prev, from, to));
             }, []);
 
             const reorderRootNote = (noteId, direction) => {
-                const currentNotes = tempNotesContext.notes;
+                const currentNotes = rootNotes;
                 const index = currentNotes.findIndex(n => n.id === noteId);
                 if (index < 0) return;
                 const target = index + direction;
                 if (target < 0 || target >= currentNotes.length) return;
-                updateTempNotes((notes) => moveItem(notes, index, target));
+                setRootNotes(prev => moveItem(prev, index, target));
             };
             const reorderBookNote = (bookId, noteId, direction) => {
                 const book = books.find(b => b.id === bookId);
@@ -980,12 +954,7 @@
             };
             const relocateNote = (source, destination, noteId, mode = 'move') => {
                 const findNote = () => {
-                    if (source.type === 'root') {
-                        const tempInfo = ensureTempBookAndChapter(books);
-                        const tempBook = tempInfo.books.find(b => b.id === tempInfo.tempBookId);
-                        const tempChapter = tempBook?.chapters.find(c => c.id === tempInfo.tempChapterId);
-                        return tempChapter?.notes.find(n => n.id === noteId);
-                    }
+                    if (source.type === 'root') return rootNotes.find(n => n.id === noteId);
                     if (source.type === 'book') return books.find(b => b.id === source.bookId)?.notes?.find(n => n.id === noteId);
                     if (source.type === 'chapter') return books.find(b => b.id === source.bookId)?.chapters.find(c => c.id === source.chapterId)?.notes.find(n => n.id === noteId);
                     return null;
@@ -995,7 +964,7 @@
                 const noteForDestination = mode === 'copy' ? cloneNote(note) : note;
 
                 if (destination.type === 'root') {
-                    updateTempNotes((notes) => {
+                    setRootNotes(notes => {
                         if (mode === 'move' && source.type === 'root') {
                             return [...notes.filter(n => n.id !== noteId), noteForDestination];
                         }
@@ -1033,7 +1002,7 @@
                     return updatedBook;
                 }));
 
-                if (source.type === 'root' && mode === 'move' && destination.type !== 'root') updateTempNotes((notes) => notes.filter(n => n.id !== noteId));
+                if (source.type === 'root' && mode === 'move' && destination.type !== 'root') setRootNotes(notes => notes.filter(n => n.id !== noteId));
             };
             const editNote = (bookId, chapterId, noteId, content) => {
                 const cleanContent = normalizeContent(content);
@@ -1591,9 +1560,9 @@
                                 })}
                             </div>
 
-                            {tempNotesContext.notes.length > 0 && (
+                            {rootNotes.length > 0 && (
                                 <div className="space-y-2 mt-4">
-                                    {tempNotesContext.notes.map(note => {
+                                    {rootNotes.map(note => {
                                         const moveProps = rootNotesMoveMode.getItemProps(note.id);
                                         return (
                                             <NoteChip
@@ -1605,9 +1574,9 @@
                                                     onEdit: () => openNoteModal({
                                                         title: 'Editar nota',
                                                         initialContent: note.content,
-                                                        onSave: (html) => updateTempNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                        onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
                                                     }),
-                                                    onDelete: () => updateTempNotes((notes) => notes.filter(n => n.id !== note.id)),
+                                                    onDelete: () => setRootNotes((notes) => notes.filter(n => n.id !== note.id)),
                                                     onMoveUp: () => reorderRootNote(note.id, -1),
                                                     onMoveDown: () => reorderRootNote(note.id, 1),
                                                     onMove: async () => { const dest = await chooseDestination({ type: 'root' }); if (dest) relocateNote({ type: 'root' }, dest, note.id, 'move'); },
