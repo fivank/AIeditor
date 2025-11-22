@@ -1253,11 +1253,39 @@
                                         </div>
 
                                         {moveModeActive ? (
-                                            <MoveControls
-                                                accentClass="text-blue-700"
-                                                onMoveUp={() => reorderBook(book.id, -1)}
-                                                onMoveDown={() => reorderBook(book.id, 1)}
-                                            />
+                                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                                                <MoveControls
+                                                    accentClass="text-blue-700"
+                                                    onMoveUp={() => reorderBook(book.id, -1)}
+                                                    onMoveDown={() => reorderBook(book.id, 1)}
+                                                />
+                                                <div className="flex flex-wrap gap-2 text-xs">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); startBookEdit(book); }}
+                                                        className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Renombrar
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); moveBookToPosition(book.id); }}
+                                                        className="px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Mover
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); duplicateBook(book.id); }}
+                                                        className="px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Copiar
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); if (confirm('¿Borrar libro y todo su contenido?')) deleteBook(book.id); }}
+                                                        className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ) : (
                                             <ActionMenu
                                                 colorClass="bg-blue-700"
@@ -1455,11 +1483,51 @@
                                         </div>
 
                                         {moveModeActive ? (
-                                            <MoveControls
-                                                accentClass="text-violet-700"
-                                                onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
-                                                onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
-                                            />
+                                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                                                <MoveControls
+                                                    accentClass="text-violet-700"
+                                                    onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
+                                                    onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
+                                                />
+                                                <div className="flex flex-wrap gap-2 text-xs">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); startChapterEdit(chap); }}
+                                                        className="px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Renombrar
+                                                    </button>
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            const available = books.filter(b => b.id !== activeBook.id);
+                                                            if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                            const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Mover a libro');
+                                                            if (choice?.bookId) moveChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                        }}
+                                                        className="px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Mover
+                                                    </button>
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            const available = books.filter(b => b.id !== activeBook.id);
+                                                            if (available.length === 0) return alert('No hay otros libros disponibles.');
+                                                            const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), 'Copiar a libro');
+                                                            if (choice?.bookId) copyChapterToBook(activeBook.id, chap.id, choice.bookId);
+                                                        }}
+                                                        className="px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Copiar
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); if (confirm('¿Borrar capítulo y sus notas?')) deleteChapter(activeBook.id, chap.id); }}
+                                                        className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-medium active:scale-95 transition"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ) : (
                                             <ActionMenu
                                                 colorClass="bg-violet-700"
