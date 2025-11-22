@@ -179,36 +179,23 @@
         const buildDestinations = (books, source) => {
             const options = [];
 
-            const addBookScope = (book) => {
-                options.push({ label: `${book.title} (Notas del libro)`, type: 'book', bookId: book.id });
+            const addBookChapters = (book) => {
                 book.chapters.forEach(chapter => {
                     options.push({ label: `${book.title} → ${chapter.title}`, type: 'chapter', bookId: book.id, chapterId: chapter.id });
                 });
             };
 
-            if (!source || source.type !== 'root') {
-                options.push({ label: 'Notas rápidas (inicio)', type: 'root' });
+            if (source?.bookId) {
+                const currentBook = books.find(b => b.id === source.bookId);
+                if (currentBook) addBookChapters(currentBook);
+            } else {
+                books.forEach(addBookChapters);
             }
 
-            if (!source || source.type === 'root') {
-                books.forEach(addBookScope);
-                return options;
-            }
-
-            if (source.type === 'book') {
-                books.forEach(book => {
-                    if (book.id === source.bookId) {
-                        addBookScope(book);
-                    } else {
-                        options.push({ label: `${book.title} (Notas del libro)`, type: 'book', bookId: book.id });
-                    }
-                });
-                return options;
-            }
-
-            if (source.type === 'chapter') {
-                const parentBook = books.find(b => b.id === source.bookId);
-                if (parentBook) addBookScope(parentBook);
+            const tempBook = books.find(b => matchTitle(b.title, TEMP_BOOK_TITLE));
+            const tempChapter = tempBook?.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
+            if (tempBook && tempChapter && !options.some(opt => opt.chapterId === tempChapter.id)) {
+                options.push({ label: `${tempBook.title} → ${tempChapter.title}`, type: 'chapter', bookId: tempBook.id, chapterId: tempChapter.id });
             }
 
             return options;
@@ -832,65 +819,17 @@
             const addBookNote = (bookId, content) => {
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
-                let tempChapterId = null;
+                const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
                 setBooks(prevBooks => prevBooks.map(book => {
                     if (book.id !== bookId) return book;
-                    const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
-                    const temporary = book.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
-                    if (temporary) {
-                        tempChapterId = temporary.id;
-                        return {
-                            ...book,
-                            chapters: book.chapters.map(c => c.id === temporary.id ? { ...c, notes: [...c.notes, note] } : c)
-                        };
-                    }
-                    const newChapterId = generateId();
-                    tempChapterId = newChapterId;
-                    return {
-                        ...book,
-                        chapters: [...book.chapters, { id: newChapterId, title: TEMP_CHAPTER_TITLE, notes: [note] }]
-                    };
+                    return { ...book, notes: [...(book.notes || []), note] };
                 }));
-
-                if (tempChapterId) {
-                    setActiveBookId(bookId);
-                    goChapter(tempChapterId);
-                }
             };
             const addRootNote = (content) => {
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
-                let targetBookId = null;
-                let tempChapterId = null;
-                setBooks(prevBooks => {
-                    let updatedBooks = [...prevBooks];
-                    let tempBook = updatedBooks.find(b => matchTitle(b.title, TEMP_BOOK_TITLE));
-                    if (!tempBook) {
-                        tempBook = { id: generateId(), title: TEMP_BOOK_TITLE, chapters: [], notes: [] };
-                        updatedBooks = [...updatedBooks, tempBook];
-                    }
-                    targetBookId = tempBook.id;
-                    const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
-                    const temporary = tempBook.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
-                    if (temporary) {
-                        tempChapterId = temporary.id;
-                        updatedBooks = updatedBooks.map(b => b.id === tempBook.id
-                            ? { ...tempBook, chapters: tempBook.chapters.map(c => c.id === temporary.id ? { ...c, notes: [...c.notes, note] } : c) }
-                            : b);
-                    } else {
-                        tempChapterId = generateId();
-                        const newChapter = { id: tempChapterId, title: TEMP_CHAPTER_TITLE, notes: [note] };
-                        updatedBooks = updatedBooks.map(b => b.id === tempBook.id
-                            ? { ...tempBook, chapters: [...tempBook.chapters, newChapter] }
-                            : b);
-                    }
-                    return updatedBooks;
-                });
-
-                if (targetBookId && tempChapterId) {
-                    setActiveBookId(targetBookId);
-                    goChapter(tempChapterId);
-                }
+                const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
+                setRootNotes(prev => [...prev, note]);
             };
             const reorderRootNotesByIndex = useCallback((from, to) => {
                 setRootNotes(prev => moveItem(prev, from, to));
