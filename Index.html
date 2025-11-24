@@ -189,15 +189,22 @@
                 options.push({ label: `${book.title} → ${chapter.title}`, type: 'chapter', bookId: book.id, chapterId: chapter.id });
             };
 
+            const addTempChapterFromOtherBooks = (currentBookId) => {
+                books
+                    .filter(book => book.id !== currentBookId)
+                    .forEach(book => {
+                        const preliminary = book.chapters.find(ch => isPreliminaryChapterTitle(ch.title));
+                        addChapterOption(book, preliminary);
+                    });
+            };
+
             if (isFromTempPreliminary) {
                 tempBook?.chapters.forEach(chapter => addChapterOption(tempBook, chapter));
-                books.forEach(book => {
-                    const preliminary = book.chapters.find(ch => isPreliminaryChapterTitle(ch.title));
-                    addChapterOption(book, preliminary);
-                });
+                addTempChapterFromOtherBooks(tempBook?.id);
             } else if (source?.bookId) {
                 const currentBook = books.find(b => b.id === source.bookId);
                 currentBook?.chapters.forEach(chapter => addChapterOption(currentBook, chapter));
+                addTempChapterFromOtherBooks(currentBook?.id);
             } else {
                 books.forEach(book => book.chapters.forEach(chapter => addChapterOption(book, chapter)));
             }
