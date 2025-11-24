@@ -2173,6 +2173,37 @@
                 noteMoveMode.exitMoveMode();
             };
 
+            const concatenateSelectedNotes = () => {
+                if (selectedIds.length < 2) return alert('Selecciona al menos 2 notas para concatenar.');
+
+                const orderedSelectedNotes = chapter.notes.filter(n => selectedIds.includes(n.id));
+                if (orderedSelectedNotes.length < 2) return;
+
+                const concatenatedContent = orderedSelectedNotes
+                    .map(note => `<div>${note.content}</div>`)
+                    .join('');
+
+                const newNote = { id: generateId(), content: concatenatedContent, timestamp: Date.now() };
+
+                const mergedNotes = [];
+                let inserted = false;
+                chapter.notes.forEach(note => {
+                    if (selectedIds.includes(note.id)) {
+                        if (!inserted) {
+                            mergedNotes.push(newNote);
+                            inserted = true;
+                        }
+                        return;
+                    }
+                    mergedNotes.push(note);
+                });
+
+                onUpdateNotes(mergedNotes);
+                setSelectedIds([]);
+                setSelectionMode(false);
+                noteMoveMode.exitMoveMode();
+            };
+
             const bulkRelocate = async (mode) => {
                 if (selectedIds.length === 0) return alert("Sin notas seleccionadas.");
                 const destination = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id });
@@ -2218,6 +2249,14 @@
                                     <button onClick={deleteSelectedNotes} className="whitespace-nowrap text-xs flex items-center gap-1 bg-red-50 text-red-700 px-3 py-2 rounded-lg border border-red-200 font-medium active:scale-95 transition"><Icons.Trash className="w-3 h-3" /> Eliminar</button>
                                     <button onClick={() => bulkRelocate('move')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-gradient-to-r from-indigo-50 to-cyan-50 text-blue-700 px-3 py-2 rounded-lg border border-blue-200 font-medium active:scale-95 transition"><Icons.Folder className="w-3 h-3" /> Mover</button>
                                     <button onClick={() => bulkRelocate('copy')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-medium active:scale-95 transition"><Icons.Plus className="w-3 h-3" /> Duplicar</button>
+                                    {selectedIds.length > 1 && (
+                                        <button
+                                            onClick={concatenateSelectedNotes}
+                                            className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-800 px-3 py-2 rounded-lg border border-amber-200 font-medium active:scale-95 transition"
+                                        >
+                                            <Icons.Merge className="w-3 h-3" /> Concatenar
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
