@@ -186,6 +186,11 @@
         const TEMP_CHAPTER_TITLE = 'temporary';
         const TEMP_BOOK_TITLE = 'temp notes';
         const FIRESTORE_COLLECTION = 'voiceNotes_appData';
+        const LOCAL_USAGE_KEY = 'voiceNotes_lastUse';
+        const FIRESTORE_SYNC_KEY = 'voiceNotes_lastFirestoreSync';
+        const SESSION_KEY = 'voiceNotes_sessionId';
+        const LOCAL_RECENCY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
+        const AUTO_FIRESTORE_SAVE_DELAY = 2 * 60 * 1000; // 2 minutos
 
         const firebaseConfig = {
             apiKey: "AIzaSyA-wfyW4A1x0OhlBnnPhN2xwgs8N0e_3ek",
@@ -834,9 +839,11 @@
             const [authUser, setAuthUser] = useState(null);
             const [cloudStatus, setCloudStatus] = useState(null);
             const [cloudMessage, setCloudMessage] = useState('');
+            const [shouldBootstrapFromCloud, setShouldBootstrapFromCloud] = useState(false);
             const firebaseAppRef = useRef(null);
             const authRef = useRef(null);
             const dbRef = useRef(null);
+            const autoSaveTimeoutRef = useRef(null);
 
             useEffect(() => {
                 if (!window.firebase) {
@@ -860,6 +867,11 @@
             }, []);
 
             useEffect(() => {
+                const sessionId = sessionStorage.getItem(SESSION_KEY) || generateId();
+                const hasLoadedThisSession = sessionStorage.getItem('voiceNotes_hasLoaded') === 'true';
+                sessionStorage.setItem(SESSION_KEY, sessionId);
+                sessionStorage.setItem('voiceNotes_hasLoaded', 'true');
+
                 const savedBooks = localStorage.getItem('voiceNotes_books');
                 const savedSettings = localStorage.getItem('voiceNotes_settings');
                 if (savedBooks) {
@@ -876,12 +888,27 @@
                         prompts: { ...DEFAULT_PROMPTS, ...(parsed.prompts || {}) }
                     });
                 }
+
+                const lastUse = parseInt(localStorage.getItem(LOCAL_USAGE_KEY) || '0', 10);
+                const lastFirestoreSync = parseInt(localStorage.getItem(FIRESTORE_SYNC_KEY) || '0', 10);
+                const navigationEntry = (performance.getEntriesByType?.('navigation') || [])[0];
+                const isReload = navigationEntry?.type === 'reload' || performance?.navigation?.type === performance?.navigation?.TYPE_RELOAD;
+                const now = Date.now();
+                const isRecentUse = lastUse > 0 && (now - lastUse) < LOCAL_RECENCY_WINDOW_MS;
+                const shouldLoadFromCloud = isReload || !isRecentUse || !lastFirestoreSync || !hasLoadedThisSession;
+                setShouldBootstrapFromCloud(shouldLoadFromCloud);
+
+                localStorage.setItem(LOCAL_USAGE_KEY, String(now));
                 setDataLoaded(true);
             }, []);
 
             useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
+            useEffect(() => {
+                if (!dataLoaded) return;
+                localStorage.setItem(LOCAL_USAGE_KEY, String(Date.now()));
+            }, [books, rootNotes, settings, view, activeBookId, activeChapterId]);
             useEffect(() => {
                 if (!dataLoaded) return;
                 setBooks(prevBooks => {
@@ -1242,36 +1269,50 @@
                 }
             };
 
-            const handleFirestoreSave = async () => {
+            const handleFirestoreSave = async ({ silent = false } = {}) => {
                 if (!firebaseReady || !dbRef.current) {
-                    return alert('Firebase no está listo.');
+                    if (!silent) alert('Firebase no está listo.');
+                    return;
                 }
                 if (!authUser) {
-                    return alert('Inicia sesión para guardar en Firestore.');
+                    const message = 'Inicia sesión para guardar en Firestore.';
+                    setCloudStatus('error');
+                    setCloudMessage(message);
+                    if (!silent) alert(message);
+                    return;
                 }
                 setCloudStatus('loading');
-                setCloudMessage('Guardando en Firestore...');
+                setCloudMessage(silent ? 'Guardado automático en progreso...' : 'Guardando en Firestore...');
                 try {
                     const payload = buildCloudPayload();
                     await dbRef.current.collection(FIRESTORE_COLLECTION).doc(authUser.uid).set(payload);
+                    const now = Date.now();
+                    localStorage.setItem(FIRESTORE_SYNC_KEY, String(now));
+                    localStorage.setItem(LOCAL_USAGE_KEY, String(now));
                     setCloudStatus('success');
-                    setCloudMessage('Datos guardados en Firestore.');
+                    setCloudMessage(silent ? 'Guardado automático completado.' : 'Datos guardados en Firestore.');
                 } catch (error) {
                     console.error('Firestore save error', error);
                     setCloudStatus('error');
                     setCloudMessage(error.message);
+                    if (!silent) alert(error.message);
                 }
             };
 
-            const handleFirestoreLoad = async () => {
+            const handleFirestoreLoad = async ({ silent = false } = {}) => {
                 if (!firebaseReady || !dbRef.current) {
-                    return alert('Firebase no está listo.');
+                    if (!silent) alert('Firebase no está listo.');
+                    return;
                 }
                 if (!authUser) {
-                    return alert('Inicia sesión para cargar datos.');
+                    const message = 'Inicia sesión para cargar datos.';
+                    setCloudStatus('error');
+                    setCloudMessage(message);
+                    if (!silent) alert(message);
+                    return;
                 }
                 setCloudStatus('loading');
-                setCloudMessage('Cargando desde Firestore...');
+                setCloudMessage(silent ? 'Sincronizando con Firestore...' : 'Cargando desde Firestore...');
                 try {
                     const snap = await dbRef.current.collection(FIRESTORE_COLLECTION).doc(authUser.uid).get();
                     if (!snap.exists) {
@@ -1291,14 +1332,37 @@
                     setActiveBookId(data.activeBookId || null);
                     setActiveChapterId(data.activeChapterId || null);
                     setDataLoaded(true);
+                    const now = data.timestamp || Date.now();
+                    localStorage.setItem(FIRESTORE_SYNC_KEY, String(now));
+                    localStorage.setItem(LOCAL_USAGE_KEY, String(Date.now()));
                     setCloudStatus('success');
-                    setCloudMessage('Datos cargados desde Firestore.');
+                    setCloudMessage(silent ? 'Sincronización automática completada.' : 'Datos cargados desde Firestore.');
                 } catch (error) {
                     console.error('Firestore load error', error);
                     setCloudStatus('error');
                     setCloudMessage(error.message);
+                    if (!silent) alert(error.message);
                 }
             };
+
+            useEffect(() => {
+                if (!shouldBootstrapFromCloud) return;
+                if (!firebaseReady || !authUser) return;
+                handleFirestoreLoad({ silent: true });
+            }, [shouldBootstrapFromCloud, firebaseReady, authUser]);
+
+            useEffect(() => {
+                if (!dataLoaded) return;
+                if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+
+                autoSaveTimeoutRef.current = setTimeout(() => {
+                    handleFirestoreSave({ silent: true });
+                }, AUTO_FIRESTORE_SAVE_DELAY);
+
+                return () => {
+                    if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+                };
+            }, [books, rootNotes, settings, view, activeBookId, activeChapterId]);
 
             const promptForName = (message, defaultValue = '') => {
                 const response = prompt(message, defaultValue ?? '');
