@@ -15,6 +15,11 @@
     <!-- Babel para JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
             --color-bg: #fdf7f4;
@@ -165,7 +170,9 @@
             Merge: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3"/><path d="M12 12.3v9.3"/><path d="m8 18 4 4 4-4"/></svg>,
             Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
             Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            Menu: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+            Cloud: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a5 5 0 1 1 .9-9.9A7 7 0 0 1 21 12a4 4 0 0 1-3.5 7Z"/></svg>
         };
 
         // --- CONFIGURACIÓN INICIAL ---
@@ -178,6 +185,22 @@
         };
         const TEMP_CHAPTER_TITLE = 'temporary';
         const TEMP_BOOK_TITLE = 'temp notes';
+        const FIRESTORE_COLLECTION = 'voiceNotes_appData';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-wfyW4A1x0OhlBnnPhN2xwgs8N0e_3ek",
+            authDomain: "smartbookwriter-f6dd5.firebaseapp.com",
+            projectId: "smartbookwriter-f6dd5",
+            storageBucket: "smartbookwriter-f6dd5.firebasestorage.app",
+            messagingSenderId: "924785765286",
+            appId: "1:924785765286:web:42b733d5914b095bbf7d67"
+        };
+
+        const normalizeBooksData = (bookList = []) => bookList.map(b => ({
+            ...b,
+            notes: b.notes || [],
+            chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
+        }));
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
         const moveItem = (array, from, to) => {
@@ -685,6 +708,65 @@
             );
         };
 
+        const HamburgerMenu = ({
+            open,
+            onClose,
+            onSettings,
+            onLogin,
+            onLogout,
+            onSave,
+            onLoad,
+            authUser,
+            status,
+            message,
+            firebaseReady,
+            firebaseError
+        }) => {
+            if (!open) return null;
+            const statusColor = status === 'success' ? 'text-green-700 bg-green-50 border-green-200' : status === 'error' ? 'text-red-700 bg-red-50 border-red-200' : 'text-blue-700 bg-blue-50 border-blue-200';
+            return (
+                <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
+                    <div className="absolute top-3 right-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-start justify-between gap-2">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-800">Menú</p>
+                                <p className="text-xs text-slate-500">Firebase {firebaseReady ? 'listo' : 'no inicializado'}</p>
+                                {firebaseError && <p className="text-[11px] text-red-600">{firebaseError}</p>}
+                                {authUser && <p className="text-[11px] text-slate-500">{authUser.email}</p>}
+                            </div>
+                            <button onClick={onClose} className="icon-btn text-slate-400 hover:text-slate-700">✕</button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <button onClick={onSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-slate-50 hover:bg-slate-100">
+                                <span className="text-sm font-medium text-slate-800">Configuración</span>
+                                <Icons.Settings />
+                            </button>
+                            <button onClick={authUser ? onLogout : onLogin} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold">
+                                <span>{authUser ? 'Cerrar sesión Firebase' : 'Iniciar sesión Firebase'}</span>
+                                <Icons.Cloud />
+                            </button>
+                            <button onClick={onSave} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-green-50 hover:bg-green-100 text-green-800 font-semibold">
+                                <span>Guardar en Firestore</span>
+                                <Icons.Check />
+                            </button>
+                            <button onClick={onLoad} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold">
+                                <span>Cargar desde Firestore</span>
+                                <Icons.Folder />
+                            </button>
+                        </div>
+
+                        {status && (
+                            <div className={`text-xs px-3 py-2 rounded-xl border ${statusColor}`}>
+                                <p className="font-semibold">{status === 'loading' ? 'Procesando...' : status === 'success' ? 'Éxito' : 'Alerta'}</p>
+                                <p>{message}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
         // --- API GEMINI ---
         async function callGemini(apiKey, model, prompt, content) {
             if (!apiKey || apiKey.length < 10) throw new Error("Falta la API Key.");
@@ -746,18 +828,43 @@
             const [isRecording, setIsRecording] = useState(false);
             const [micSupportError, setMicSupportError] = useState(null);
             const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
+            const [menuOpen, setMenuOpen] = useState(false);
+            const [firebaseReady, setFirebaseReady] = useState(false);
+            const [firebaseError, setFirebaseError] = useState(null);
+            const [authUser, setAuthUser] = useState(null);
+            const [cloudStatus, setCloudStatus] = useState(null);
+            const [cloudMessage, setCloudMessage] = useState('');
+            const firebaseAppRef = useRef(null);
+            const authRef = useRef(null);
+            const dbRef = useRef(null);
+
+            useEffect(() => {
+                if (!window.firebase) {
+                    setFirebaseError('Firebase SDK no está disponible.');
+                    return;
+                }
+                try {
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    firebaseAppRef.current = firebase.app();
+                    authRef.current = firebase.auth();
+                    dbRef.current = firebase.firestore();
+                    setFirebaseReady(true);
+                    const unsubscribe = authRef.current.onAuthStateChanged((user) => setAuthUser(user));
+                    return () => unsubscribe?.();
+                } catch (error) {
+                    console.error('Firebase init error', error);
+                    setFirebaseError(error.message);
+                }
+            }, []);
 
             useEffect(() => {
                 const savedBooks = localStorage.getItem('voiceNotes_books');
                 const savedSettings = localStorage.getItem('voiceNotes_settings');
                 if (savedBooks) {
                     const parsed = JSON.parse(savedBooks);
-                    const normalized = parsed.map(b => ({
-                        ...b,
-                        notes: b.notes || [],
-                        chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
-                    }));
-                    setBooks(normalized);
+                    setBooks(normalizeBooksData(parsed));
                 }
                 const savedRoot = localStorage.getItem('voiceNotes_rootNotes');
                 if (savedRoot) setRootNotes(JSON.parse(savedRoot));
@@ -1093,6 +1200,106 @@
             const goChapter = (id) => { resetMoveModes(); setActiveChapterId(id); setView('chapter'); };
             const goSettings = () => setView('settings');
 
+            const buildCloudPayload = () => ({
+                books,
+                rootNotes,
+                settings,
+                view,
+                activeBookId,
+                activeChapterId,
+                timestamp: Date.now()
+            });
+
+            const handleFirebaseLogin = async () => {
+                if (!firebaseReady || !authRef.current) {
+                    return alert('Firebase no está listo aún.');
+                }
+                setCloudStatus('loading');
+                setCloudMessage('Iniciando sesión...');
+                try {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    await authRef.current.signInWithPopup(provider);
+                    setCloudStatus('success');
+                    setCloudMessage('Sesión iniciada.');
+                } catch (error) {
+                    console.error('Firebase login error', error);
+                    setCloudStatus('error');
+                    setCloudMessage(error.message);
+                }
+            };
+
+            const handleFirebaseLogout = async () => {
+                if (!firebaseReady || !authRef.current) return;
+                setCloudStatus('loading');
+                setCloudMessage('Cerrando sesión...');
+                try {
+                    await authRef.current.signOut();
+                    setCloudStatus('success');
+                    setCloudMessage('Sesión cerrada.');
+                } catch (error) {
+                    setCloudStatus('error');
+                    setCloudMessage(error.message);
+                }
+            };
+
+            const handleFirestoreSave = async () => {
+                if (!firebaseReady || !dbRef.current) {
+                    return alert('Firebase no está listo.');
+                }
+                if (!authUser) {
+                    return alert('Inicia sesión para guardar en Firestore.');
+                }
+                setCloudStatus('loading');
+                setCloudMessage('Guardando en Firestore...');
+                try {
+                    const payload = buildCloudPayload();
+                    await dbRef.current.collection(FIRESTORE_COLLECTION).doc(authUser.uid).set(payload);
+                    setCloudStatus('success');
+                    setCloudMessage('Datos guardados en Firestore.');
+                } catch (error) {
+                    console.error('Firestore save error', error);
+                    setCloudStatus('error');
+                    setCloudMessage(error.message);
+                }
+            };
+
+            const handleFirestoreLoad = async () => {
+                if (!firebaseReady || !dbRef.current) {
+                    return alert('Firebase no está listo.');
+                }
+                if (!authUser) {
+                    return alert('Inicia sesión para cargar datos.');
+                }
+                setCloudStatus('loading');
+                setCloudMessage('Cargando desde Firestore...');
+                try {
+                    const snap = await dbRef.current.collection(FIRESTORE_COLLECTION).doc(authUser.uid).get();
+                    if (!snap.exists) {
+                        setCloudStatus('error');
+                        setCloudMessage('No hay datos guardados en Firestore.');
+                        return;
+                    }
+                    const data = snap.data();
+                    setBooks(normalizeBooksData(data.books || []));
+                    setRootNotes(data.rootNotes || []);
+                    setSettings({
+                        apiKey: data.settings?.apiKey || DEFAULT_API_KEY,
+                        model: data.settings?.model || DEFAULT_MODEL,
+                        prompts: { ...DEFAULT_PROMPTS, ...(data.settings?.prompts || {}) }
+                    });
+                    setView(data.view || 'home');
+                    setActiveBookId(data.activeBookId || null);
+                    setActiveChapterId(data.activeChapterId || null);
+                    setDataLoaded(true);
+                    setCloudStatus('success');
+                    setCloudMessage('Datos cargados desde Firestore.');
+                } catch (error) {
+                    console.error('Firestore load error', error);
+                    setCloudStatus('error');
+                    setCloudMessage(error.message);
+                }
+            };
+
             const promptForName = (message, defaultValue = '') => {
                 const response = prompt(message, defaultValue ?? '');
                 const trimmed = response?.trim();
@@ -1209,6 +1416,23 @@
                 : selectedChapterIds[selectedChapterIds.length - 1];
             const primaryChapter = activeBook?.chapters.find(c => c.id === primaryChapterId);
 
+            const menuPortal = (
+                <HamburgerMenu
+                    open={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    onSettings={() => { setMenuOpen(false); goSettings(); }}
+                    onLogin={() => { setMenuOpen(false); handleFirebaseLogin(); }}
+                    onLogout={() => { setMenuOpen(false); handleFirebaseLogout(); }}
+                    onSave={() => { setMenuOpen(false); handleFirestoreSave(); }}
+                    onLoad={() => { setMenuOpen(false); handleFirestoreLoad(); }}
+                    authUser={authUser}
+                    status={cloudStatus}
+                    message={cloudMessage}
+                    firebaseReady={firebaseReady}
+                    firebaseError={firebaseError}
+                />
+            );
+
             const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
 
             // Componente de Pantalla de Carga
@@ -1245,10 +1469,10 @@
                     </div>
 
                     <button
-                        onClick={goSettings}
+                        onClick={() => setMenuOpen(true)}
                         className="icon-btn text-slate-500 hover:text-blue-600"
                     >
-                        <Icons.Settings />
+                        <Icons.Menu />
                     </button>
                 </header>
             );
@@ -1268,6 +1492,7 @@
                 };
 
                 return (
+                    <>
                     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-indigo-50 to-rose-50">
                         <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
                         <div className="p-4 max-w-md mx-auto space-y-6">
@@ -1342,6 +1567,8 @@
                             </button>
                         </div>
                     </div>
+                    {menuPortal}
+                    </>
                 );
             }
 
@@ -1616,6 +1843,7 @@
                         />
 
                     </div>
+                    {menuPortal}
                     {pickerPortal}
                     </>
                 );
@@ -1815,16 +2043,17 @@
                             value={noteDraft}
                             onChange={setNoteDraft}
                             onSave={handleSaveTypedNote}
-                            onClose={closeNoteModal}
-                        />
+                        onClose={closeNoteModal}
+                    />
 
-                    </div>
-                    {pickerPortal}
-                    </>
-                );
-            }
+                </div>
+                {menuPortal}
+                {pickerPortal}
+                </>
+            );
+        }
 
-            if (view === 'chapter' && activeChapter) {
+        if (view === 'chapter' && activeChapter) {
                 return (
                     <>
                     <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
@@ -1834,6 +2063,7 @@
                         settings={settings} setLoading={setLoading}
                         chooseDestination={chooseDestination}
                         relocateNote={relocateNote} />
+                    {menuPortal}
                     {pickerPortal}
                     </>
                 );
@@ -1964,7 +2194,12 @@
                             <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
                             <div className="overflow-hidden"><h1 className="text-lg font-bold text-emerald-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
                         </div>
-                        <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); noteMoveMode.exitMoveMode(); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); noteMoveMode.exitMoveMode(); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
+                            <button onClick={() => setMenuOpen(true)} className="icon-btn text-emerald-700 hover:text-emerald-900">
+                                <Icons.Menu />
+                            </button>
+                        </div>
                     </header>
 
                     <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto">
