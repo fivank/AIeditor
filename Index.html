@@ -166,6 +166,7 @@
             return arr;
         };
         const matchTitle = (value, target) => (value || '').trim().toLowerCase() === target;
+        const isPreliminaryChapterTitle = (title) => ['preliminary', 'preliminar', TEMP_CHAPTER_TITLE].some(t => matchTitle(title, t));
         const cloneNote = (note) => ({ ...note, id: generateId(), timestamp: Date.now() });
         const escapeHtml = (text) => text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         const normalizeContent = (content) => {
@@ -178,23 +179,31 @@
         const buildDestinations = (books, source) => {
             const options = [];
 
-            const addBookChapters = (book) => {
-                book.chapters.forEach(chapter => {
-                    options.push({ label: `${book.title} → ${chapter.title}`, type: 'chapter', bookId: book.id, chapterId: chapter.id });
-                });
+            const tempBook = books.find(b => matchTitle(b.title, TEMP_BOOK_TITLE));
+            const tempChapter = tempBook?.chapters.find(c => isPreliminaryChapterTitle(c.title));
+            const isFromTempPreliminary = source?.type === 'chapter' && tempBook && source.bookId === tempBook.id && source.chapterId === tempChapter?.id;
+
+            const addChapterOption = (book, chapter) => {
+                if (!chapter) return;
+                if (options.some(opt => opt.chapterId === chapter.id)) return;
+                options.push({ label: `${book.title} → ${chapter.title}`, type: 'chapter', bookId: book.id, chapterId: chapter.id });
             };
 
-            if (source?.bookId) {
+            if (isFromTempPreliminary) {
+                tempBook?.chapters.forEach(chapter => addChapterOption(tempBook, chapter));
+                books.forEach(book => {
+                    const preliminary = book.chapters.find(ch => isPreliminaryChapterTitle(ch.title));
+                    addChapterOption(book, preliminary);
+                });
+            } else if (source?.bookId) {
                 const currentBook = books.find(b => b.id === source.bookId);
-                if (currentBook) addBookChapters(currentBook);
+                currentBook?.chapters.forEach(chapter => addChapterOption(currentBook, chapter));
             } else {
-                books.forEach(addBookChapters);
+                books.forEach(book => book.chapters.forEach(chapter => addChapterOption(book, chapter)));
             }
 
-            const tempBook = books.find(b => matchTitle(b.title, TEMP_BOOK_TITLE));
-            const tempChapter = tempBook?.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
-            if (tempBook && tempChapter && !options.some(opt => opt.chapterId === tempChapter.id)) {
-                options.push({ label: `${tempBook.title} → ${tempChapter.title}`, type: 'chapter', bookId: tempBook.id, chapterId: tempChapter.id });
+            if (tempBook && tempChapter) {
+                addChapterOption(tempBook, tempChapter);
             }
 
             return options;
@@ -206,7 +215,7 @@
             if (bookIndex < 0) return { books: updated, chapterId: null, changed: false };
 
             const book = updated[bookIndex];
-            let chapter = book.chapters.find(c => matchTitle(c.title, TEMP_CHAPTER_TITLE));
+            let chapter = book.chapters.find(c => isPreliminaryChapterTitle(c.title));
             let changed = false;
 
             if (!chapter) {
