@@ -256,6 +256,21 @@
             };
         };
 
+        const ensurePreliminaryChaptersEverywhere = (currentBooks) => {
+            let updated = [...currentBooks];
+            let changed = false;
+
+            updated.forEach(book => {
+                const ensured = ensureTempChapterInBook(updated, book.id);
+                if (ensured.changed) {
+                    updated = ensured.books;
+                    changed = true;
+                }
+            });
+
+            return { books: updated, changed };
+        };
+
         const updateChapterNotesInBooks = (bookList, bookId, chapterId, updater) => bookList.map(book => {
             if (book.id !== bookId) return book;
             return {
@@ -924,7 +939,21 @@
                 setBooks(prev => prev.map(b => b.id === bookId ? { ...b, notes: moveItem(b.notes || [], from, to) } : b));
             }, []);
             const chooseDestination = async (source) => {
-                const options = buildDestinations(books, source);
+                const ensureDestinations = (currentBooks) => {
+                    const ensuredTemp = ensureTempBookAndChapter(currentBooks);
+                    let updatedBooks = ensuredTemp.books;
+                    let changed = ensuredTemp.changed;
+
+                    const ensuredPreliminary = ensurePreliminaryChaptersEverywhere(updatedBooks);
+                    updatedBooks = ensuredPreliminary.books;
+                    changed = changed || ensuredPreliminary.changed;
+
+                    if (changed) setBooks(updatedBooks);
+                    return updatedBooks;
+                };
+
+                const booksForOptions = ensureDestinations(books);
+                const options = buildDestinations(booksForOptions, source);
                 if (options.length === 0) { alert('No hay destinos disponibles.'); return null; }
                 return await openPickerWithOptions(options, 'Elige dónde guardar');
             };
