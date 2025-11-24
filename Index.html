@@ -17,7 +17,7 @@
 
     <style>
         :root {
-            --color-bg: #f1f5f9;
+            --color-bg: #fafaf9;
             --color-card: #ffffff;
             --radius-lg: 0.75rem;
             --radius-xl: 1rem;
@@ -99,20 +99,22 @@
 
         /* Estilos del editor y visualización de notas */
         .editor-content h1 {
-            font-size: 12px;
-            font-weight: 700;
-            margin: 0 0 0.4rem;
+            font-size: 22px;
+            font-weight: 800;
+            color: #1f2937;
+            margin: 0 0 0.5rem;
         }
         .editor-content h2 {
-            font-size: 10px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 800;
+            color: #111827;
             text-decoration: underline;
-            margin: 0 0 0.3rem;
+            margin: 0 0 0.4rem;
         }
         .editor-content p,
         .editor-content li {
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 16px;
+            line-height: 1.65;
         }
         .editor-content ul {
             list-style-type: disc;
@@ -344,9 +346,9 @@
         const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
             const editorRef = useRef(null);
             const [fontFamily, setFontFamily] = useState('Calibri');
-            const [fontSize, setFontSize] = useState(12);
-            const [highlightColor, setHighlightColor] = useState('#fff59d');
-            const [textColor, setTextColor] = useState('#1d4ed8');
+            const [fontSize, setFontSize] = useState(16);
+            const [highlightColor, setHighlightColor] = useState('#fef3c7');
+            const [textColor, setTextColor] = useState('#7c3aed');
             const [activeFormats, setActiveFormats] = useState({
                 bold: false,
                 italic: false,
@@ -468,8 +470,8 @@
                 syncCommandStates();
             };
 
-            const toolbarButtonClass = "px-2 py-1 rounded-md border bg-white shadow-sm text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-1";
-            const activeToolbarClass = "bg-blue-50 border-blue-500 text-blue-700 shadow-inner";
+            const toolbarButtonClass = "p-3 rounded-md border bg-white shadow-sm text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-1 min-w-[2.75rem] min-h-[2.75rem]";
+            const activeToolbarClass = "bg-violet-50 border-violet-500 text-violet-700 shadow-inner";
             const getButtonClasses = (isActive = false) => `${toolbarButtonClass} ${isActive ? activeToolbarClass : ''}`;
 
             if (!isOpen) return null;
@@ -486,7 +488,7 @@
                         </div>
                     </div>
                     <div className="px-4 py-3 bg-slate-50 border-b space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
                             <select
                                 value={fontFamily}
                                 onChange={(e) => applyFontFamily(e.target.value)}
@@ -514,7 +516,7 @@
                                 <span>Resaltar</span>
                             </button>
                             <button
-                                onClick={() => applyTextColor('#2563eb')}
+                                onClick={() => applyTextColor('#7c3aed')}
                                 className={getButtonClasses(activeFormats.textColor)}
                                 title="Color de texto"
                             >
@@ -523,13 +525,13 @@
                             </button>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-1">
+                        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
                             <button onClick={() => format('bold')} className={getButtonClasses(activeFormats.bold) + ' font-semibold'}><strong>B</strong></button>
                             <button onClick={() => format('italic')} className={getButtonClasses(activeFormats.italic) + ' italic'}>I</button>
                             <button onClick={() => format('underline')} className={getButtonClasses(activeFormats.underline) + ' underline'}>U</button>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-1">
+                        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
                             <button onClick={() => format('justifyLeft')} className={getButtonClasses(activeFormats.alignLeft)}>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M4 6h16" /><path d="M4 10h10" /><path d="M4 14h16" /><path d="M4 18h10" />
