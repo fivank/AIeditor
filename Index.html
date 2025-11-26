@@ -712,124 +712,116 @@
                 syncCommandStates();
             };
 
-            const toolbarButtonClass = "h-9 min-w-[2.5rem] px-3 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-sm text-slate-600 hover:bg-slate-100 transition";
-            const activeToolbarClass = "bg-indigo-50 border-indigo-300 text-indigo-700";
+            const toolbarButtonClass = "p-3 rounded-md border bg-white shadow-sm text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-1 min-w-[2.75rem] min-h-[2.75rem]";
+            const activeToolbarClass = "bg-violet-50 border-violet-500 text-violet-700 shadow-inner";
             const getButtonClasses = (isActive = false) => `${toolbarButtonClass} ${isActive ? activeToolbarClass : ''}`;
 
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="w-full max-w-4xl h-[90vh] bg-white rounded-2xl shadow-2xl border flex flex-col">
-                        <div className="flex items-center justify-between px-5 py-4 border-b">
-                            <div className="flex flex-col">
-                                <p className="text-[11px] uppercase tracking-[0.08em] text-slate-400">Editar</p>
-                                <p className="text-sm font-semibold text-slate-900">{title}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button onClick={onClose} className="text-sm font-medium text-slate-500 hover:text-slate-700">Cancelar</button>
-                                <button onClick={onSave} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold shadow hover:bg-indigo-700">Guardar</button>
-                            </div>
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur flex flex-col">
+                    <div className="flex items-center justify-between p-4 bg-white shadow-md border-b">
+                        <div>
+                            <p className="text-xs uppercase tracking-wide text-slate-400">Editor de nota</p>
+                            <p className="text-sm font-semibold text-slate-900">{title}</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={onClose} className="px-4 py-2 rounded-lg border text-slate-700 hover:bg-slate-50">Cancelar</button>
+                            <button onClick={onSave} className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700">Guardar</button>
+                        </div>
+                    </div>
+                    <div className="px-4 py-3 bg-slate-50 border-b space-y-2">
+                        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
+                            <select
+                                value={fontFamily}
+                                onChange={(e) => applyFontFamily(e.target.value)}
+                                className="h-9 rounded-md border bg-white px-2 text-sm shadow-sm"
+                            >
+                                {['Calibri', 'Arial', 'Georgia', 'Times New Roman', 'Segoe UI', 'Roboto'].map((font) => (
+                                    <option key={font} value={font}>{font}</option>
+                                ))}
+                            </select>
+                            <select
+                                value={fontSize}
+                                onChange={(e) => applyFontSize(Number(e.target.value))}
+                                className="h-9 rounded-md border bg-white px-2 text-sm shadow-sm"
+                            >
+                                {[10, 11, 12, 14, 16, 18, 20].map((size) => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={() => applyHighlight('#fff59d')}
+                                className={getButtonClasses(activeFormats.highlight)}
+                                title="Resaltar"
+                            >
+                                <span className="inline-flex h-4 w-4 rounded-sm border" style={{ backgroundColor: highlightColor }}></span>
+                                <span>Resaltar</span>
+                            </button>
+                            <button
+                                onClick={() => applyTextColor('#7c3aed')}
+                                className={getButtonClasses(activeFormats.textColor)}
+                                title="Color de texto"
+                            >
+                                <span className="inline-flex h-4 w-4 rounded-sm border" style={{ backgroundColor: textColor }}></span>
+                                <span>Color</span>
+                            </button>
                         </div>
 
-                        <div className="px-4 py-3 bg-slate-50 border-b">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <select
-                                    value={fontFamily}
-                                    onChange={(e) => applyFontFamily(e.target.value)}
-                                    className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
-                                >
-                                    {['Calibri', 'Arial', 'Georgia', 'Times New Roman', 'Segoe UI', 'Roboto'].map((font) => (
-                                        <option key={font} value={font}>{font}</option>
-                                    ))}
-                                </select>
-                                <select
-                                    value={fontSize}
-                                    onChange={(e) => applyFontSize(Number(e.target.value))}
-                                    className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
-                                >
-                                    {[10, 11, 12, 14, 16, 18, 20].map((size) => (
-                                        <option key={size} value={size}>{size}</option>
-                                    ))}
-                                </select>
-
-                                <div className="h-6 w-px bg-slate-200 mx-1" aria-hidden="true"></div>
-
-                                <button onClick={() => format('justifyLeft')} className={getButtonClasses(activeFormats.alignLeft)}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M4 6h16" /><path d="M4 10h10" /><path d="M4 14h16" /><path d="M4 18h10" />
-                                    </svg>
-                                    <span className="sr-only">Alinear a la izquierda</span>
-                                </button>
-                                <button onClick={() => format('justifyCenter')} className={getButtonClasses(activeFormats.alignCenter)}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M6 6h12" /><path d="M4 10h16" /><path d="M6 14h12" /><path d="M4 18h16" />
-                                    </svg>
-                                    <span className="sr-only">Centrar</span>
-                                </button>
-                                <button onClick={() => format('justifyRight')} className={getButtonClasses(activeFormats.alignRight)}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M4 6h16" /><path d="M10 10h10" /><path d="M4 14h16" /><path d="M10 18h10" />
-                                    </svg>
-                                    <span className="sr-only">Alinear a la derecha</span>
-                                </button>
-                                <button onClick={() => format('justifyFull')} className={getButtonClasses(activeFormats.alignJustify)}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M4 6h16" /><path d="M4 10h16" /><path d="M4 14h16" /><path d="M4 18h16" />
-                                    </svg>
-                                    <span className="sr-only">Justificar</span>
-                                </button>
-
-                                <div className="h-6 w-px bg-slate-200 mx-1" aria-hidden="true"></div>
-
-                                <button onClick={() => format('insertUnorderedList')} className={getButtonClasses(activeFormats.unorderedList)}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="5" cy="6" r="1" /><circle cx="5" cy="12" r="1" /><circle cx="5" cy="18" r="1" />
-                                        <path d="M9 6h10" /><path d="M9 12h10" /><path d="M9 18h10" />
-                                    </svg>
-                                    <span className="sr-only">Lista con viñetas</span>
-                                </button>
-                                <button onClick={() => format('insertOrderedList')} className={getButtonClasses(activeFormats.orderedList)}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M5 5h2" /><path d="M6 4v6" /><path d="M5 11h2" /><path d="M4 14h2l-2 3h3" /><path d="M4 20h3" />
-                                        <path d="M9 6h10" /><path d="M9 12h10" /><path d="M9 18h10" />
-                                    </svg>
-                                    <span className="sr-only">Lista numerada</span>
-                                </button>
-
-                                <div className="h-6 w-px bg-slate-200 mx-1" aria-hidden="true"></div>
-
-                                <button onClick={() => format('bold')} className={getButtonClasses(activeFormats.bold) + ' font-semibold'}><strong>B</strong></button>
-                                <button onClick={() => format('italic')} className={getButtonClasses(activeFormats.italic) + ' italic'}>I</button>
-                                <button onClick={() => format('underline')} className={getButtonClasses(activeFormats.underline) + ' underline'}>U</button>
-
-                                <div className="h-6 w-px bg-slate-200 mx-1" aria-hidden="true"></div>
-
-                                <button
-                                    onClick={() => applyHighlight('#fff59d')}
-                                    className={getButtonClasses(activeFormats.highlight)}
-                                    title="Resaltar"
-                                >
-                                    <span className="inline-flex h-4 w-4 rounded border" style={{ backgroundColor: highlightColor }}></span>
-                                </button>
-                                <button
-                                    onClick={() => applyTextColor('#7c3aed')}
-                                    className={getButtonClasses(activeFormats.textColor)}
-                                    title="Color de texto"
-                                >
-                                    <span className="inline-flex h-4 w-4 rounded border" style={{ backgroundColor: textColor }}></span>
-                                </button>
-                            </div>
+                        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
+                            <button onClick={() => format('bold')} className={getButtonClasses(activeFormats.bold) + ' font-semibold'}><strong>B</strong></button>
+                            <button onClick={() => format('italic')} className={getButtonClasses(activeFormats.italic) + ' italic'}>I</button>
+                            <button onClick={() => format('underline')} className={getButtonClasses(activeFormats.underline) + ' underline'}>U</button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto bg-white">
-                            <div
-                                ref={editorRef}
-                                contentEditable
-                                onInput={handleInput}
-                                className="max-w-4xl mx-auto px-6 py-5 min-h-[60vh] prose prose-slate focus:outline-none editor-content"
-                                placeholder="Escribe o pega tu nota con formato..."
-                            ></div>
+                        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
+                            <button onClick={() => format('justifyLeft')} className={getButtonClasses(activeFormats.alignLeft)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 6h16" /><path d="M4 10h10" /><path d="M4 14h16" /><path d="M4 18h10" />
+                                </svg>
+                                <span className="sr-only">Alinear a la izquierda</span>
+                            </button>
+                            <button onClick={() => format('justifyCenter')} className={getButtonClasses(activeFormats.alignCenter)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M6 6h12" /><path d="M4 10h16" /><path d="M6 14h12" /><path d="M4 18h16" />
+                                </svg>
+                                <span className="sr-only">Centrar</span>
+                            </button>
+                            <button onClick={() => format('justifyRight')} className={getButtonClasses(activeFormats.alignRight)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 6h16" /><path d="M10 10h10" /><path d="M4 14h16" /><path d="M10 18h10" />
+                                </svg>
+                                <span className="sr-only">Alinear a la derecha</span>
+                            </button>
+                            <button onClick={() => format('justifyFull')} className={getButtonClasses(activeFormats.alignJustify)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 6h16" /><path d="M4 10h16" /><path d="M4 14h16" /><path d="M4 18h16" />
+                                </svg>
+                                <span className="sr-only">Justificar</span>
+                            </button>
+                            <button onClick={() => format('insertUnorderedList')} className={getButtonClasses(activeFormats.unorderedList)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="5" cy="6" r="1" /><circle cx="5" cy="12" r="1" /><circle cx="5" cy="18" r="1" />
+                                    <path d="M9 6h10" /><path d="M9 12h10" /><path d="M9 18h10" />
+                                </svg>
+                                <span className="sr-only">Lista con viñetas</span>
+                            </button>
+                            <button onClick={() => format('insertOrderedList')} className={getButtonClasses(activeFormats.orderedList)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 5h2" /><path d="M6 4v6" /><path d="M5 11h2" /><path d="M4 14h2l-2 3h3" /><path d="M4 20h3" />
+                                    <path d="M9 6h10" /><path d="M9 12h10" /><path d="M9 18h10" />
+                                </svg>
+                                <span className="sr-only">Lista numerada</span>
+                            </button>
                         </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto bg-white">
+                        <div
+                            ref={editorRef}
+                            contentEditable
+                            onInput={handleInput}
+                            className="max-w-4xl mx-auto p-6 min-h-[60vh] prose prose-slate focus:outline-none editor-content"
+                            placeholder="Escribe o pega tu nota con formato..."
+                        ></div>
                     </div>
                 </div>
             );
