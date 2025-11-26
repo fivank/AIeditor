@@ -183,7 +183,6 @@
             style: "Reescribe el siguiente contenido aplicando estrictamente el siguiente estilo o tono: {STYLE}. Mantén la información original pero cambia la forma de expresarla.",
             generate: "Crea una nota nueva usando el siguiente contexto. Respeta el idioma y el nivel de detalle del material."
         };
-        const SECTION_STATUSES = ['Idea', 'Outline', 'Draft', 'Revised', 'Final'];
         const TEMP_CHAPTER_TITLE = 'temporary';
         const TEMP_BOOK_TITLE = 'temp notes';
         const FIRESTORE_COLLECTION = 'voiceNotes_appData';
@@ -205,11 +204,7 @@
         const normalizeBooksData = (bookList = []) => bookList.map(b => ({
             ...b,
             notes: b.notes || [],
-            chapters: (b.chapters || []).map(c => ({
-                ...c,
-                status: SECTION_STATUSES.includes(c.status) ? c.status : 'Idea',
-                notes: c.notes || []
-            }))
+            chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
         }));
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -1021,19 +1016,11 @@
                 };
                 setBooks([...books, copy]);
             };
-            const addChapter = (bookId, title, status = 'Idea') => {
-                const safeStatus = SECTION_STATUSES.includes(status) ? status : 'Idea';
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, status: safeStatus, notes: [] }] } : b));
+            const addChapter = (bookId, title) => {
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] } : b));
             };
             const renameChapter = (bookId, chapterId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
-            };
-            const updateChapterStatus = (bookId, chapterId, status) => {
-                if (!SECTION_STATUSES.includes(status)) return;
-                setBooks(prev => prev.map(b => b.id === bookId ? {
-                    ...b,
-                    chapters: b.chapters.map(c => c.id === chapterId ? { ...c, status } : c)
-                } : b));
             };
             const reorderChaptersByIndex = useCallback((bookId, from, to) => {
                 setBooks(prev => prev.map(b => b.id === bookId ? { ...b, chapters: moveItem(b.chapters, from, to) } : b));
@@ -1857,10 +1844,6 @@
 
                             {rootNotes.length > 0 && (
                                 <div className="space-y-2 mt-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-sm font-semibold text-slate-800">Bandeja global de ideas</h4>
-                                        <p className="text-[11px] text-slate-500">Arrastra o reorganiza antes de asignar</p>
-                                    </div>
                                     {rootNotes.map(note => {
                                         const moveProps = rootNotesMoveMode.getItemProps(note.id);
                                         return (
@@ -1962,41 +1945,17 @@
                         const newNoteId = generateId();
                         setBooks(books.map(b => b.id === activeBook.id ? {
                             ...b,
-                            chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, status: 'Draft', notes: [{ id: newNoteId, content: normalizeContent(newText), timestamp: Date.now() }] }]
+                            chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, notes: [{ id: newNoteId, content: normalizeContent(newText), timestamp: Date.now() }] }]
                         } : b));
                         alert("Nueva nota generada y guardada en un capítulo nuevo.");
                     } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
                 };
-
-                const statusCounts = SECTION_STATUSES.reduce((acc, st) => ({ ...acc, [st]: 0 }), {});
-                activeBook.chapters.forEach(ch => {
-                    const key = SECTION_STATUSES.includes(ch.status) ? ch.status : 'Idea';
-                    statusCounts[key] = (statusCounts[key] || 0) + 1;
-                });
-                const completed = statusCounts['Draft'] + statusCounts['Revised'] + statusCounts['Final'];
-                const progress = activeBook.chapters.length > 0 ? Math.round((completed / activeBook.chapters.length) * 100) : 0;
 
                 return (
                     <>
                     <div className="min-h-screen flex flex-col bg-gradient-to-b from-fuchsia-50 via-indigo-50 to-cyan-50">
                         <Header title={activeBook.title} onBack={goHome} accentClass="text-violet-800" />
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
-                            <div className="glass-panel p-4 rounded-2xl flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="text-xs uppercase tracking-wide text-violet-500 font-semibold">Avance del proyecto</p>
-                                    <p className="text-lg font-bold text-violet-900">{progress}% listo</p>
-                                    <p className="text-xs text-slate-500">{activeBook.chapters.length} secciones</p>
-                                </div>
-                                <div className="flex flex-col gap-1 text-[11px] text-slate-600">
-                                    {SECTION_STATUSES.map(st => (
-                                        <div key={st} className="flex justify-between gap-2">
-                                            <span className="font-semibold text-slate-700">{st}</span>
-                                            <span>{statusCounts[st] || 0}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-violet-100 text-violet-800 px-4 py-2 rounded-full font-semibold border border-violet-200 shadow-sm">💡 Generar resumen</button>
                                 <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-violet-200 text-violet-900 px-4 py-2 rounded-full font-semibold border border-violet-300 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
@@ -2067,34 +2026,21 @@
                                                 <h3 className="font-semibold text-slate-900 text-sm truncate">
                                                     {chap.title}
                                                 </h3>
-                                                <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
-                                                    <span>{chap.notes.length} notas</span>
-                                                    <span className={`px-2 py-0.5 rounded-full border text-[11px] ${chap.status === 'Final' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : chap.status === 'Draft' ? 'bg-amber-50 text-amber-700 border-amber-200' : chap.status === 'Revised' ? 'bg-blue-50 text-blue-700 border-blue-200' : chap.status === 'Outline' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                                                        {chap.status || 'Idea'}
-                                                    </span>
-                                                </div>
+                                                <p className="text-xs text-slate-500">
+                                                    {chap.notes.length} notas
+                                                </p>
                                             </button>
                                         </div>
 
-                                        <div className="flex flex-col items-end gap-2">
-                                            <select
-                                                value={chap.status || 'Idea'}
-                                                onChange={(e) => updateChapterStatus(activeBook.id, chap.id, e.target.value)}
-                                                className="text-xs border rounded-full px-3 py-1 bg-white text-slate-700"
-                                            >
-                                                {SECTION_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
-                                            </select>
-
-                                            {showMoveControls && (
-                                                <div className="flex-shrink-0 flex items-center">
-                                                    <MoveControls
-                                                        onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
-                                                        onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
-                                                        accentClass="text-violet-800"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        {showMoveControls && (
+                                            <div className="flex-shrink-0 flex items-center">
+                                                <MoveControls
+                                                    onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
+                                                    onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
+                                                    accentClass="text-violet-800"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                     );
                                 })}
