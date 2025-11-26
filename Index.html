@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -832,7 +832,7 @@
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
                     <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border p-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-3">
-                            <p className="text-sm font-semibold text-slate-800">{state.title || 'Selecciona una opción'}</p>
+                            <p className="text-sm font-semibold text-slate-800">{state.title || 'Select an option'}</p>
                             <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
                         </div>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -857,8 +857,6 @@
             onSettings,
             onLogin,
             onLogout,
-            onSave,
-            onLoad,
             authUser,
             status,
             message,
@@ -872,8 +870,8 @@
                     <div className="absolute top-3 right-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-start justify-between gap-2">
                             <div>
-                                <p className="text-sm font-semibold text-slate-800">Menú</p>
-                                <p className="text-xs text-slate-500">Firebase {firebaseReady ? 'listo' : 'no inicializado'}</p>
+                                <p className="text-sm font-semibold text-slate-800">Menu</p>
+                                <p className="text-xs text-slate-500">Firebase {firebaseReady ? 'ready' : 'not initialized'}</p>
                                 {firebaseError && <p className="text-[11px] text-red-600">{firebaseError}</p>}
                                 {authUser && <p className="text-[11px] text-slate-500">{authUser.email}</p>}
                             </div>
@@ -882,26 +880,18 @@
 
                         <div className="space-y-2">
                             <button onClick={onSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-slate-50 hover:bg-slate-100">
-                                <span className="text-sm font-medium text-slate-800">Configuración</span>
+                                <span className="text-sm font-medium text-slate-800">AI Settings</span>
                                 <Icons.Settings />
                             </button>
                             <button onClick={authUser ? onLogout : onLogin} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold">
-                                <span>{authUser ? 'Cerrar sesión Firebase' : 'Iniciar sesión Firebase'}</span>
+                                <span>{authUser ? 'Log Out' : 'Log In'}</span>
                                 <Icons.Cloud />
-                            </button>
-                            <button onClick={onSave} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-green-50 hover:bg-green-100 text-green-800 font-semibold">
-                                <span>Guardar en Firestore</span>
-                                <Icons.Check />
-                            </button>
-                            <button onClick={onLoad} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold">
-                                <span>Cargar desde Firestore</span>
-                                <Icons.Folder />
                             </button>
                         </div>
 
                         {status && (
                             <div className={`text-xs px-3 py-2 rounded-xl border ${statusColor}`}>
-                                <p className="font-semibold">{status === 'loading' ? 'Procesando...' : status === 'success' ? 'Éxito' : 'Alerta'}</p>
+                                <p className="font-semibold">{status === 'loading' ? 'Processing...' : status === 'success' ? 'Success' : 'Alert'}</p>
                                 <p>{message}</p>
                             </div>
                         )}
@@ -1552,13 +1542,13 @@
             };
 
             const renameBookWithPrompt = (book) => {
-                const newTitle = promptForName('Renombra el libro:', book?.title || '');
+                const newTitle = promptForName('Rename book:', book?.title || '');
                 if (!newTitle || !book?.id) return;
                 renameBook(book.id, newTitle);
             };
 
             const renameChapterWithPrompt = (chapter) => {
-                const newTitle = promptForName('Renombra el capítulo:', chapter?.title || '');
+                const newTitle = promptForName('Rename chapter:', chapter?.title || '');
                 if (!newTitle || !activeBookId || !chapter?.id) return;
                 renameChapter(activeBookId, chapter.id, newTitle);
             };
@@ -1567,7 +1557,7 @@
                 if (micSupportError) return alert(micSupportError);
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                recognition.lang = 'es-ES';
+                recognition.lang = 'en-US';
                 recognition.continuous = false;
                 recognition.onstart = () => setIsRecording(true);
                 recognition.onresult = (e) => {
@@ -1580,7 +1570,7 @@
                     console.error(event);
                     setIsRecording(false);
                     setRecordingTarget(null);
-                    if (event.error === 'not-allowed') alert("Permiso de micrófono denegado.");
+                    if (event.error === 'not-allowed') alert("Microphone permission denied.");
                 };
                 recognition.onend = () => {
                     setIsRecording(false);
@@ -1614,7 +1604,7 @@
             };
 
             const closePicker = () => setPicker({ open: false, options: [], title: '', resolve: null });
-            const openPickerWithOptions = (options, title = 'Selecciona destino') => new Promise((resolve) => {
+            const openPickerWithOptions = (options, title = 'Select destination') => new Promise((resolve) => {
                 setPicker({ open: true, options, title, resolve });
             });
             const handlePickOption = (option) => {
@@ -1668,8 +1658,6 @@
                     onSettings={() => { setMenuOpen(false); goSettings(); }}
                     onLogin={() => { setMenuOpen(false); handleFirebaseLogin(); }}
                     onLogout={() => { setMenuOpen(false); handleFirebaseLogout(); }}
-                    onSave={() => { setMenuOpen(false); handleFirestoreSave(); }}
-                    onLoad={() => { setMenuOpen(false); handleFirestoreLoad(); }}
                     authUser={authUser}
                     status={cloudStatus}
                     message={cloudMessage}
@@ -1686,7 +1674,7 @@
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
                         <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center">
                             <div className="loader mb-4"></div>
-                            <p className="text-gray-700 font-medium">Procesando con IA...</p>
+                            <p className="text-gray-700 font-medium">Processing with AI...</p>
                         </div>
                     </div>
                 );
@@ -2372,11 +2360,11 @@
                 if (supportError) return alert(supportError);
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                recognition.lang = 'es-ES';
+                recognition.lang = 'en-US';
                 recognition.continuous = false;
                 recognition.onstart = () => setIsRecording(true);
                 recognition.onresult = (event) => { if(event.results[0][0].transcript) onAddNote(event.results[0][0].transcript); };
-                recognition.onerror = (event) => { console.error(event); setIsRecording(false); if(event.error === 'not-allowed') alert("Permiso de micrófono denegado."); };
+                recognition.onerror = (event) => { console.error(event); setIsRecording(false); if(event.error === 'not-allowed') alert("Microphone permission denied."); };
                 recognition.onend = () => setIsRecording(false);
                 recognition.start();
                 recognitionRef.current = recognition;
