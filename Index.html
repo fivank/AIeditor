@@ -282,7 +282,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback } = React;
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
         // --- ICONOS SVG ---
         const Icons = {
@@ -309,6 +309,10 @@
             style: "Reescribe el siguiente contenido aplicando estrictamente el siguiente estilo o tono: {STYLE}. Mantén la información original pero cambia la forma de expresarla.",
             generate: "Crea una nota nueva usando el siguiente contexto. Respeta el idioma y el nivel de detalle del material."
         };
+        const DEFAULT_SPEECH_CONFIG = {
+            preferredEngine: 'browser',
+            aiAssistEnabled: true
+        };
         const TEMP_CHAPTER_TITLE = 'temporary';
         const TEMP_BOOK_TITLE = 'temp notes';
         const FIRESTORE_COLLECTION = 'voiceNotes_appData';
@@ -332,6 +336,48 @@
             notes: b.notes || [],
             chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
         }));
+
+        const detectSpeechEngines = () => {
+            const ua = navigator?.userAgent?.toLowerCase?.() || '';
+            const hasWebSpeech = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+            const isAndroid = ua.includes('android');
+            const isIOS = ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod');
+            const hasKeyboardDictation = isAndroid || isIOS;
+            const mediaDevicesAvailable = !!navigator?.mediaDevices?.getUserMedia;
+
+            return [
+                {
+                    id: 'browser',
+                    label: 'Motor del navegador',
+                    description: 'Usa la API nativa de SpeechRecognition del navegador.',
+                    available: hasWebSpeech
+                },
+                {
+                    id: 'android',
+                    label: 'Predeterminado de Android',
+                    description: 'Dictado del sistema en dispositivos Android.',
+                    available: isAndroid
+                },
+                {
+                    id: 'keyboard',
+                    label: 'Dictado del teclado',
+                    description: 'Usa el botón de micrófono del teclado en pantalla.',
+                    available: hasKeyboardDictation
+                },
+                {
+                    id: 'handsfree',
+                    label: 'Manos libres / auriculares',
+                    description: 'Captura audio desde un dispositivo conectado (auriculares o coche).',
+                    available: mediaDevicesAvailable
+                },
+                {
+                    id: 'ai-assisted',
+                    label: 'AI assisted speech-to-text',
+                    description: 'Usa la IA para limpiar y completar dictados ruidosos.',
+                    available: true
+                }
+            ];
+        };
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
         const moveItem = (array, from, to) => {
@@ -851,10 +897,66 @@
             );
         };
 
+        const SpeechToTextConfig = ({ open, onClose, engines, selectedEngine, onSelectEngine, aiAssistEnabled, onToggleAiAssist }) => {
+            if (!open) return null;
+
+            return (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+                    <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-800">Speech-to-Text</p>
+                                <p className="text-xs text-slate-500">Elige tu motor preferido y cómo procesar las transcripciones.</p>
+                            </div>
+                            <button onClick={onClose} className="icon-btn text-slate-400 hover:text-slate-700">✕</button>
+                        </div>
+
+                        <div className="space-y-2">
+                            {engines.map((engine) => (
+                                <button
+                                    key={engine.id}
+                                    onClick={() => engine.available && onSelectEngine(engine.id)}
+                                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-left transition ${selectedEngine === engine.id ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'} ${engine.available ? '' : 'opacity-60 cursor-not-allowed'}`}
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-slate-800 text-sm truncate">{engine.label}</p>
+                                        <p className="text-xs text-slate-500 truncate">{engine.description}</p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className={`text-[11px] px-2 py-1 rounded-full border ${engine.available ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
+                                            {engine.available ? 'Disponible' : 'No detectado'}
+                                        </span>
+                                        {selectedEngine === engine.id && <Icons.Check />}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/70 flex items-start gap-3">
+                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white text-indigo-600 flex items-center justify-center shadow-inner">
+                                <Icons.Wand />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-semibold text-slate-800 text-sm">Asistencia AI</p>
+                                <p className="text-xs text-slate-600">Pulir automáticamente las transcripciones usando tu modelo configurado.</p>
+                                <label className="mt-3 inline-flex items-center gap-2">
+                                    <input type="checkbox" checked={aiAssistEnabled} onChange={(e) => onToggleAiAssist(e.target.checked)} />
+                                    <span className="text-sm text-slate-700">Activar post-procesamiento AI</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 leading-relaxed">Guardamos tu preferencia de captura de voz (navegador, Android, teclado u otras opciones detectadas) para que puedas decidir cómo dictar cuando uses esta app en tu teléfono.</p>
+                    </div>
+                </div>
+            );
+        };
+
         const HamburgerMenu = ({
             open,
             onClose,
             onSettings,
+            onSpeechSettings,
             onLogin,
             onLogout,
             authUser,
@@ -882,6 +984,10 @@
                             <button onClick={onSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-slate-50 hover:bg-slate-100">
                                 <span className="text-sm font-medium text-slate-800">AI Settings</span>
                                 <Icons.Settings />
+                            </button>
+                            <button onClick={onSpeechSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-violet-50 hover:bg-violet-100">
+                                <span className="text-sm font-medium text-violet-800">Speech-to-Text</span>
+                                <Icons.Mic />
                             </button>
                             <button onClick={authUser ? onLogout : onLogin} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold">
                                 <span>{authUser ? 'Log Out' : 'Log In'}</span>
@@ -939,7 +1045,8 @@
             const [settings, setSettings] = useState({
                 apiKey: DEFAULT_API_KEY,
                 model: DEFAULT_MODEL,
-                prompts: { ...DEFAULT_PROMPTS }
+                prompts: { ...DEFAULT_PROMPTS },
+                speechToText: { ...DEFAULT_SPEECH_CONFIG }
             });
             const [dataLoaded, setDataLoaded] = useState(false);
             const [view, setView] = useState('home');
@@ -962,6 +1069,7 @@
             const [micSupportError, setMicSupportError] = useState(null);
             const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
             const [menuOpen, setMenuOpen] = useState(false);
+            const [speechConfigOpen, setSpeechConfigOpen] = useState(false);
             const [firebaseReady, setFirebaseReady] = useState(false);
             const [firebaseError, setFirebaseError] = useState(null);
             const [authUser, setAuthUser] = useState(null);
@@ -973,6 +1081,8 @@
             const dbRef = useRef(null);
             const autoSaveTimeoutRef = useRef(null);
             const [immediateSaveCounter, setImmediateSaveCounter] = useState(0);
+
+            const speechEngines = useMemo(() => detectSpeechEngines(), []);
 
             const requestImmediateFirestoreSave = useCallback(() => {
                 if (autoSaveTimeoutRef.current) {
@@ -1022,7 +1132,8 @@
                     setSettings({
                         apiKey: parsed.apiKey || DEFAULT_API_KEY,
                         model: parsed.model || DEFAULT_MODEL,
-                        prompts: { ...DEFAULT_PROMPTS, ...(parsed.prompts || {}) }
+                        prompts: { ...DEFAULT_PROMPTS, ...(parsed.prompts || {}) },
+                        speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(parsed.speechToText || {}) }
                     });
                 }
 
@@ -1492,7 +1603,8 @@
                     setSettings({
                         apiKey: data.settings?.apiKey || DEFAULT_API_KEY,
                         model: data.settings?.model || DEFAULT_MODEL,
-                        prompts: { ...DEFAULT_PROMPTS, ...(data.settings?.prompts || {}) }
+                        prompts: { ...DEFAULT_PROMPTS, ...(data.settings?.prompts || {}) },
+                        speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(data.settings?.speechToText || {}) }
                     });
                     setView(data.view || 'home');
                     setActiveBookId(data.activeBookId || null);
@@ -1555,6 +1667,11 @@
 
             const startDictation = (target) => {
                 if (micSupportError) return alert(micSupportError);
+                const preferredEngineId = settings.speechToText?.preferredEngine;
+                const preferredEngine = speechEngines.find((engine) => engine.id === preferredEngineId);
+                if (preferredEngine && !preferredEngine.available && preferredEngine.id !== 'ai-assisted') {
+                    alert(`${preferredEngine.label} no está disponible en este dispositivo. Se usará el motor del navegador.`);
+                }
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
                 recognition.lang = 'en-US';
@@ -1612,6 +1729,20 @@
                 closePicker();
             };
 
+            const handleSpeechEngineChange = (engineId) => {
+                setSettings((prev) => ({
+                    ...prev,
+                    speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(prev.speechToText || {}), preferredEngine: engineId }
+                }));
+            };
+
+            const handleAiAssistToggle = (enabled) => {
+                setSettings((prev) => ({
+                    ...prev,
+                    speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(prev.speechToText || {}), aiAssistEnabled: enabled }
+                }));
+            };
+
             const activeBook = books.find(b => b.id === activeBookId);
             const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
 
@@ -1656,6 +1787,7 @@
                     open={menuOpen}
                     onClose={() => setMenuOpen(false)}
                     onSettings={() => { setMenuOpen(false); goSettings(); }}
+                    onSpeechSettings={() => { setMenuOpen(false); setSpeechConfigOpen(true); }}
                     onLogin={() => { setMenuOpen(false); handleFirebaseLogin(); }}
                     onLogout={() => { setMenuOpen(false); handleFirebaseLogout(); }}
                     authUser={authUser}
@@ -1667,6 +1799,17 @@
             );
 
             const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
+            const speechConfigPortal = (
+                <SpeechToTextConfig
+                    open={speechConfigOpen}
+                    onClose={() => setSpeechConfigOpen(false)}
+                    engines={speechEngines}
+                    selectedEngine={settings.speechToText?.preferredEngine}
+                    onSelectEngine={handleSpeechEngineChange}
+                    aiAssistEnabled={settings.speechToText?.aiAssistEnabled}
+                    onToggleAiAssist={handleAiAssistToggle}
+                />
+            );
 
             // Componente de Pantalla de Carga
             if (loading) {
@@ -1822,6 +1965,8 @@
                         </div>
                     </div>
                     {menuPortal}
+                    {pickerPortal}
+                    {speechConfigPortal}
                     </>
                 );
             }
@@ -2101,6 +2246,7 @@
                     </div>
                     {menuPortal}
                     {pickerPortal}
+                    {speechConfigPortal}
                     </>
                 );
             }
@@ -2308,6 +2454,7 @@
                 </div>
                 {menuPortal}
                 {pickerPortal}
+                {speechConfigPortal}
                 </>
             );
         }
@@ -2324,6 +2471,7 @@
                         relocateNote={relocateNote} />
                     {menuPortal}
                     {pickerPortal}
+                    {speechConfigPortal}
                     </>
                 );
             }
