@@ -201,10 +201,17 @@
             appId: "1:924785765286:web:42b733d5914b095bbf7d67"
         };
 
+        const SECTION_STATUSES = ['Idea', 'Outline', 'Draft', 'Revised', 'Final'];
+
         const normalizeBooksData = (bookList = []) => bookList.map(b => ({
             ...b,
             notes: b.notes || [],
-            chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
+            chapters: (b.chapters || []).map(c => ({
+                ...c,
+                notes: c.notes || [],
+                status: SECTION_STATUSES.includes(c.status) ? c.status : 'Idea',
+                parentId: c.parentId || null,
+            }))
         }));
 
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -275,7 +282,7 @@
             let changed = false;
 
             if (!chapter) {
-                chapter = { id: generateId(), title: TEMP_CHAPTER_TITLE, notes: [] };
+                chapter = { id: generateId(), title: TEMP_CHAPTER_TITLE, notes: [], status: 'Idea', parentId: null };
                 updated[bookIndex] = { ...book, chapters: [...book.chapters, chapter] };
                 changed = true;
             }
@@ -1016,11 +1023,18 @@
                 };
                 setBooks([...books, copy]);
             };
-            const addChapter = (bookId, title) => {
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] } : b));
+            const addChapter = (bookId, title, parentId = null) => {
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [], status: 'Idea', parentId }] } : b));
             };
             const renameChapter = (bookId, chapterId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
+            };
+            const setChapterStatus = (bookId, chapterId, status) => {
+                if (!SECTION_STATUSES.includes(status)) return;
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, status } : c) } : b));
+            };
+            const setChapterParent = (bookId, chapterId, parentId) => {
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, parentId: parentId || null } : c) } : b));
             };
             const reorderChaptersByIndex = useCallback((bookId, from, to) => {
                 setBooks(prev => prev.map(b => b.id === bookId ? { ...b, chapters: moveItem(b.chapters, from, to) } : b));
@@ -1746,6 +1760,67 @@
                 }
             };
 
+            if (view === 'ideas') {
+                const assignNote = async (noteId) => {
+                    const destination = await chooseDestination({ type: 'root' });
+                    if (!destination) return;
+                    relocateNote({ type: 'root' }, destination, noteId, 'move');
+                };
+
+                return (
+                    <>
+                    <div className="min-h-screen flex flex-col bg-gradient-to-b from-amber-50 via-rose-50 to-indigo-50">
+                        <Header title="Bandeja de ideas" onBack={goHome} accentClass="text-amber-800" />
+                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm text-gray-600">Centraliza y asigna tus ideas</p>
+                                <button onClick={() => openNoteModal({ title: 'Nueva idea', onSave: (html) => addRootNote(html) })} className="text-xs px-3 py-2 rounded-full bg-amber-100 text-amber-800 font-semibold border border-amber-200">+ Idea</button>
+                            </div>
+
+                            {rootNotes.length === 0 && <div className="text-center text-gray-400 py-10">Sin ideas todavía.</div>}
+
+                            <div className="space-y-3">
+                                {rootNotes.map(note => {
+                                    const moveProps = rootNotesMoveMode.getItemProps(note.id);
+                                    return (
+                                        <NoteChip
+                                            key={note.id}
+                                            note={note}
+                                            moveHandlers={moveProps}
+                                            moveModeActive={rootNotesMoveMode.moveModeId === note.id}
+                                            actions={{
+                                                onEdit: () => openNoteModal({
+                                                    title: 'Editar idea',
+                                                    initialContent: note.content,
+                                                    onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                }),
+                                                onMoveUp: () => reorderRootNote(note.id, -1),
+                                                onMoveDown: () => reorderRootNote(note.id, 1)
+                                            }}
+                                        >
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                <button onClick={() => assignNote(note.id)} className="text-xs px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Asignar a proyecto</button>
+                                            </div>
+                                        </NoteChip>
+                                    );
+                                })}
+                            </div>
+                        </main>
+
+                        <NoteEditorModal
+                            isOpen={noteModal.open}
+                            title={noteModal.target?.title || 'Nueva idea'}
+                            value={noteDraft}
+                            onChange={setNoteDraft}
+                            onSave={handleSaveTypedNote}
+                            onClose={closeNoteModal}
+                        />
+                    </div>
+                    {menuPortal}
+                    {pickerPortal}
+                    </>
+                );
+            }
             if (view === 'home') {
                 return (
                     <>
@@ -1753,6 +1828,10 @@
                         <Header title="Mis Libros" accentClass="text-blue-800" />
 
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-sm font-semibold text-slate-800">Proyectos</h2>
+                                <button onClick={() => setView('ideas')} className="text-xs px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 font-semibold">Bandeja de ideas</button>
+                            </div>
                             {bookSelectionMode && (
                                 <div className="mb-4 p-3 bg-white rounded-xl shadow border border-blue-100 space-y-2">
                                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1945,11 +2024,23 @@
                         const newNoteId = generateId();
                         setBooks(books.map(b => b.id === activeBook.id ? {
                             ...b,
-                            chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, notes: [{ id: newNoteId, content: normalizeContent(newText), timestamp: Date.now() }] }]
+                            chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, notes: [{ id: newNoteId, content: normalizeContent(newText), timestamp: Date.now() }], status: 'Idea', parentId: null }]
                         } : b));
                         alert("Nueva nota generada y guardada en un capítulo nuevo.");
                     } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
                 };
+
+                const statusCounts = SECTION_STATUSES.reduce((acc, status) => {
+                    acc[status] = activeBook.chapters.filter(ch => (ch.status || 'Idea') === status).length;
+                    return acc;
+                }, {});
+                const progress = activeBook.chapters.length
+                    ? Math.round(
+                        activeBook.chapters.reduce((sum, ch) => sum + Math.max(0, SECTION_STATUSES.indexOf(ch.status || 'Idea')), 0)
+                        / ((SECTION_STATUSES.length - 1) * activeBook.chapters.length)
+                        * 100
+                    )
+                    : 0;
 
                 return (
                     <>
@@ -1959,6 +2050,25 @@
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-violet-100 text-violet-800 px-4 py-2 rounded-full font-semibold border border-violet-200 shadow-sm">💡 Generar resumen</button>
                                 <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-violet-200 text-violet-900 px-4 py-2 rounded-full font-semibold border border-violet-300 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-xl shadow border border-violet-100 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs text-gray-500">Avance de secciones</p>
+                                        <p className="text-lg font-semibold text-violet-800">{progress}%</p>
+                                    </div>
+                                    <div className="flex-1 h-3 ml-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-gradient-to-r from-indigo-400 to-violet-500" style={{ width: `${progress}%` }}></div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2 text-[11px] text-gray-600">
+                                    {SECTION_STATUSES.map(status => (
+                                        <span key={status} className="px-2 py-1 rounded-full bg-violet-50 border border-violet-100 text-violet-800 font-semibold">
+                                            {status}: {statusCounts[status] || 0}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
 
                             {chapterSelectionMode && (
@@ -2011,7 +2121,7 @@
                                             <Icons.Folder />
                                         </button>
 
-                                        <div className="flex-1">
+                                        <div className="flex-1" style={{ paddingLeft: `${(() => { let depth = 0; let current = chap; while (current?.parentId) { const parent = activeBook.chapters.find(c => c.id === current.parentId); if (!parent) break; depth += 1; current = parent; if (depth > 5) break; } return depth * 12; })()}px` }}>
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -2030,6 +2140,25 @@
                                                     {chap.notes.length} notas
                                                 </p>
                                             </button>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                <select
+                                                    value={chap.status || 'Idea'}
+                                                    onChange={(e) => setChapterStatus(activeBook.id, chap.id, e.target.value)}
+                                                    className="text-xs px-2 py-1 rounded-lg border border-violet-200 bg-violet-50 text-violet-800 font-semibold"
+                                                >
+                                                    {SECTION_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+                                                </select>
+                                                <select
+                                                    value={chap.parentId || ''}
+                                                    onChange={(e) => setChapterParent(activeBook.id, chap.id, e.target.value || null)}
+                                                    className="text-xs px-2 py-1 rounded-lg border border-indigo-100 bg-white text-gray-700"
+                                                >
+                                                    <option value="">Sección raíz</option>
+                                                    {activeBook.chapters.filter(c => c.id !== chap.id).map(c => (
+                                                        <option key={c.id} value={c.id}>{c.title}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
 
                                         {showMoveControls && (
