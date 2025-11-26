@@ -25,21 +25,24 @@
 
     <style>
         :root {
-            --color-bg: #e8eaf6;
+            --color-bg: #edf1ff;
             --color-card: #ffffff;
-            --radius-lg: 0.75rem;
-            --radius-xl: 1rem;
-            --primary-color: #3f51b5;
-            --secondary-color: #7986cb;
-            --accent-color: #ff9800;
-            --danger-color: #e57373;
-            --success-color: #4caf50;
-            --shadow: 0 8px 22px rgba(33, 41, 64, 0.12);
-            --shadow-strong: 0 10px 26px rgba(33, 41, 64, 0.16);
-            --gradient-aurora: linear-gradient(145deg, #e8eaf6 0%, #f5f7ff 38%, #ffffff 100%);
+            --radius-lg: 0.9rem;
+            --radius-xl: 1.25rem;
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --accent-color: #f59e0b;
+            --danger-color: #ef4444;
+            --success-color: #22c55e;
+            --shadow: 0 14px 32px rgba(36, 42, 66, 0.12);
+            --shadow-strong: 0 18px 46px rgba(36, 42, 66, 0.18);
+            --gradient-aurora: radial-gradient(circle at 20% 20%, rgba(79, 70, 229, 0.22), transparent 32%),
+                radial-gradient(circle at 82% 16%, rgba(236, 72, 153, 0.14), transparent 26%),
+                radial-gradient(circle at 45% 70%, rgba(34, 197, 94, 0.14), transparent 26%),
+                linear-gradient(145deg, #eef2ff 0%, #f9fafb 40%, #ffffff 100%);
             --card-background: #ffffff;
-            --text-color: #212121;
-            --border-radius: 1rem;
+            --text-color: #0f172a;
+            --border-radius: 1.2rem;
         }
 
         /* Estilos base y utilidades */
@@ -50,6 +53,8 @@
             margin: 0;
             line-height: 1.6;
             -webkit-tap-highlight-color: transparent;
+            position: relative;
+            min-height: 100vh;
         }
 
         body::after {
@@ -57,11 +62,23 @@
             position: fixed;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle at 20% 30%, rgba(63, 81, 181, 0.08), transparent 30%),
-                        radial-gradient(circle at 75% 20%, rgba(255, 152, 0, 0.08), transparent 26%),
-                        radial-gradient(circle at 60% 70%, rgba(121, 134, 203, 0.08), transparent 24%);
-            filter: blur(38px);
-            z-index: -1;
+            background: var(--gradient-aurora);
+            opacity: 0.7;
+            z-index: -2;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle at 10% 10%, rgba(79, 70, 229, 0.15), transparent 18%),
+                radial-gradient(circle at 86% 12%, rgba(236, 72, 153, 0.12), transparent 18%),
+                linear-gradient(120deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.01) 36%, transparent 60%),
+                linear-gradient(45deg, rgba(255, 255, 255, 0.6) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.6) 75%, transparent 75%, transparent);
+            background-size: 400px 400px, 480px 480px, 100% 100%, 80px 80px;
+            mix-blend-mode: overlay;
+            z-index: -3;
         }
 
         .safe-top {
@@ -72,17 +89,18 @@
         }
 
         .card {
-            background: var(--card-background);
+            background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(250, 251, 255, 0.95));
             border-radius: var(--border-radius);
-            border: 1px solid #e3e7ff;
+            border: 1px solid #e5e7f9;
             box-shadow: var(--shadow);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
         }
 
         .card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             box-shadow: var(--shadow-strong);
-            border-color: rgba(63, 81, 181, 0.3);
+            border-color: rgba(79, 70, 229, 0.25);
+            background: linear-gradient(145deg, rgba(255,255,255,1), rgba(239, 246, 255, 0.94));
         }
 
         .card-tap {
@@ -101,14 +119,15 @@
             padding: 0.35rem;
             font-size: 0.75rem;
             color: var(--primary-color);
-            background: rgba(63, 81, 181, 0.08);
-            border: 1px solid rgba(63, 81, 181, 0.1);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+            background: rgba(79, 70, 229, 0.08);
+            border: 1px solid rgba(79, 70, 229, 0.12);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease, color 0.2s ease;
         }
         .icon-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 12px rgba(33, 41, 64, 0.12);
-            background: rgba(63, 81, 181, 0.12);
+            box-shadow: 0 6px 14px rgba(33, 41, 64, 0.14);
+            background: rgba(79, 70, 229, 0.14);
+            color: #312e81;
         }
         .icon-btn-sm {
             padding: 0.25rem;
@@ -165,6 +184,34 @@
             transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
 
+        .content-shell {
+            background: rgba(255, 255, 255, 0.82);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.12);
+            backdrop-filter: blur(12px);
+        }
+
+        .section-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245, 248, 255, 0.95));
+            border-radius: 1rem;
+            border: 1px solid #e6e8f5;
+            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            background: rgba(79, 70, 229, 0.08);
+            color: #4338ca;
+            border: 1px solid rgba(79, 70, 229, 0.18);
+        }
+
         .pill-button:hover:not(:disabled) {
             transform: translateY(-1px);
             box-shadow: 0 12px 26px rgba(33, 41, 64, 0.16);
@@ -193,10 +240,11 @@
         }
 
         .floating-bar {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(63, 81, 181, 0.16);
-            box-shadow: 0 18px 34px rgba(33, 41, 64, 0.18);
-            backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(239, 246, 255, 0.9));
+            border: 1px solid rgba(79, 70, 229, 0.18);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.2);
+            backdrop-filter: blur(14px);
+        }
         }
 
         /* Estilos del editor y visualización de notas */
@@ -1604,9 +1652,9 @@
             // Header
             const Header = ({ title, onBack, accentClass = 'text-slate-900' }) => (
                 <header
-                    className="glass-panel safe-top sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-slate-200 shadow-sm"
+                    className="glass-panel safe-top sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-slate-200 shadow-sm rounded-b-3xl"
                 >
-                    <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="flex items-center gap-3 overflow-hidden">
                         {onBack && (
                             <button
                                 onClick={onBack}
@@ -1615,8 +1663,12 @@
                                 <Icons.ChevronLeft />
                             </button>
                         )}
+                        <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-orange-400 flex items-center justify-center shadow-inner ring-4 ring-white/70">
+                            <span className="text-white font-black text-sm">VN</span>
+                        </div>
                         <div className="flex flex-col min-w-0">
-                            <h1 className={`text-base font-semibold truncate ${accentClass}`}>
+                            <span className="text-[11px] uppercase tracking-[0.15em] text-slate-400 font-bold">VoiceNotes</span>
+                            <h1 className={`text-base font-semibold truncate leading-tight ${accentClass}`}>
                                 {title}
                             </h1>
                         </div>
@@ -1624,7 +1676,7 @@
 
                     <button
                         onClick={() => setMenuOpen(true)}
-                        className="icon-btn text-slate-500 hover:text-blue-600"
+                        className="icon-btn text-slate-500 hover:text-blue-600 bg-white/80 shadow-sm"
                     >
                         <Icons.Menu />
                     </button>
@@ -1649,76 +1701,93 @@
                     <>
                     <div className="min-h-screen app-surface">
                         <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
-                        <div className="p-4 max-w-md mx-auto space-y-6">
-                            
-                            {/* Sección API */}
-                            <div className="bg-white p-4 rounded-lg shadow space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
-                                    <input type="text" value={settings.apiKey} onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none" placeholder="AIzaSy..." />
-                                </div>
+                        <div className="p-4 max-w-2xl mx-auto">
+                            <div className="content-shell p-5 md:p-6 space-y-6">
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Modelo (Model Name)</label>
-                                    <div className="flex gap-2">
-                                        <select 
-                                            value={settings.model} 
-                                            onChange={(e) => setSettings({...settings, model: e.target.value})}
-                                            className="w-full p-2 border rounded-md bg-gray-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        >
-                                            <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Predeterminado)</option>
-                                            <option value="gemini-1.5-flash">gemini-1.5-flash (Estándar)</option>
-                                            <option value="gemini-1.5-pro">gemini-1.5-pro (Más inteligente)</option>
-                                            <option value="gemini-pro">gemini-pro (Legacy)</option>
-                                        </select>
+                                {/* Sección API */}
+                                <div className="section-card p-4 md:p-5 space-y-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-bold">Conexión</p>
+                                            <h3 className="font-semibold text-slate-800">Gemini API</h3>
+                                        </div>
+                                        <span className="tag-chip">Configuración segura</span>
                                     </div>
-                                    {/* Opción manual por si acaso */}
-                                    <input 
-                                        type="text" 
-                                        value={settings.model}
-                                        onChange={(e) => setSettings({...settings, model: e.target.value})}
-                                        placeholder="Nombre manual del modelo..."
-                                        className="w-full mt-2 p-2 border border-dashed rounded-md text-xs text-gray-500"
-                                    />
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
+                                        <input type="text" value={settings.apiKey} onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
+                                            className="w-full p-3 border rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner" placeholder="AIzaSy..." />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Modelo (Model Name)</label>
+                                            <div className="flex gap-2">
+                                                <select
+                                                    value={settings.model}
+                                                    onChange={(e) => setSettings({...settings, model: e.target.value})}
+                                                    className="w-full p-3 border rounded-lg bg-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"
+                                                >
+                                                    <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Predeterminado)</option>
+                                                    <option value="gemini-1.5-flash">gemini-1.5-flash (Estándar)</option>
+                                                    <option value="gemini-1.5-pro">gemini-1.5-pro (Más inteligente)</option>
+                                                    <option value="gemini-pro">gemini-pro (Legacy)</option>
+                                                </select>
+                                            </div>
+                                            {/* Opción manual por si acaso */}
+                                            <input
+                                                type="text"
+                                                value={settings.model}
+                                                onChange={(e) => setSettings({...settings, model: e.target.value})}
+                                                placeholder="Nombre manual del modelo..."
+                                                className="w-full mt-2 p-2.5 border border-dashed rounded-md text-xs text-gray-500 bg-white shadow-inner"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button onClick={testConnection} disabled={testStatus === 'loading'}
+                                        className={`w-full py-3 px-4 rounded-lg text-sm font-semibold border transition flex items-center justify-center gap-2
+                                        ${testStatus === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-inner' :
+                                          testStatus === 'error' ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-inner' : 'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700 shadow-md'}`}>
+                                        {testStatus === 'loading' ? <div className="loader w-4 h-4 border-2 border-white/70 border-t-transparent"></div> :
+                                         testStatus === 'success' ? <Icons.Check /> :
+                                         testStatus === 'error' ? <Icons.Alert /> : "Probar Conexión"}
+                                        {testStatus === 'loading' ? ' Probando...' : testStatus === 'success' ? ' Conectado' : testStatus === 'error' ? ' Error' : ' Probar Conexión'}
+                                    </button>
+                                    {testMsg && <p className={`text-xs ${testStatus === 'error' ? 'text-red-600' : 'text-green-600'}`}>{testMsg}</p>}
                                 </div>
 
-                                <button onClick={testConnection} disabled={testStatus === 'loading'}
-                                    className={`w-full py-2 px-4 rounded text-sm font-medium border transition flex items-center justify-center gap-2
-                                    ${testStatus === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                      testStatus === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                                    {testStatus === 'loading' ? <div className="loader w-4 h-4 border-2 border-gray-400 border-t-transparent"></div> : 
-                                     testStatus === 'success' ? <Icons.Check /> : 
-                                     testStatus === 'error' ? <Icons.Alert /> : "Probar Conexión"}
-                                    {testStatus === 'loading' ? ' Probando...' : testStatus === 'success' ? ' Conectado' : testStatus === 'error' ? ' Error' : ' Probar Conexión'}
+                                {/* Sección Prompts */}
+                                <div className="section-card p-4 md:p-5">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-bold">Estilos</p>
+                                            <h3 className="font-semibold text-gray-800">Prompts</h3>
+                                        </div>
+                                        <span className="tag-chip bg-amber-50 text-amber-700 border-amber-200">Personaliza el tono</span>
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fusión</label>
+                                        <textarea value={settings.prompts.merge} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, merge: e.target.value}})}
+                                            className="w-full p-3 border rounded-lg bg-white text-sm h-20 resize-none shadow-inner" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estilo</label>
+                                        <textarea value={settings.prompts.style} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, style: e.target.value}})}
+                                            className="w-full p-3 border rounded-lg bg-white text-sm h-20 resize-none shadow-inner" />
+                                    </div>
+                                    <div className="mt-4">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Generación de notas</label>
+                                        <textarea value={settings.prompts.generate} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, generate: e.target.value}})}
+                                            className="w-full p-3 border rounded-lg bg-white text-sm h-20 resize-none shadow-inner" />
+                                    </div>
+                                </div>
+
+                                <button onClick={() => { if(activeChapterId) goChapter(activeChapterId); else if(activeBookId) goBook(activeBookId); else goHome(); }}
+                                    className="w-full py-3 pill-button primary-cta font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-500 border-none shadow-lg">
+                                    Guardar y Salir
                                 </button>
-                                {testMsg && <p className={`text-xs ${testStatus === 'error' ? 'text-red-600' : 'text-green-600'}`}>{testMsg}</p>}
                             </div>
-
-                            {/* Sección Prompts */}
-                            <div className="bg-white p-4 rounded-lg shadow">
-                                <h3 className="font-medium text-gray-800 mb-3 border-b pb-2">Prompts</h3>
-                                <div className="mb-4">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fusión</label>
-                                    <textarea value={settings.prompts.merge} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, merge: e.target.value}})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-20 resize-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estilo</label>
-                                    <textarea value={settings.prompts.style} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, style: e.target.value}})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-20 resize-none" />
-                                </div>
-                                <div className="mt-4">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Generación de notas</label>
-                                    <textarea value={settings.prompts.generate} onChange={(e) => setSettings({...settings, prompts: {...settings.prompts, generate: e.target.value}})}
-                                        className="w-full p-2 border rounded-md bg-gray-50 text-sm h-20 resize-none" />
-                                </div>
-                            </div>
-
-                            <button onClick={() => { if(activeChapterId) goChapter(activeChapterId); else if(activeBookId) goBook(activeBookId); else goHome(); }}
-                                className="w-full py-3 pill-button primary-cta font-medium">
-                                Guardar y Salir
-                            </button>
                         </div>
                     </div>
                     {menuPortal}
@@ -1842,62 +1911,48 @@
                     <div className="min-h-screen flex flex-col app-surface">
                         <Header title="Mis Libros" accentClass="text-blue-800" />
 
-                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
-                            {bookSelectionMode && (
-                                <div className="mb-4 p-3 bg-white rounded-xl shadow border border-blue-100 space-y-2">
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        <span className="text-sm font-semibold text-blue-800">{selectedBookIds.length} seleccionados</span>
-                                        <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
+                        <main className="flex-1 px-4 pt-6 pb-24 max-w-2xl mx-auto w-full">
+                            <div className="content-shell p-5 md:p-6 space-y-4">
+                                {bookSelectionMode && (
+                                    <div className="p-3 bg-white/90 rounded-xl shadow border border-blue-100 space-y-2">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <span className="text-sm font-semibold text-blue-800">{selectedBookIds.length} seleccionados</span>
+                                            <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
+                                            <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
+                                            <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
+                                            <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
-                                        <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
-                                        <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
-                                        <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
+                                )}
+                                {books.length === 0 && (
+                                    <div className="text-center py-10 text-gray-400">
+                                        <p>No tienes libros creados.</p>
                                     </div>
-                                </div>
-                            )}
-                            {books.length === 0 && (
-                                <div className="text-center py-10 text-gray-400">
-                                    <p>No tienes libros creados.</p>
-                                </div>
-                            )}
+                                )}
 
-                            <div className="space-y-3 mt-4">
-                                {books.map((book) => {
-                                    const moveProps = booksMoveMode.getItemProps(book.id);
-                                    const isSelected = selectedBookIds.includes(book.id);
-                                    const showMoveControls = bookSelectionMode && primaryBookId === book.id;
-                                    return (
-                                    <div
-                                        key={book.id}
-                                        {...moveProps}
-                                        onClick={(e) => {
-                                            moveProps.onClick?.(e);
-                                            if (e.defaultPrevented) return;
-                                            if (bookSelectionMode) {
-                                                toggleBookSelection(book.id);
-                                            } else {
-                                                goBook(book.id);
-                                            }
-                                        }}
-                                        className={`card card-tap p-4 flex items-center gap-3 ${isSelected ? 'ring-2 ring-rose-200 bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50' : 'hover:shadow-lg'}`}
-                                    >
-                                        <button
+                                <div className="space-y-3">
+                                    {books.map((book) => {
+                                        const moveProps = booksMoveMode.getItemProps(book.id);
+                                        const isSelected = selectedBookIds.includes(book.id);
+                                        const showMoveControls = bookSelectionMode && primaryBookId === book.id;
+                                        return (
+                                        <div
+                                            key={book.id}
+                                            {...moveProps}
                                             onClick={(e) => {
-                                                e.stopPropagation();
+                                                moveProps.onClick?.(e);
+                                                if (e.defaultPrevented) return;
                                                 if (bookSelectionMode) {
                                                     toggleBookSelection(book.id);
                                                 } else {
                                                     goBook(book.id);
                                                 }
                                             }}
-                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 via-rose-100 to-amber-100 text-indigo-600 flex items-center justify-center shadow-inner"
+                                            className={`card card-tap p-4 flex items-center gap-3 ${isSelected ? 'ring-2 ring-rose-200 bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50' : 'hover:shadow-lg'}`}
                                         >
-                                            <Icons.Book />
-                                        </button>
-
-                                        <div className="flex-1">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -1907,67 +1962,83 @@
                                                         goBook(book.id);
                                                     }
                                                 }}
-                                                className="w-full text-left"
+                                                className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-100 via-rose-100 to-amber-100 text-indigo-600 flex items-center justify-center shadow-inner"
                                             >
-                                                <h3 className="font-semibold text-slate-900 text-sm truncate">
-                                                    {book.title}
-                                                </h3>
-                                                <p className="text-xs text-slate-500">
-                                                    {book.chapters.length} capítulos
-                                                </p>
+                                                <Icons.Book />
                                             </button>
-                                        </div>
 
-                                        {showMoveControls && (
-                                            <div className="flex-shrink-0 flex items-center">
-                                                <MoveControls
-                                                    onMoveUp={() => reorderBook(book.id, -1)}
-                                                    onMoveDown={() => reorderBook(book.id, 1)}
-                                                    accentClass="text-blue-800"
-                                                />
+                                            <div className="flex-1">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (bookSelectionMode) {
+                                                            toggleBookSelection(book.id);
+                                                        } else {
+                                                            goBook(book.id);
+                                                        }
+                                                    }}
+                                                    className="w-full text-left"
+                                                >
+                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                        {book.title}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-500">
+                                                        {book.chapters.length} capítulos
+                                                    </p>
+                                                </button>
                                             </div>
-                                        )}
-                                    </div>
-                                    );
-                                })}
-                            </div>
 
-                            {rootNotes.length > 0 && (
-                                <div className="space-y-2 mt-4">
-                                    {rootNotes.map(note => {
-                                        const moveProps = rootNotesMoveMode.getItemProps(note.id);
-                                        return (
-                                            <NoteChip
-                                                key={note.id}
-                                                note={note}
-                                                moveHandlers={moveProps}
-                                                moveModeActive={rootNotesMoveMode.moveModeId === note.id}
-                                                actions={{
-                                                    onEdit: () => openNoteModal({
-                                                        title: 'Editar nota',
-                                                        initialContent: note.content,
-                                                        onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                    }),
-                                                    onMoveUp: () => reorderRootNote(note.id, -1),
-                                                    onMoveDown: () => reorderRootNote(note.id, 1)
-                                                }}
-                                            />
+                                            {showMoveControls && (
+                                                <div className="flex-shrink-0 flex items-center">
+                                                    <MoveControls
+                                                        onMoveUp={() => reorderBook(book.id, -1)}
+                                                        onMoveDown={() => reorderBook(book.id, 1)}
+                                                        accentClass="text-blue-800"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                         );
                                     })}
                                 </div>
-                            )}
 
-                            <div className="mt-6">
-                                <button
-                                    onClick={() => {
-                                        const title = promptForName("Nuevo libro:");
-                                        if (title) addBook(title);
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 pill-button primary-cta py-3 text-base"
-                                >
-                                    <Icons.Plus />
-                                    <span>Nuevo Libro</span>
-                                </button>
+                                {rootNotes.length > 0 && (
+                                    <div className="space-y-2">
+                                        {rootNotes.map(note => {
+                                            const moveProps = rootNotesMoveMode.getItemProps(note.id);
+                                            return (
+                                                <NoteChip
+                                                    key={note.id}
+                                                    note={note}
+                                                    moveHandlers={moveProps}
+                                                    moveModeActive={rootNotesMoveMode.moveModeId === note.id}
+                                                    actions={{
+                                                        onEdit: () => openNoteModal({
+                                                            title: 'Editar nota',
+                                                            initialContent: note.content,
+                                                            onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                        }),
+                                                        onMoveUp: () => reorderRootNote(note.id, -1),
+                                                        onMoveDown: () => reorderRootNote(note.id, 1)
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <div className="pt-2">
+                                    <button
+                                        onClick={() => {
+                                            const title = promptForName("Nuevo libro:");
+                                            if (title) addBook(title);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 pill-button primary-cta py-3 text-base"
+                                    >
+                                        <Icons.Plus />
+                                        <span>Nuevo Libro</span>
+                                    </button>
+                                </div>
                             </div>
                         </main>
 
@@ -2045,8 +2116,9 @@
                     <>
                     <div className="min-h-screen flex flex-col app-surface">
                         <Header title={activeBook.title} onBack={goHome} accentClass="text-violet-800" />
-                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full space-y-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
+                        <main className="flex-1 px-4 pt-6 pb-24 max-w-2xl mx-auto w-full">
+                            <div className="content-shell p-5 md:p-6 space-y-4">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
                                 <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-violet-100 text-violet-800 px-4 py-2 rounded-full font-semibold border border-violet-200 shadow-sm">💡 Generar resumen</button>
                                 <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-violet-200 text-violet-900 px-4 py-2 rounded-full font-semibold border border-violet-300 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
                             </div>
@@ -2172,6 +2244,8 @@
                                     <Icons.Plus />
                                     <span>Nuevo Capítulo</span>
                                 </button>
+                            </div>
+
                             </div>
                         </main>
 
@@ -2374,21 +2448,29 @@
 
             return (
                 <div className="min-h-screen flex flex-col app-surface">
-                    <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
-                        <div className="flex items-center gap-2">
-                            <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
-                            <div className="overflow-hidden"><h1 className="text-lg font-bold text-emerald-800 truncate">{chapter.title}</h1><p className="text-xs text-gray-500 truncate">{selectedIds.length} seleccionadas</p></div>
+                    <header className="glass-panel safe-top sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200 rounded-b-3xl">
+                        <div className="flex items-center gap-3">
+                            <button onClick={onBack} className="icon-btn text-gray-600 hover:text-gray-900"><Icons.ChevronLeft /></button>
+                            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-400 to-indigo-400 flex items-center justify-center shadow-inner ring-4 ring-white/70">
+                                <span className="text-white font-black text-xs">CAP</span>
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-bold">Capítulo</p>
+                                <h1 className="text-lg font-bold text-emerald-800 truncate leading-tight">{chapter.title}</h1>
+                                <p className="text-[11px] text-gray-500 truncate">{selectedIds.length} seleccionadas</p>
+                            </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => { setSelectionMode(!selectionMode); setSelectedIds([]); noteMoveMode.exitMoveMode(); }} className={`text-xs px-3 py-1.5 rounded-full font-medium transition ${selectionMode ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{selectionMode ? 'Cancelar' : 'Seleccionar'}</button>
-                            <button onClick={() => setMenuOpen(true)} className="icon-btn text-emerald-700 hover:text-emerald-900">
+                            <button onClick={() => setMenuOpen(true)} className="icon-btn text-emerald-700 hover:text-emerald-900 bg-white/80 shadow-sm">
                                 <Icons.Menu />
                             </button>
                         </div>
                     </header>
 
-                    <main className="flex-1 p-4 pb-32 w-full max-w-md mx-auto">
-                        <div className="mb-4 flex flex-col gap-2">
+                    <main className="flex-1 p-4 pb-32 w-full max-w-2xl mx-auto">
+                        <div className="content-shell p-5 md:p-6 space-y-4">
+                            <div className="flex flex-col gap-2">
                             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                 {selectionMode && selectedIds.length > 1 && <button onClick={() => processAI('merge', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-emerald-100 text-emerald-800 px-3 py-2 rounded-lg border border-emerald-200 font-medium active:scale-95 transition" title="Fusiona y reemplaza la selección por una sola nota"><Icons.Merge className="w-3 h-3" /> Fusionar</button>}
                                 {selectionMode && selectedIds.length > 0 && <button onClick={() => processAI('style', 'selection')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg border border-emerald-200 font-medium active:scale-95 transition"><Icons.Wand className="w-3 h-3" /> Estilo (Sel)</button>}
@@ -2417,9 +2499,9 @@
 
                         {chapter.notes.length === 0 && <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Mic className="w-12 h-12 mb-2 opacity-20" /><p>Graba una nota</p></div>}
 
-                        <div className="space-y-3">
-                            {chapter.notes.map(note => {
-                                const moveProps = noteMoveMode.getItemProps(note.id);
+                          <div className="space-y-3">
+                              {chapter.notes.map(note => {
+                                  const moveProps = noteMoveMode.getItemProps(note.id);
                                         const baseActions = {
                                             onMoveUp: () => reorderNote(note.id, -1),
                                             onMoveDown: () => reorderNote(note.id, 1),
@@ -2436,11 +2518,13 @@
                                                 collapsed
                                                 actions={selectionMode ? baseActions : {
                                                     ...baseActions,
-                                                    onEdit: () => openNoteModal(note)
+                                                  onEdit: () => openNoteModal(note)
                                                 }}
                                             />
                                         );
                                     })}
+                          </div>
+
                         </div>
                     </main>
 
