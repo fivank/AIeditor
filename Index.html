@@ -7,6 +7,9 @@
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -22,21 +25,26 @@
 
     <style>
         :root {
-            --color-bg: #fdf7f4;
+            --color-bg: #e8eaf6;
             --color-card: #ffffff;
             --radius-lg: 0.75rem;
             --radius-xl: 1rem;
-            --gradient-aurora: linear-gradient(135deg, #c7d2fe 0%, #fce7f3 40%, #ffedd5 80%);
+            --primary-color: #3f51b5;
+            --secondary-color: #7986cb;
+            --accent-color: #ff9800;
+            --danger-color: #e57373;
+            --success-color: #4caf50;
+            --shadow: 0 8px 22px rgba(33, 41, 64, 0.12);
+            --gradient-aurora: linear-gradient(145deg, #e8eaf6 0%, #f5f7ff 38%, #ffffff 100%);
         }
 
         /* Estilos base y utilidades */
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1), transparent 30%),
-                        radial-gradient(circle at 80% 0%, rgba(236, 72, 153, 0.12), transparent 32%),
-                        radial-gradient(circle at 50% 80%, rgba(253, 186, 116, 0.15), transparent 28%),
-                        var(--color-bg);
+            font-family: 'Roboto', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--gradient-aurora);
+            color: #212121;
             margin: 0;
+            line-height: 1.6;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -45,9 +53,10 @@
             position: fixed;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.06), transparent 25%),
-                        radial-gradient(circle at 70% 40%, rgba(236, 72, 153, 0.06), transparent 20%);
-            filter: blur(30px);
+            background: radial-gradient(circle at 20% 30%, rgba(63, 81, 181, 0.08), transparent 30%),
+                        radial-gradient(circle at 75% 20%, rgba(255, 152, 0, 0.08), transparent 26%),
+                        radial-gradient(circle at 60% 70%, rgba(121, 134, 203, 0.08), transparent 24%);
+            filter: blur(38px);
             z-index: -1;
         }
 
@@ -59,11 +68,16 @@
         }
 
         .card {
-            background: linear-gradient(#ffffffee, #ffffffee) padding-box,
-                        linear-gradient(135deg, rgba(129, 140, 248, 0.5), rgba(236, 72, 153, 0.35)) border-box;
+            background: var(--card-background, #ffffff);
             border-radius: var(--radius-xl);
-            border: 1px solid transparent;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e3e7ff;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 26px rgba(33, 41, 64, 0.16);
         }
 
         .card-tap {
@@ -81,6 +95,15 @@
             border-radius: 9999px;
             padding: 0.35rem;
             font-size: 0.75rem;
+            color: var(--primary-color);
+            background: rgba(63, 81, 181, 0.08);
+            border: 1px solid rgba(63, 81, 181, 0.1);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .icon-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(33, 41, 64, 0.12);
+            background: rgba(63, 81, 181, 0.12);
         }
         .icon-btn-sm {
             padding: 0.25rem;
@@ -114,11 +137,11 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
         .glass-panel {
-            background: linear-gradient(120deg, rgba(255,255,255,0.85), rgba(255,255,255,0.78)) padding-box,
-                        linear-gradient(120deg, rgba(99,102,241,0.25), rgba(236,72,153,0.2)) border-box;
+            background: linear-gradient(120deg, rgba(255,255,255,0.9), rgba(255,255,255,0.82)) padding-box,
+                        linear-gradient(120deg, rgba(63,81,181,0.35), rgba(121,134,203,0.25)) border-box;
             border: 1px solid transparent;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(18px);
+            box-shadow: 0 14px 32px rgba(33, 41, 64, 0.14);
+            backdrop-filter: blur(14px);
         }
 
         /* Estilos del editor y visualización de notas */
