@@ -25,7 +25,7 @@
 
     <style>
         :root {
-            --color-bg: #edf1ff;
+            --color-bg: #f7f9fc;
             --color-card: #ffffff;
             --radius-lg: 0.9rem;
             --radius-xl: 1.25rem;
@@ -57,27 +57,13 @@
             min-height: 100vh;
         }
 
-        body::after {
-            content: "";
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background: var(--gradient-aurora);
-            opacity: 0.7;
-            z-index: -2;
-        }
-
+        body::after,
         body::before {
             content: "";
             position: fixed;
             inset: 0;
             pointer-events: none;
-            background-image: radial-gradient(circle at 10% 10%, rgba(79, 70, 229, 0.15), transparent 18%),
-                radial-gradient(circle at 86% 12%, rgba(236, 72, 153, 0.12), transparent 18%),
-                linear-gradient(120deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.01) 36%, transparent 60%),
-                linear-gradient(45deg, rgba(255, 255, 255, 0.6) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.6) 75%, transparent 75%, transparent);
-            background-size: 400px 400px, 480px 480px, 100% 100%, 80px 80px;
-            mix-blend-mode: overlay;
+            background: none;
             z-index: -3;
         }
 
@@ -169,7 +155,7 @@
         }
 
         .app-surface {
-            background: var(--gradient-aurora);
+            background: var(--color-bg);
         }
 
         .section-title {
@@ -185,11 +171,11 @@
         }
 
         .content-shell {
-            background: rgba(255, 255, 255, 0.82);
+            background: rgba(255, 255, 255, 0.92);
             border-radius: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.12);
-            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(8px);
         }
 
         .section-card {
@@ -1989,6 +1975,22 @@
                 </header>
             );
 
+            const HomeHeader = ({ bookCount }) => (
+                <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)] px-5 pt-5 pb-4 flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                        <h1 className="text-2xl font-bold text-slate-900 leading-tight">Biblioteca</h1>
+                        <p className="text-sm text-slate-500">{bookCount} {bookCount === 1 ? 'libro' : 'libros'}</p>
+                    </div>
+                    <button
+                        onClick={() => setMenuOpen(true)}
+                        className="w-11 h-11 rounded-full bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 flex items-center justify-center"
+                        aria-label="Abrir menú"
+                    >
+                        <Icons.Menu />
+                    </button>
+                </header>
+            );
+
             // --- VISTA: SETTINGS (Mejorada) ---
             if (view === 'settings') {
                 const testConnection = async () => {
@@ -2217,50 +2219,52 @@
                 return (
                     <>
                     <div className="min-h-screen flex flex-col app-surface">
-                        <Header title="Mis Libros" accentClass="text-blue-800" />
+                        <HomeHeader bookCount={books.length} />
 
-                        <main className="flex-1 px-4 pt-6 pb-24 max-w-2xl mx-auto w-full">
-                            <div className="content-shell p-5 md:p-6 space-y-4">
-                                {bookSelectionMode && (
-                                    <div className="p-3 bg-white/90 rounded-xl shadow border border-blue-100 space-y-2">
-                                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                                            <span className="text-sm font-semibold text-blue-800">{selectedBookIds.length} seleccionados</span>
-                                            <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
-                                            <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
-                                            <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
-                                            <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
-                                        </div>
+                        <main className="flex-1 px-5 pt-2 pb-28 max-w-xl mx-auto w-full space-y-4">
+                            {bookSelectionMode && (
+                                <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-50 space-y-3">
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <span className="text-sm font-semibold text-indigo-800">{selectedBookIds.length} seleccionados</span>
+                                        <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium">Cancelar</button>
                                     </div>
-                                )}
-                                {books.length === 0 && (
-                                    <div className="text-center py-10 text-gray-400">
-                                        <p>No tienes libros creados.</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
+                                        <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
+                                        <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
+                                        <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
                                     </div>
-                                )}
+                                </div>
+                            )}
 
-                                <div className="space-y-3">
-                                    {books.map((book) => {
-                                        const moveProps = booksMoveMode.getItemProps(book.id);
-                                        const isSelected = selectedBookIds.includes(book.id);
-                                        const showMoveControls = bookSelectionMode && primaryBookId === book.id;
-                                        return (
-                                        <div
-                                            key={book.id}
-                                            {...moveProps}
-                                            onClick={(e) => {
-                                                moveProps.onClick?.(e);
-                                                if (e.defaultPrevented) return;
-                                                if (bookSelectionMode) {
-                                                    toggleBookSelection(book.id);
-                                                } else {
-                                                    goBook(book.id);
-                                                }
-                                            }}
-                                            className={`card card-tap p-4 flex items-center gap-3 ${isSelected ? 'ring-2 ring-rose-200 bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50' : 'hover:shadow-lg'}`}
-                                        >
+                            {books.length === 0 && (
+                                <div className="text-center py-10 text-gray-400">
+                                    <p>No tienes libros creados.</p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                {books.map((book) => {
+                                    const moveProps = booksMoveMode.getItemProps(book.id);
+                                    const isSelected = selectedBookIds.includes(book.id);
+                                    const showMoveControls = bookSelectionMode && primaryBookId === book.id;
+                                    const totalNotes = (book.notes?.length || 0) + book.chapters.reduce((sum, c) => sum + (c.notes?.length || 0), 0);
+                                    return (
+                                    <div
+                                        key={book.id}
+                                        {...moveProps}
+                                        onClick={(e) => {
+                                            moveProps.onClick?.(e);
+                                            if (e.defaultPrevented) return;
+                                            if (bookSelectionMode) {
+                                                toggleBookSelection(book.id);
+                                            } else {
+                                                goBook(book.id);
+                                            }
+                                        }}
+                                        className={`relative overflow-hidden rounded-xl border ${isSelected ? 'ring-2 ring-indigo-200 bg-indigo-50/50 border-indigo-100' : 'border-slate-100 bg-white'} shadow-[0_12px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_40px_rgba(15,23,42,0.12)] transition-transform hover:-translate-y-0.5 card-tap`}
+                                    >
+                                        <div className="flex items-center gap-3 p-4">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -2270,12 +2274,12 @@
                                                         goBook(book.id);
                                                     }
                                                 }}
-                                                className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-100 via-rose-100 to-amber-100 text-indigo-600 flex items-center justify-center shadow-inner"
+                                                className="flex-shrink-0 w-12 h-12 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 flex items-center justify-center shadow-inner"
                                             >
                                                 <Icons.Book />
                                             </button>
 
-                                            <div className="flex-1">
+                                            <div className="flex-1 min-w-0">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -2287,14 +2291,16 @@
                                                     }}
                                                     className="w-full text-left"
                                                 >
-                                                    <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                    <h3 className="font-semibold text-slate-900 text-[15px] truncate">
                                                         {book.title}
                                                     </h3>
                                                     <p className="text-xs text-slate-500">
-                                                        {book.chapters.length} capítulos
+                                                        {book.chapters.length} cap · {totalNotes} notas
                                                     </p>
                                                 </button>
                                             </div>
+
+                                            <div className="flex-shrink-0 text-slate-400 text-lg">›</div>
 
                                             {showMoveControls && (
                                                 <div className="flex-shrink-0 flex items-center">
@@ -2306,60 +2312,60 @@
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
+                                    );
+                                })}
+                            </div>
+
+                            {rootNotes.length > 0 && (
+                                <div className="space-y-2">
+                                    {rootNotes.map(note => {
+                                        const moveProps = rootNotesMoveMode.getItemProps(note.id);
+                                        return (
+                                            <NoteChip
+                                                key={note.id}
+                                                note={note}
+                                                moveHandlers={moveProps}
+                                                moveModeActive={rootNotesMoveMode.moveModeId === note.id}
+                                                actions={{
+                                                    onEdit: () => openNoteModal({
+                                                        title: 'Editar nota',
+                                                        initialContent: note.content,
+                                                        onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                    }),
+                                                    onMoveUp: () => reorderRootNote(note.id, -1),
+                                                    onMoveDown: () => reorderRootNote(note.id, 1)
+                                                }}
+                                            />
                                         );
                                     })}
                                 </div>
+                            )}
 
-                                {rootNotes.length > 0 && (
-                                    <div className="space-y-2">
-                                        {rootNotes.map(note => {
-                                            const moveProps = rootNotesMoveMode.getItemProps(note.id);
-                                            return (
-                                                <NoteChip
-                                                    key={note.id}
-                                                    note={note}
-                                                    moveHandlers={moveProps}
-                                                    moveModeActive={rootNotesMoveMode.moveModeId === note.id}
-                                                    actions={{
-                                                        onEdit: () => openNoteModal({
-                                                            title: 'Editar nota',
-                                                            initialContent: note.content,
-                                                            onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                        }),
-                                                        onMoveUp: () => reorderRootNote(note.id, -1),
-                                                        onMoveDown: () => reorderRootNote(note.id, 1)
-                                                    }}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                )}
-
-                                <div className="pt-2">
-                                    <button
-                                        onClick={() => {
-                                            const title = promptForName("Nuevo libro:");
-                                            if (title) addBook(title);
-                                        }}
-                                        className="w-full flex items-center justify-center gap-2 pill-button primary-cta py-3 text-base"
-                                    >
-                                        <Icons.Plus />
-                                        <span>Nuevo Libro</span>
-                                    </button>
-                                </div>
+                            <div className="pt-2">
+                                <button
+                                    onClick={() => {
+                                        const title = promptForName("Nuevo libro:");
+                                        if (title) addBook(title);
+                                    }}
+                                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-500 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition"
+                                >
+                                    <Icons.Plus />
+                                    <span>Crear Libro</span>
+                                </button>
                             </div>
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                             {isRecording && recordingTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                            <div className="flex items-center gap-3 floating-bar rounded-full px-3 py-2">
-                                <button onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html) => addRootNote(html) })} className="w-12 h-12 rounded-full bg-blue-200 text-blue-900 flex items-center justify-center text-lg shadow hover:bg-blue-300" title="Escribir nota">
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html) => addRootNote(html) })} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center text-lg shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
                                     📝
                                 </button>
                                 <button
                                     onClick={() => toggleDictation({ type: 'root' })}
                                     disabled={!!micSupportError}
-                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 text-white ${isRecording && recordingTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110' : 'bg-blue-700 hover:bg-blue-800 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100 hover:bg-gray-400' : ''}`}
+                                    className={`w-14 h-14 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording && recordingTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100 hover:from-gray-400 hover:to-gray-400' : ''}`}
                                 >
                                     {isRecording && recordingTarget?.type === 'root' ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic />}
                                 </button>
