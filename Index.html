@@ -653,9 +653,17 @@
             </div>
         );
 
-        const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, moveHandlers = {}, moveModeActive = false }) => {
+        const getNotePreview = (htmlContent, limit = 140) => {
+            const temp = document.createElement('div');
+            temp.innerHTML = htmlContent || '';
+            const text = (temp.textContent || temp.innerText || '').trim();
+            return text.length > limit ? `${text.slice(0, limit).trim()}...` : text;
+        };
+
+        const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, moveHandlers = {}, moveModeActive = false, collapsed = false, previewLength = 140 }) => {
             const { onEdit, onMoveUp, onMoveDown } = actions;
             const showMoveControls = moveModeActive && (onMoveUp || onMoveDown);
+            const previewText = collapsed ? getNotePreview(note.content, previewLength) : null;
 
             return (
                 <div
@@ -675,7 +683,11 @@
                         onCardClick?.(e);
                     }}
                 >
-                    <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
+                    {collapsed ? (
+                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{previewText}</p>
+                    ) : (
+                        <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
+                    )}
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         {showMoveControls && (
@@ -2343,6 +2355,7 @@
                                                 selectionMode={selectionMode}
                                                 isSelected={selectedIds.includes(note.id)}
                                                 onCardClick={selectionMode ? () => handleSelectClick(note.id) : undefined}
+                                                collapsed
                                                 actions={selectionMode ? baseActions : {
                                                     ...baseActions,
                                                     onEdit: () => openNoteModal(note)
