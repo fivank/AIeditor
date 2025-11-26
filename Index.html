@@ -311,7 +311,8 @@
         };
         const DEFAULT_SPEECH_CONFIG = {
             preferredEngine: 'browser',
-            aiAssistEnabled: true
+            aiAssistEnabled: true,
+            languagePreferences: {}
         };
         const TEMP_CHAPTER_TITLE = 'temporary';
         const TEMP_BOOK_TITLE = 'temp notes';
@@ -350,31 +351,53 @@
                     id: 'browser',
                     label: 'Motor del navegador',
                     description: 'Usa la API nativa de SpeechRecognition del navegador.',
-                    available: hasWebSpeech
+                    available: hasWebSpeech,
+                    languages: [
+                        { code: 'es-ES', label: 'Español (España)' },
+                        { code: 'en-US', label: 'Inglés (EE.UU.)' },
+                        { code: 'fr-FR', label: 'Francés' }
+                    ]
                 },
                 {
                     id: 'android',
                     label: 'Predeterminado de Android',
                     description: 'Dictado del sistema en dispositivos Android.',
-                    available: isAndroid
+                    available: isAndroid,
+                    languages: [
+                        { code: 'es-MX', label: 'Español (Latam)' },
+                        { code: 'en-GB', label: 'Inglés (UK)' },
+                        { code: 'pt-BR', label: 'Portugués (Brasil)' }
+                    ]
                 },
                 {
                     id: 'keyboard',
                     label: 'Dictado del teclado',
                     description: 'Usa el botón de micrófono del teclado en pantalla.',
-                    available: hasKeyboardDictation
+                    available: hasKeyboardDictation,
+                    languages: [
+                        { code: 'es-ES', label: 'Español' },
+                        { code: 'en-US', label: 'Inglés' },
+                        { code: 'it-IT', label: 'Italiano' }
+                    ]
                 },
                 {
                     id: 'handsfree',
                     label: 'Manos libres / auriculares',
                     description: 'Captura audio desde un dispositivo conectado (auriculares o coche).',
-                    available: mediaDevicesAvailable
+                    available: mediaDevicesAvailable,
+                    languages: [
+                        { code: 'es-ES', label: 'Español' },
+                        { code: 'en-US', label: 'Inglés' }
+                    ]
                 },
                 {
                     id: 'ai-assisted',
                     label: 'AI assisted speech-to-text',
                     description: 'Usa la IA para limpiar y completar dictados ruidosos.',
-                    available: true
+                    available: true,
+                    languages: [
+                        { code: 'multi', label: 'Multi idioma (auto)' }
+                    ]
                 }
             ];
         };
@@ -897,56 +920,146 @@
             );
         };
 
-        const SpeechToTextConfig = ({ open, onClose, engines, selectedEngine, onSelectEngine, aiAssistEnabled, onToggleAiAssist }) => {
+        const SpeechToTextConfig = ({
+            open,
+            onClose,
+            engines,
+            selectedEngine,
+            aiAssistEnabled,
+            languagePreferences,
+            onSave
+        }) => {
+            const [draftEngine, setDraftEngine] = React.useState(selectedEngine);
+            const [draftAiAssist, setDraftAiAssist] = React.useState(aiAssistEnabled);
+            const [draftLanguages, setDraftLanguages] = React.useState(languagePreferences || {});
+
+            useEffect(() => {
+                if (open) {
+                    setDraftEngine(selectedEngine);
+                    setDraftAiAssist(aiAssistEnabled);
+                    setDraftLanguages(languagePreferences || {});
+                }
+            }, [open, selectedEngine, aiAssistEnabled, languagePreferences]);
+
             if (!open) return null;
 
+            const activeEngine = engines.find((engine) => engine.id === draftEngine) || engines[0];
+            const activeLanguages = draftLanguages?.[draftEngine] && draftLanguages[draftEngine].length > 0
+                ? draftLanguages[draftEngine]
+                : (activeEngine?.languages || []).map((lang) => lang.code);
+
+            const toggleLanguage = (engineId, code) => {
+                setDraftLanguages((prev) => {
+                    const current = prev?.[engineId] && prev[engineId].length > 0
+                        ? prev[engineId]
+                        : (engines.find((e) => e.id === engineId)?.languages || []).map((lang) => lang.code);
+                    const exists = current.includes(code);
+                    const next = exists ? current.filter((c) => c !== code) : [...current, code];
+                    return { ...prev, [engineId]: next };
+                });
+            };
+
+            const handleSave = () => {
+                onSave?.({
+                    preferredEngine: draftEngine,
+                    aiAssistEnabled: draftAiAssist,
+                    languagePreferences: draftLanguages
+                });
+                onClose?.();
+            };
+
             return (
-                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-                    <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-start justify-between gap-3">
-                            <div>
-                                <p className="text-sm font-semibold text-slate-800">Speech-to-Text</p>
-                                <p className="text-xs text-slate-500">Elige tu motor preferido y cómo procesar las transcripciones.</p>
+                <div className="fixed inset-0 z-50 bg-black/60 overflow-y-auto" onClick={onClose}>
+                    <div className="min-h-full w-full flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-100 p-5 flex flex-col max-h-[90vh]">
+                            <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100 sticky top-0 bg-white">
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-800">Speech-to-Text</p>
+                                    <p className="text-xs text-slate-500">Elige tu motor, revisa idiomas soportados y guarda los cambios.</p>
+                                </div>
+                                <button onClick={onClose} className="icon-btn text-slate-400 hover:text-slate-700">✕</button>
                             </div>
-                            <button onClick={onClose} className="icon-btn text-slate-400 hover:text-slate-700">✕</button>
-                        </div>
 
-                        <div className="space-y-2">
-                            {engines.map((engine) => (
-                                <button
-                                    key={engine.id}
-                                    onClick={() => engine.available && onSelectEngine(engine.id)}
-                                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-left transition ${selectedEngine === engine.id ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'} ${engine.available ? '' : 'opacity-60 cursor-not-allowed'}`}
-                                >
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-slate-800 text-sm truncate">{engine.label}</p>
-                                        <p className="text-xs text-slate-500 truncate">{engine.description}</p>
+                            <div className="space-y-3 overflow-y-auto pr-1 mt-3">
+                                {engines.map((engine) => (
+                                    <div
+                                        key={engine.id}
+                                        className={`w-full px-4 py-3 rounded-xl border text-left transition ${draftEngine === engine.id ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'} ${engine.available ? '' : 'opacity-60 cursor-not-allowed'}`}
+                                        onClick={() => engine.available && setDraftEngine(engine.id)}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-slate-800 text-sm truncate">{engine.label}</p>
+                                                <p className="text-xs text-slate-500 truncate">{engine.description}</p>
+                                                {engine.languages?.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                                        {engine.languages.map((lang) => (
+                                                            <span key={lang.code} className="text-[11px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-600">
+                                                                {lang.label}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className={`text-[11px] px-2 py-1 rounded-full border ${engine.available ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
+                                                    {engine.available ? 'Disponible' : 'No detectado'}
+                                                </span>
+                                                {draftEngine === engine.id && <Icons.Check />}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span className={`text-[11px] px-2 py-1 rounded-full border ${engine.available ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
-                                            {engine.available ? 'Disponible' : 'No detectado'}
-                                        </span>
-                                        {selectedEngine === engine.id && <Icons.Check />}
+                                ))}
+
+                                <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/70 flex items-start gap-3">
+                                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white text-indigo-600 flex items-center justify-center shadow-inner">
+                                        <Icons.Wand />
                                     </div>
-                                </button>
-                            ))}
-                        </div>
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-slate-800 text-sm">Asistencia AI</p>
+                                        <p className="text-xs text-slate-600">Pulir automáticamente las transcripciones usando tu modelo configurado.</p>
+                                        <label className="mt-3 inline-flex items-center gap-2">
+                                            <input type="checkbox" checked={draftAiAssist} onChange={(e) => setDraftAiAssist(e.target.checked)} />
+                                            <span className="text-sm text-slate-700">Activar post-procesamiento AI</span>
+                                        </label>
+                                    </div>
+                                </div>
 
-                        <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/70 flex items-start gap-3">
-                            <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white text-indigo-600 flex items-center justify-center shadow-inner">
-                                <Icons.Wand />
+                                {activeEngine?.languages?.length > 0 && (
+                                    <div className="p-4 rounded-xl border border-slate-200 bg-white">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <p className="font-semibold text-slate-800 text-sm">Idiomas para {activeEngine.label}</p>
+                                                <p className="text-xs text-slate-500">Activa los idiomas que quieres permitir en Text-to-Speech y dictado.</p>
+                                            </div>
+                                            <span className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{activeLanguages.length} seleccionados</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            {activeEngine.languages.map((lang) => {
+                                                const selected = activeLanguages.includes(lang.code);
+                                                return (
+                                                    <button
+                                                        key={lang.code}
+                                                        onClick={() => toggleLanguage(activeEngine.id, lang.code)}
+                                                        className={`px-3 py-1.5 rounded-full border text-sm flex items-center gap-2 transition ${selected ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200'}`}
+                                                    >
+                                                        <input type="checkbox" checked={selected} readOnly />
+                                                        <span className="text-xs font-medium">{lang.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <p className="text-[11px] text-slate-500 leading-relaxed">Guardamos tu preferencia de captura de voz (navegador, Android, teclado u otras opciones detectadas) para que puedas decidir cómo dictar cuando uses esta app en tu teléfono.</p>
                             </div>
-                            <div className="flex-1">
-                                <p className="font-semibold text-slate-800 text-sm">Asistencia AI</p>
-                                <p className="text-xs text-slate-600">Pulir automáticamente las transcripciones usando tu modelo configurado.</p>
-                                <label className="mt-3 inline-flex items-center gap-2">
-                                    <input type="checkbox" checked={aiAssistEnabled} onChange={(e) => onToggleAiAssist(e.target.checked)} />
-                                    <span className="text-sm text-slate-700">Activar post-procesamiento AI</span>
-                                </label>
+
+                            <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-slate-200 sticky bottom-0 bg-white">
+                                <button onClick={handleSave} className="w-full py-3 rounded-xl bg-indigo-600 text-white font-semibold shadow-md hover:bg-indigo-700 transition">Guardar preferencias</button>
+                                <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium bg-slate-50 hover:bg-slate-100">Cancelar</button>
                             </div>
                         </div>
-
-                        <p className="text-[11px] text-slate-500 leading-relaxed">Guardamos tu preferencia de captura de voz (navegador, Android, teclado u otras opciones detectadas) para que puedas decidir cómo dictar cuando uses esta app en tu teléfono.</p>
                     </div>
                 </div>
             );
@@ -1729,17 +1842,10 @@
                 closePicker();
             };
 
-            const handleSpeechEngineChange = (engineId) => {
+            const handleSaveSpeechSettings = (speechConfig) => {
                 setSettings((prev) => ({
                     ...prev,
-                    speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(prev.speechToText || {}), preferredEngine: engineId }
-                }));
-            };
-
-            const handleAiAssistToggle = (enabled) => {
-                setSettings((prev) => ({
-                    ...prev,
-                    speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(prev.speechToText || {}), aiAssistEnabled: enabled }
+                    speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(prev.speechToText || {}), ...speechConfig }
                 }));
             };
 
@@ -1805,9 +1911,12 @@
                     onClose={() => setSpeechConfigOpen(false)}
                     engines={speechEngines}
                     selectedEngine={settings.speechToText?.preferredEngine}
-                    onSelectEngine={handleSpeechEngineChange}
                     aiAssistEnabled={settings.speechToText?.aiAssistEnabled}
-                    onToggleAiAssist={handleAiAssistToggle}
+                    languagePreferences={settings.speechToText?.languagePreferences}
+                    onSave={(config) => {
+                        handleSaveSpeechSettings(config);
+                        setSpeechConfigOpen(false);
+                    }}
                 />
             );
 
