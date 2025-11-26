@@ -982,6 +982,15 @@
             const authRef = useRef(null);
             const dbRef = useRef(null);
             const autoSaveTimeoutRef = useRef(null);
+            const [immediateSaveCounter, setImmediateSaveCounter] = useState(0);
+
+            const requestImmediateFirestoreSave = useCallback(() => {
+                if (autoSaveTimeoutRef.current) {
+                    clearTimeout(autoSaveTimeoutRef.current);
+                    autoSaveTimeoutRef.current = null;
+                }
+                setImmediateSaveCounter((prev) => prev + 1);
+            }, []);
 
             useEffect(() => {
                 if (!window.firebase) {
@@ -1111,16 +1120,21 @@
 
             // Helpers de navegación y datos
             const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [], notes: [] }]);
-            const renameBook = (id, title) => setBooks(books.map(b => b.id === id ? { ...b, title } : b));
+            const renameBook = (id, title) => {
+                setBooks(books.map(b => b.id === id ? { ...b, title } : b));
+                requestImmediateFirestoreSave();
+            };
             const deleteBook = (id) => setBooks(books.filter(b => b.id !== id));
             const reorderBooksByIndex = useCallback((from, to) => {
                 setBooks(prev => moveItem(prev, from, to));
+                requestImmediateFirestoreSave();
             }, []);
             const reorderBook = (id, direction) => {
                 const index = books.findIndex(b => b.id === id);
                 const target = index + direction;
                 if (target < 0 || target >= books.length) return;
                 setBooks(moveItem(books, index, target));
+                requestImmediateFirestoreSave();
             };
             const moveBookToPosition = async (bookId) => {
                 if (books.length < 2) return;
@@ -1137,6 +1151,7 @@
                 if (targetIndex > fromIndex) targetIndex -= 1;
                 list.splice(targetIndex, 0, item);
                 setBooks(list);
+                requestImmediateFirestoreSave();
             };
             const duplicateBook = (bookId) => {
                 const book = books.find(b => b.id === bookId);
@@ -1153,15 +1168,19 @@
                     }))
                 };
                 setBooks([...books, copy]);
+                requestImmediateFirestoreSave();
             };
             const addChapter = (bookId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] } : b));
+                requestImmediateFirestoreSave();
             };
             const renameChapter = (bookId, chapterId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
+                requestImmediateFirestoreSave();
             };
             const reorderChaptersByIndex = useCallback((bookId, from, to) => {
                 setBooks(prev => prev.map(b => b.id === bookId ? { ...b, chapters: moveItem(b.chapters, from, to) } : b));
+                requestImmediateFirestoreSave();
             }, []);
             const updateBookTempNotes = (bookId, updater) => {
                 setBooks(prevBooks => {
@@ -1175,6 +1194,7 @@
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, { id: generateId(), content: cleanContent, timestamp: Date.now() }] } : c) } : b));
+                requestImmediateFirestoreSave();
             };
 
             const addBookNote = (bookId, content) => {
@@ -1182,6 +1202,7 @@
                 const cleanContent = normalizeContent(content);
                 const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
                 updateBookTempNotes(bookId, (notes) => [...notes, note]);
+                requestImmediateFirestoreSave();
             };
 
             const addRootNote = (content) => {
@@ -1197,18 +1218,23 @@
                         const ensured = ensureTempChapterInBook(updated, activeBookId);
                         if (!ensured.chapterId) return prevBooks;
                         updated = ensured.books;
-                        return updateChapterNotesInBooks(updated, activeBookId, ensured.chapterId, (notes) => [...notes, note]);
+                        const withNotes = updateChapterNotesInBooks(updated, activeBookId, ensured.chapterId, (notes) => [...notes, note]);
+                        requestImmediateFirestoreSave();
+                        return withNotes;
                     }
 
                     const ensured = ensureTempBookAndChapter(updated);
                     if (!ensured.tempBookId || !ensured.tempChapterId) return prevBooks;
                     updated = ensured.books;
-                    return updateChapterNotesInBooks(updated, ensured.tempBookId, ensured.tempChapterId, (notes) => [...notes, note]);
+                    const withNotes = updateChapterNotesInBooks(updated, ensured.tempBookId, ensured.tempChapterId, (notes) => [...notes, note]);
+                    requestImmediateFirestoreSave();
+                    return withNotes;
                 });
             };
 
             const reorderRootNotesByIndex = useCallback((from, to) => {
                 setRootNotes(prev => moveItem(prev, from, to));
+                requestImmediateFirestoreSave();
             }, []);
 
             const reorderRootNote = (noteId, direction) => {
@@ -1218,6 +1244,7 @@
                 const target = index + direction;
                 if (target < 0 || target >= currentNotes.length) return;
                 setRootNotes(prev => moveItem(prev, index, target));
+                requestImmediateFirestoreSave();
             };
             const reorderBookNote = (bookId, noteId, direction) => {
                 const book = books.find(b => b.id === bookId);
@@ -1230,6 +1257,7 @@
             };
             const reorderBookNotesByIndex = useCallback((bookId, from, to) => {
                 setBooks(prev => prev.map(b => b.id === bookId ? { ...b, notes: moveItem(b.notes || [], from, to) } : b));
+                requestImmediateFirestoreSave();
             }, []);
             const chooseDestination = async (source) => {
                 const ensureDestinations = (currentBooks) => {
@@ -1301,20 +1329,28 @@
                 }));
 
                 if (source.type === 'root' && mode === 'move' && destination.type !== 'root') setRootNotes(notes => notes.filter(n => n.id !== noteId));
+                requestImmediateFirestoreSave();
             };
             const editNote = (bookId, chapterId, noteId, content) => {
                 const cleanContent = normalizeContent(content);
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: c.notes.map(n => n.id === noteId ? { ...n, content: cleanContent } : n) } : c) } : b));
+                requestImmediateFirestoreSave();
             };
             const updateNotes = (bookId, chapterId, newNotes) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: newNotes } : c) } : b));
+                requestImmediateFirestoreSave();
             };
-            const updateBookNotes = (bookId, newNotes) => setBooks(books.map(b => b.id === bookId ? { ...b, notes: newNotes } : b));
+            const updateBookNotes = (bookId, newNotes) => {
+                setBooks(books.map(b => b.id === bookId ? { ...b, notes: newNotes } : b));
+                requestImmediateFirestoreSave();
+            };
             const updateBookChapters = (bookId, newChapters) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: newChapters } : b));
+                requestImmediateFirestoreSave();
             };
             const deleteChapter = (bookId, chapterId) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.filter(c => c.id !== chapterId) } : b));
+                requestImmediateFirestoreSave();
             };
             const reorderChapter = (bookId, chapterId, direction) => {
                 const book = books.find(b => b.id === bookId);
@@ -1333,6 +1369,7 @@
                 if (!chapter) return;
                 const cloned = { ...chapter, id: generateId(), notes: chapter.notes.map(cloneNote) };
                 setBooks(books.map(b => b.id === targetBookId ? { ...b, chapters: [...b.chapters, cloned] } : b));
+                requestImmediateFirestoreSave();
             };
             const moveChapterToBook = (sourceBookId, chapterId, targetBookId) => {
                 if (sourceBookId === targetBookId) return;
@@ -1345,6 +1382,7 @@
                     if (b.id === targetBookId) return { ...b, chapters: [...b.chapters, chapter] };
                     return b;
                 }));
+                requestImmediateFirestoreSave();
             };
 
             const resetMoveModes = () => {
@@ -1501,6 +1539,11 @@
                     if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
                 };
             }, [books, rootNotes, settings, view, activeBookId, activeChapterId]);
+
+            useEffect(() => {
+                if (immediateSaveCounter === 0) return;
+                handleFirestoreSave({ silent: true });
+            }, [immediateSaveCounter]);
 
             const promptForName = (message, defaultValue = '') => {
                 const response = prompt(message, defaultValue ?? '');
