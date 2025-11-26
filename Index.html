@@ -1942,25 +1942,20 @@
             }
 
             // Header
-            const Header = ({ title, onBack, accentClass = 'text-slate-900' }) => (
-                <header
-                    className="glass-panel safe-top sticky top-0 z-20 px-4 py-3 flex items-center justify-between border-b border-slate-200 shadow-sm rounded-b-3xl"
-                >
-                    <div className="flex items-center gap-3 overflow-hidden">
+            const Header = ({ title, subtitle = 'VoiceNotes', onBack, accentClass = 'text-slate-900' }) => (
+                <header className="safe-top sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3 min-w-0">
                         {onBack && (
                             <button
                                 onClick={onBack}
-                                className="icon-btn text-slate-600 hover:text-slate-900"
+                                className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
                             >
                                 <Icons.ChevronLeft />
                             </button>
                         )}
-                        <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-orange-400 flex items-center justify-center shadow-inner ring-4 ring-white/70">
-                            <span className="text-white font-black text-sm">VN</span>
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-[11px] uppercase tracking-[0.15em] text-slate-400 font-bold">VoiceNotes</span>
-                            <h1 className={`text-base font-semibold truncate leading-tight ${accentClass}`}>
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.16em]">{subtitle}</p>
+                            <h1 className={`text-lg font-bold truncate leading-tight ${accentClass}`}>
                                 {title}
                             </h1>
                         </div>
@@ -1968,7 +1963,8 @@
 
                     <button
                         onClick={() => setMenuOpen(true)}
-                        className="icon-btn text-slate-500 hover:text-blue-600 bg-white/80 shadow-sm"
+                        className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
+                        aria-label="Abrir menú"
                     >
                         <Icons.Menu />
                     </button>
@@ -2430,65 +2426,54 @@
                 return (
                     <>
                     <div className="min-h-screen flex flex-col app-surface">
-                        <Header title={activeBook.title} onBack={goHome} accentClass="text-violet-800" />
-                        <main className="flex-1 px-4 pt-6 pb-24 max-w-2xl mx-auto w-full">
-                            <div className="content-shell p-5 md:p-6 space-y-4">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                <button onClick={handleGenerateBook} className="text-xs flex items-center gap-2 bg-violet-100 text-violet-800 px-4 py-2 rounded-full font-semibold border border-violet-200 shadow-sm">💡 Generar resumen</button>
-                                <button onClick={handleStyleBook} className="text-xs flex items-center gap-2 bg-violet-200 text-violet-900 px-4 py-2 rounded-full font-semibold border border-violet-300 shadow-sm"><Icons.Wand className="w-3 h-3" /> Estilo del libro</button>
-                            </div>
-
-                            {chapterSelectionMode && (
-                                <div className="p-3 bg-white rounded-xl shadow border border-violet-100 space-y-2">
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        <span className="text-sm font-semibold text-violet-800">{selectedChapterIds.length} seleccionados</span>
-                                        <button onClick={cancelChapterSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('move')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover de libro</button>
-                                        <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('copy')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
-                                        <button disabled={!primaryChapterId} onClick={handleRenameChapter} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-100 text-violet-900 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
-                                        <button disabled={selectedChapterIds.length === 0} onClick={handleChapterBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedChapterIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
-                                    </div>
+                        <Header title={activeBook.title} subtitle="Vista de Libro" onBack={goHome} accentClass="text-slate-900" />
+                        <main className="flex-1 px-4 pt-5 pb-28 max-w-md mx-auto w-full">
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <button onClick={handleGenerateBook} className="flex-1 min-w-[140px] flex items-center justify-center gap-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2.5 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition">
+                                        ✨ Generar con IA
+                                    </button>
+                                    <button onClick={handleStyleBook} className="flex-1 min-w-[140px] flex items-center justify-center gap-2 text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-4 py-2.5 rounded-full shadow hover:border-indigo-200 active:scale-95 transition">
+                                        <Icons.Wand className="w-4 h-4" /> Re-estilar
+                                    </button>
                                 </div>
-                            )}
 
-                            {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
-                            <div className="space-y-3">
-                                {activeBook.chapters.map((chap) => {
-                                    const moveProps = chaptersMoveMode.getItemProps(chap.id);
-                                    const isSelected = selectedChapterIds.includes(chap.id);
-                                    const showMoveControls = chapterSelectionMode && primaryChapterId === chap.id;
-                                    return (
-                                    <div
-                                        key={chap.id}
-                                        {...moveProps}
-                                        onClick={(e) => {
-                                            moveProps.onClick?.(e);
-                                            if (e.defaultPrevented) return;
-                                            if (chapterSelectionMode) {
-                                                toggleChapterSelection(chap.id);
-                                            } else {
-                                                goChapter(chap.id);
-                                            }
-                                        }}
-                                        className={`card card-tap p-4 flex items-center gap-3 ${isSelected ? 'ring-2 ring-violet-300 bg-violet-50' : ''}`}
-                                    >
-                                        <button
+                                {chapterSelectionMode && (
+                                    <div className="p-3 bg-white rounded-xl shadow border border-violet-100 space-y-2">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <span className="text-sm font-semibold text-violet-800">{selectedChapterIds.length} seleccionados</span>
+                                            <button onClick={cancelChapterSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('move')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover de libro</button>
+                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('copy')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
+                                            <button disabled={!primaryChapterId} onClick={handleRenameChapter} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-100 text-violet-900 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
+                                            <button disabled={selectedChapterIds.length === 0} onClick={handleChapterBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedChapterIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
+                                <div className="space-y-3">
+                                    {activeBook.chapters.map((chap) => {
+                                        const moveProps = chaptersMoveMode.getItemProps(chap.id);
+                                        const isSelected = selectedChapterIds.includes(chap.id);
+                                        const showMoveControls = chapterSelectionMode && primaryChapterId === chap.id;
+                                        return (
+                                        <div
+                                            key={chap.id}
+                                            {...moveProps}
                                             onClick={(e) => {
-                                                e.stopPropagation();
+                                                moveProps.onClick?.(e);
+                                                if (e.defaultPrevented) return;
                                                 if (chapterSelectionMode) {
                                                     toggleChapterSelection(chap.id);
                                                 } else {
                                                     goChapter(chap.id);
                                                 }
                                             }}
-                                            className="flex-shrink-0 w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center"
+                                            className={`relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-md p-4 flex items-center gap-3 transition ${isSelected ? 'ring-2 ring-violet-200 bg-violet-50' : 'hover:-translate-y-0.5 hover:shadow-lg'}`}
                                         >
-                                            <Icons.Folder />
-                                        </button>
-
-                                        <div className="flex-1">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -2498,82 +2483,89 @@
                                                         goChapter(chap.id);
                                                     }
                                                 }}
-                                                className="w-full text-left"
+                                                className="flex-shrink-0 w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner"
                                             >
-                                                <h3 className="font-semibold text-slate-900 text-sm truncate">
+                                                <Icons.Folder />
+                                            </button>
+
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-semibold text-slate-900 text-base truncate">
                                                     {chap.title}
                                                 </h3>
-                                                <p className="text-xs text-slate-500">
-                                                    {chap.notes.length} notas
-                                                </p>
-                                            </button>
-                                        </div>
-
-                                        {showMoveControls && (
-                                            <div className="flex-shrink-0 flex items-center">
-                                                <MoveControls
-                                                    onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
-                                                    onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
-                                                    accentClass="text-violet-800"
-                                                />
+                                                <p className="text-xs text-slate-400">Capítulo</p>
                                             </div>
-                                        )}
-                                    </div>
-                                    );
-                                })}
-                            </div>
 
-                            {activeBook.notes?.length > 0 && (
-                                <div className="space-y-2">
-                                    {activeBook.notes.map(note => {
-                                        const moveProps = bookNotesMoveMode.getItemProps(note.id);
-                                        return (
-                                            <NoteChip
-                                                key={note.id}
-                                                note={note}
-                                                moveHandlers={moveProps}
-                                                moveModeActive={bookNotesMoveMode.moveModeId === note.id}
-                                                actions={{
-                                                    onEdit: () => openNoteModal({
-                                                        title: 'Editar nota',
-                                                        initialContent: note.content,
-                                                        onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                    }),
-                                                    onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
-                                                    onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1)
-                                                }}
-                                            />
+                                            <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+                                                {chap.notes.length} notas
+                                            </span>
+
+                                            {showMoveControls && (
+                                                <div className="flex-shrink-0 flex items-center">
+                                                    <MoveControls
+                                                        onMoveUp={() => reorderChapter(activeBook.id, chap.id, -1)}
+                                                        onMoveDown={() => reorderChapter(activeBook.id, chap.id, 1)}
+                                                        accentClass="text-violet-800"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                         );
                                     })}
-                                </div>
-                            )}
 
-                            <div className="mt-6">
-                                <button
-                                    onClick={() => {
-                                        const title = promptForName("Nuevo capítulo:");
-                                        if (title) addChapter(activeBook.id, title);
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 bg-violet-700 text-white py-3 rounded-2xl font-medium shadow-lg hover:bg-violet-800 active:scale-[0.98] transition"
-                                >
-                                    <Icons.Plus />
-                                    <span>Nuevo Capítulo</span>
-                                </button>
-                            </div>
+                                    <button
+                                        onClick={() => {
+                                            const title = promptForName("Nuevo capítulo:");
+                                            if (title) addChapter(activeBook.id, title);
+                                        }}
+                                        className="w-full border-2 border-dashed border-slate-300 rounded-2xl bg-white text-slate-500 py-3 shadow-sm hover:border-indigo-300 active:scale-[0.99] transition"
+                                    >
+                                        <div className="flex items-center justify-center gap-3">
+                                            <span className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                                <Icons.Plus />
+                                            </span>
+                                            <span className="font-semibold text-slate-500">Nuevo Capítulo</span>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {activeBook.notes?.length > 0 && (
+                                    <div className="space-y-2">
+                                        {activeBook.notes.map(note => {
+                                            const moveProps = bookNotesMoveMode.getItemProps(note.id);
+                                            return (
+                                                <NoteChip
+                                                    key={note.id}
+                                                    note={note}
+                                                    moveHandlers={moveProps}
+                                                    moveModeActive={bookNotesMoveMode.moveModeId === note.id}
+                                                    actions={{
+                                                        onEdit: () => openNoteModal({
+                                                            title: 'Editar nota',
+                                                            initialContent: note.content,
+                                                            onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                        }),
+                                                        onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
+                                                        onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1)
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                )}
 
                             </div>
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                             {isRecording && recordingTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                            <div className="flex items-center gap-3 bg-white/85 backdrop-blur rounded-full shadow-lg border px-3 py-2">
-                                <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html) => addBookNote(activeBook.id, html) })} className="w-12 h-12 rounded-full bg-violet-200 text-violet-900 flex items-center justify-center text-lg shadow hover:bg-violet-300" title="Escribir nota del libro">
-                                    📝
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html) => addBookNote(activeBook.id, html) })} className="w-12 h-12 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center text-lg shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota del libro">
+                                    🖊️
                                 </button>
                                 <button
                                     onClick={() => toggleDictation({ type: 'book', bookId: activeBook.id })}
                                     disabled={!!micSupportError}
-                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 text-white ${isRecording && recordingTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110' : 'bg-violet-700 hover:bg-violet-800 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100 hover:bg-gray-400' : ''}`}
+                                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 text-white ${isRecording && recordingTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-105' : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:shadow-[0_18px_35px_rgba(79,70,229,0.35)] hover:-translate-y-0.5'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:translate-y-0 hover:shadow-none' : ''}`}
                                 >
                                     {isRecording && recordingTarget?.bookId === activeBook.id ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic />}
                                 </button>
@@ -2586,8 +2578,8 @@
                             value={noteDraft}
                             onChange={setNoteDraft}
                             onSave={handleSaveTypedNote}
-                        onClose={closeNoteModal}
-                    />
+                            onClose={closeNoteModal}
+                        />
 
                 </div>
                 {menuPortal}
