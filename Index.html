@@ -2598,7 +2598,7 @@
                         onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
                         onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
                         editNote={editNote}
-                        settings={settings} setLoading={setLoading}
+                        settings={settings} speechEngines={speechEngines} setLoading={setLoading}
                         chooseDestination={chooseDestination}
                         relocateNote={relocateNote} />
                     {menuPortal}
@@ -2611,7 +2611,7 @@
         }
 
         // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, onBack, onAddNote, onUpdateNotes, editNote, settings, setLoading, chooseDestination, relocateNote }) {
+        function NoteManager({ bookId, chapter, onBack, onAddNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote }) {
             const [isRecording, setIsRecording] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             const [selectionMode, setSelectionMode] = useState(false);
@@ -2636,11 +2636,36 @@
                 return () => { if (recognitionRef.current) recognitionRef.current.stop(); }
             }, []);
 
+            const resolveEngineForRecording = () => {
+                const preferredEngineId = settings.speechToText?.preferredEngine;
+                const preferredEngine = speechEngines?.find((engine) => engine.id === preferredEngineId);
+                const fallbackEngine = speechEngines?.find((engine) => engine.id === 'browser' && engine.available)
+                    || speechEngines?.find((engine) => engine.available)
+                    || speechEngines?.[0];
+
+                const engineForRecognition = preferredEngine && (preferredEngine.available || preferredEngine.id === 'ai-assisted')
+                    ? preferredEngine
+                    : fallbackEngine;
+
+                if (engineForRecognition && !engineForRecognition.available && engineForRecognition.id !== 'ai-assisted') {
+                    alert(`${engineForRecognition.label} no está disponible en este dispositivo. Se usará el motor del navegador.`);
+                }
+
+                return engineForRecognition;
+            };
+
             const startRecording = () => {
                 if (supportError) return alert(supportError);
+                const engineForRecognition = resolveEngineForRecording();
+                const engineLanguages = resolvePreferredLanguages(
+                    engineForRecognition?.id,
+                    speechEngines || [],
+                    settings.speechToText?.languagePreferences
+                );
+                const recognitionLanguage = engineLanguages[0] || 'en-US';
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                recognition.lang = 'en-US';
+                recognition.lang = recognitionLanguage;
                 recognition.continuous = false;
                 recognition.onstart = () => setIsRecording(true);
                 recognition.onresult = (event) => { if(event.results[0][0].transcript) onAddNote(event.results[0][0].transcript); };
