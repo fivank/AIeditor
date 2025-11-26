@@ -25,23 +25,20 @@
 
     <style>
         :root {
-            --color-bg: #eef2ff;
+            --color-bg: #e8eaf6;
             --color-card: #ffffff;
             --radius-lg: 0.75rem;
             --radius-xl: 1rem;
-            --primary-color: #3949ab;
-            --secondary-color: #6c63ff;
-            --accent-color: #ffb347;
+            --primary-color: #3f51b5;
+            --secondary-color: #7986cb;
+            --accent-color: #ff9800;
             --danger-color: #e57373;
             --success-color: #4caf50;
-            --shadow: 0 10px 28px rgba(33, 41, 64, 0.12);
-            --shadow-strong: 0 16px 38px rgba(33, 41, 64, 0.18);
-            --gradient-aurora: radial-gradient(circle at 10% 20%, rgba(108, 99, 255, 0.12), transparent 20%),
-                               radial-gradient(circle at 90% 0%, rgba(255, 179, 71, 0.16), transparent 22%),
-                               radial-gradient(circle at 50% 80%, rgba(57, 73, 171, 0.18), transparent 30%),
-                               linear-gradient(145deg, #f4f6ff 0%, #ffffff 100%);
+            --shadow: 0 8px 22px rgba(33, 41, 64, 0.12);
+            --shadow-strong: 0 10px 26px rgba(33, 41, 64, 0.16);
+            --gradient-aurora: linear-gradient(145deg, #e8eaf6 0%, #f5f7ff 38%, #ffffff 100%);
             --card-background: #ffffff;
-            --text-color: #1f2937;
+            --text-color: #212121;
             --border-radius: 1rem;
         }
 
@@ -60,8 +57,10 @@
             position: fixed;
             inset: 0;
             pointer-events: none;
-            background: var(--gradient-aurora);
-            filter: blur(42px) saturate(1.2);
+            background: radial-gradient(circle at 20% 30%, rgba(63, 81, 181, 0.08), transparent 30%),
+                        radial-gradient(circle at 75% 20%, rgba(255, 152, 0, 0.08), transparent 26%),
+                        radial-gradient(circle at 60% 70%, rgba(121, 134, 203, 0.08), transparent 24%);
+            filter: blur(38px);
             z-index: -1;
         }
 
@@ -75,16 +74,15 @@
         .card {
             background: var(--card-background);
             border-radius: var(--border-radius);
-            border: 1px solid rgba(57, 73, 171, 0.12);
+            border: 1px solid #e3e7ff;
             box-shadow: var(--shadow);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         }
 
         .card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             box-shadow: var(--shadow-strong);
-            border-color: rgba(57, 73, 171, 0.25);
-            background: linear-gradient(180deg, rgba(108, 99, 255, 0.02), #fff 60%);
+            border-color: rgba(63, 81, 181, 0.3);
         }
 
         .card-tap {
@@ -144,11 +142,11 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
         .glass-panel {
-            background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.82)) padding-box,
-                        linear-gradient(120deg, rgba(108,99,255,0.26), rgba(57,73,171,0.2)) border-box;
+            background: linear-gradient(120deg, rgba(255,255,255,0.9), rgba(255,255,255,0.82)) padding-box,
+                        linear-gradient(120deg, rgba(63,81,181,0.35), rgba(121,134,203,0.25)) border-box;
             border: 1px solid transparent;
-            box-shadow: 0 18px 42px rgba(33, 41, 64, 0.16);
-            backdrop-filter: blur(16px);
+            box-shadow: 0 14px 32px rgba(33, 41, 64, 0.14);
+            backdrop-filter: blur(14px);
         }
 
         .app-surface {
@@ -195,47 +193,10 @@
         }
 
         .floating-bar {
-            background: linear-gradient(120deg, rgba(255,255,255,0.92), rgba(244,246,255,0.92));
-            border: 1px solid rgba(108, 99, 255, 0.16);
-            box-shadow: 0 20px 38px rgba(33, 41, 64, 0.18);
-            backdrop-filter: blur(12px);
-        }
-
-        .hero-card {
-            background: linear-gradient(135deg, rgba(108, 99, 255, 0.08), rgba(57, 73, 171, 0.12), rgba(255, 179, 71, 0.08));
-            border: 1px solid rgba(108, 99, 255, 0.18);
-            box-shadow: 0 18px 30px rgba(64, 75, 160, 0.18);
-        }
-
-        .stat-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.45rem 0.85rem;
-            border-radius: 9999px;
-            background: rgba(57, 73, 171, 0.08);
-            color: #1f2b6b;
-            border: 1px solid rgba(57, 73, 171, 0.18);
-            font-weight: 600;
-        }
-
-        .pill-ghost {
-            background: rgba(255, 255, 255, 0.65);
-            border: 1px solid rgba(31, 41, 55, 0.08);
-            box-shadow: 0 10px 18px rgba(33, 41, 64, 0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-
-        .pill-ghost:hover {
-            transform: translateY(-2px);
-            border-color: rgba(57, 73, 171, 0.25);
-            box-shadow: 0 16px 32px rgba(33, 41, 64, 0.16);
-        }
-
-        .section-shell {
-            background: rgba(255, 255, 255, 0.92);
-            border: 1px solid rgba(226, 232, 240, 0.9);
-            box-shadow: 0 18px 32px rgba(33, 41, 64, 0.12);
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(63, 81, 181, 0.16);
+            box-shadow: 0 18px 34px rgba(33, 41, 64, 0.18);
+            backdrop-filter: blur(10px);
         }
 
         /* Estilos del editor y visualización de notas */
@@ -1875,71 +1836,15 @@
                 }
             };
 
-            const totalChapters = books.reduce((sum, book) => sum + (book.chapters?.length || 0), 0);
-            const totalNotes = books.reduce((sum, book) => sum + (book.chapters || []).reduce((sub, ch) => sub + (ch.notes?.length || 0), 0), 0) + rootNotes.length;
-
             if (view === 'home') {
                 return (
                     <>
                     <div className="min-h-screen flex flex-col app-surface">
                         <Header title="Mis Libros" accentClass="text-blue-800" />
 
-                        <main className="flex-1 px-4 pt-4 pb-24 max-w-4xl mx-auto w-full space-y-5">
-                            <div className="hero-card rounded-2xl p-5 md:p-6 flex flex-col gap-4">
-                                <div className="flex items-start justify-between gap-3 flex-wrap">
-                                    <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.2em] text-indigo-700 font-semibold">VoiceNotes AI</p>
-                                        <h2 className="text-2xl font-extrabold text-slate-900 leading-tight">Organiza tus libros de notas con una interfaz más limpia</h2>
-                                        <p className="text-sm text-slate-600 max-w-2xl">Captura ideas rápidamente con voz o texto, reorganiza capítulos y deja que la IA combine o estilice tus notas sin perder el foco.</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="stat-chip shadow-sm">{books.length} Libros</span>
-                                        <span className="stat-chip bg-amber-50 border-amber-200 text-amber-800">{totalChapters} Capítulos</span>
-                                        <span className="stat-chip bg-emerald-50 border-emerald-200 text-emerald-800">{totalNotes} Notas</span>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <button
-                                        onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html) => addRootNote(html) })}
-                                        className="pill-ghost rounded-2xl px-4 py-3 text-left flex items-center gap-3"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-inner text-indigo-600">
-                                            <Icons.Plus />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-semibold text-slate-900">Crear nota veloz</p>
-                                            <p className="text-xs text-slate-500">Abre el editor rápido para capturar ideas.</p>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => { setMenuOpen(false); goSettings(); }}
-                                        className="pill-ghost rounded-2xl px-4 py-3 text-left flex items-center gap-3"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-inner text-amber-600">
-                                            <Icons.Settings />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-semibold text-slate-900">Configurar IA</p>
-                                            <p className="text-xs text-slate-500">Ajusta modelo, API key y prompts.</p>
-                                        </div>
-                                    </button>
-                                    <button
-                                        onClick={() => handleFirestoreSave({ silent: false })}
-                                        className="pill-ghost rounded-2xl px-4 py-3 text-left flex items-center gap-3"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-inner text-emerald-600">
-                                            <Icons.Cloud />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-semibold text-slate-900">Sincronizar</p>
-                                            <p className="text-xs text-slate-500">Guarda tus datos en Firestore al instante.</p>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-
+                        <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
                             {bookSelectionMode && (
-                                <div className="mb-4 p-3 section-shell rounded-xl space-y-2">
+                                <div className="mb-4 p-3 bg-white rounded-xl shadow border border-blue-100 space-y-2">
                                     <div className="flex items-center justify-between gap-2 flex-wrap">
                                         <span className="text-sm font-semibold text-blue-800">{selectedBookIds.length} seleccionados</span>
                                         <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
@@ -1953,9 +1858,8 @@
                                 </div>
                             )}
                             {books.length === 0 && (
-                                <div className="text-center py-10 text-gray-500 section-shell rounded-2xl">
-                                    <p className="text-sm font-medium">No tienes libros creados.</p>
-                                    <p className="text-xs text-gray-400">Comienza con el botón “Nuevo Libro”.</p>
+                                <div className="text-center py-10 text-gray-400">
+                                    <p>No tienes libros creados.</p>
                                 </div>
                             )}
 
