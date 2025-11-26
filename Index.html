@@ -396,6 +396,32 @@
             return [];
         };
 
+        const resolveRecognitionConfig = (speechEngines, speechSettings) => {
+            const engines = speechEngines || [];
+            const preferredEngineId = speechSettings?.preferredEngine;
+            const preferredEngine = engines.find((engine) => engine.id === preferredEngineId);
+            const fallbackEngine = engines.find((engine) => engine.id === 'browser' && engine.available)
+                || engines.find((engine) => engine.available)
+                || engines[0];
+
+            const engineForRecognition = preferredEngine && (preferredEngine.available || preferredEngine.id === 'ai-assisted')
+                ? preferredEngine
+                : fallbackEngine;
+
+            const resolvedLanguages = resolvePreferredLanguages(
+                engineForRecognition?.id,
+                engines,
+                speechSettings?.languagePreferences
+            );
+
+            const primaryLanguage = resolvedLanguages[0];
+            return {
+                engine: engineForRecognition,
+                language: primaryLanguage,
+                languages: resolvedLanguages
+            };
+        };
+
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
         const moveItem = (array, from, to) => {
             const arr = [...array];
@@ -1774,29 +1800,22 @@
 
             const startDictation = (target) => {
                 if (micSupportError) return alert(micSupportError);
-                const preferredEngineId = settings.speechToText?.preferredEngine;
-                const preferredEngine = speechEngines.find((engine) => engine.id === preferredEngineId);
-                const fallbackEngine = speechEngines.find((engine) => engine.id === 'browser' && engine.available)
-                    || speechEngines.find((engine) => engine.available)
-                    || speechEngines[0];
-                const engineForRecognition = preferredEngine && (preferredEngine.available || preferredEngine.id === 'ai-assisted')
-                    ? preferredEngine
-                    : fallbackEngine;
+                const { engine: engineForRecognition, language } = resolveRecognitionConfig(
+                    speechEngines,
+                    settings.speechToText
+                );
 
-                if (engineForRecognition && !engineForRecognition.available && engineForRecognition.id !== 'ai-assisted') {
-                    alert(`${engineForRecognition.label} no está disponible en este dispositivo. Se usará el motor del navegador.`);
+                if (!engineForRecognition?.available && engineForRecognition?.id !== 'ai-assisted') {
+                    alert(`${engineForRecognition?.label || 'Motor seleccionado'} no está disponible en este dispositivo. Se usará el motor del navegador.`);
                 }
 
-                const engineLanguages = resolvePreferredLanguages(
-                    engineForRecognition?.id,
-                    speechEngines,
-                    settings.speechToText?.languagePreferences
-                );
-                const recognitionLanguage = engineLanguages[0] || 'en-US';
+                if (!language) {
+                    return alert('Selecciona al menos un idioma en la configuración de voz antes de dictar.');
+                }
 
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                recognition.lang = recognitionLanguage;
+                recognition.lang = language;
                 recognition.continuous = false;
                 recognition.onstart = () => setIsRecording(true);
                 recognition.onresult = (e) => {
@@ -2634,36 +2653,23 @@
                 return () => { if (recognitionRef.current) recognitionRef.current.stop(); }
             }, []);
 
-            const resolveEngineForRecording = () => {
-                const preferredEngineId = settings.speechToText?.preferredEngine;
-                const preferredEngine = speechEngines?.find((engine) => engine.id === preferredEngineId);
-                const fallbackEngine = speechEngines?.find((engine) => engine.id === 'browser' && engine.available)
-                    || speechEngines?.find((engine) => engine.available)
-                    || speechEngines?.[0];
-
-                const engineForRecognition = preferredEngine && (preferredEngine.available || preferredEngine.id === 'ai-assisted')
-                    ? preferredEngine
-                    : fallbackEngine;
-
-                if (engineForRecognition && !engineForRecognition.available && engineForRecognition.id !== 'ai-assisted') {
-                    alert(`${engineForRecognition.label} no está disponible en este dispositivo. Se usará el motor del navegador.`);
-                }
-
-                return engineForRecognition;
-            };
-
             const startRecording = () => {
                 if (supportError) return alert(supportError);
-                const engineForRecognition = resolveEngineForRecording();
-                const engineLanguages = resolvePreferredLanguages(
-                    engineForRecognition?.id,
-                    speechEngines || [],
-                    settings.speechToText?.languagePreferences
+                const { engine: engineForRecognition, language } = resolveRecognitionConfig(
+                    speechEngines,
+                    settings.speechToText
                 );
-                const recognitionLanguage = engineLanguages[0] || 'en-US';
+
+                if (!engineForRecognition?.available && engineForRecognition?.id !== 'ai-assisted') {
+                    alert(`${engineForRecognition?.label || 'Motor seleccionado'} no está disponible en este dispositivo. Se usará el motor del navegador.`);
+                }
+
+                if (!language) {
+                    return alert('Selecciona al menos un idioma en la configuración de voz antes de dictar.');
+                }
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                recognition.lang = recognitionLanguage;
+                recognition.lang = language;
                 recognition.continuous = false;
                 recognition.onstart = () => setIsRecording(true);
                 recognition.onresult = (event) => { if(event.results[0][0].transcript) onAddNote(event.results[0][0].transcript); };
