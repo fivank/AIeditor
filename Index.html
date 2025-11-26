@@ -7,6 +7,9 @@
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -22,21 +25,29 @@
 
     <style>
         :root {
-            --color-bg: #fdf7f4;
+            --color-bg: #e8eaf6;
+            --background-color: #e8eaf6;
             --color-card: #ffffff;
             --radius-lg: 0.75rem;
             --radius-xl: 1rem;
-            --gradient-aurora: linear-gradient(135deg, #c7d2fe 0%, #fce7f3 40%, #ffedd5 80%);
+            --primary-color: #3f51b5;
+            --secondary-color: #7986cb;
+            --accent-color: #ff9800;
+            --danger-color: #e57373;
+            --success-color: #4caf50;
+            --text-color: #212121;
+            --shadow: 0 8px 22px rgba(33, 41, 64, 0.12);
+            --shadow-strong: 0 12px 26px rgba(33, 41, 64, 0.16);
+            --gradient-aurora: linear-gradient(145deg, #e8eaf6 0%, #f5f7ff 38%, #ffffff 100%);
         }
 
         /* Estilos base y utilidades */
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1), transparent 30%),
-                        radial-gradient(circle at 80% 0%, rgba(236, 72, 153, 0.12), transparent 32%),
-                        radial-gradient(circle at 50% 80%, rgba(253, 186, 116, 0.15), transparent 28%),
-                        var(--color-bg);
+            font-family: 'Roboto', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--gradient-aurora);
+            color: var(--text-color);
             margin: 0;
+            line-height: 1.6;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -45,10 +56,21 @@
             position: fixed;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.06), transparent 25%),
-                        radial-gradient(circle at 70% 40%, rgba(236, 72, 153, 0.06), transparent 20%);
-            filter: blur(30px);
+            background: radial-gradient(circle at 18% 22%, rgba(63, 81, 181, 0.12), transparent 32%),
+                        radial-gradient(circle at 78% 18%, rgba(255, 152, 0, 0.12), transparent 30%),
+                        radial-gradient(circle at 55% 78%, rgba(121, 134, 203, 0.12), transparent 26%);
+            filter: blur(38px);
             z-index: -1;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+            background: var(--background-color);
+            background-image:
+                radial-gradient(circle at 16% 18%, rgba(63, 81, 181, 0.12), transparent 28%),
+                radial-gradient(circle at 78% 12%, rgba(255, 152, 0, 0.15), transparent 32%),
+                radial-gradient(circle at 60% 76%, rgba(121, 134, 203, 0.12), transparent 28%),
+                linear-gradient(145deg, #eef0fb 0%, #f8f9ff 45%, #ffffff 100%);
         }
 
         .safe-top {
@@ -59,11 +81,17 @@
         }
 
         .card {
-            background: linear-gradient(#ffffffee, #ffffffee) padding-box,
-                        linear-gradient(135deg, rgba(129, 140, 248, 0.5), rgba(236, 72, 153, 0.35)) border-box;
+            background: var(--card-background, #ffffff);
             border-radius: var(--radius-xl);
-            border: 1px solid transparent;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            border: 1px solid #dfe3f7;
+            box-shadow: var(--shadow);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-strong);
+            border-color: rgba(63, 81, 181, 0.35);
         }
 
         .card-tap {
@@ -81,9 +109,79 @@
             border-radius: 9999px;
             padding: 0.35rem;
             font-size: 0.75rem;
+            color: var(--primary-color);
+            background: rgba(63, 81, 181, 0.08);
+            border: 1px solid rgba(63, 81, 181, 0.1);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .icon-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(33, 41, 64, 0.12);
+            background: rgba(63, 81, 181, 0.12);
         }
         .icon-btn-sm {
             padding: 0.25rem;
+        }
+
+        button {
+            border-radius: 10px;
+            font-weight: 600;
+            transition: background-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(33, 41, 64, 0.14);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 6px 12px rgba(33, 41, 64, 0.12);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .btn-secondary {
+            background-color: var(--accent-color);
+            color: #3d2b00;
+            border: none;
+        }
+
+        .btn-ghost {
+            background: rgba(63, 81, 181, 0.08);
+            color: var(--primary-color);
+            border: 1px solid rgba(63, 81, 181, 0.18);
+        }
+
+        .note-chip {
+            padding: 1rem;
+            border-radius: var(--radius-xl);
+            border: 1px solid #dfe3f7;
+            background: linear-gradient(135deg, #ffffff, #fbfcff);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .note-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-strong);
+            border-color: rgba(63, 81, 181, 0.35);
+        }
+
+        .note-chip--selected {
+            background: linear-gradient(135deg, rgba(63, 81, 181, 0.08), rgba(255, 152, 0, 0.08));
+            border-color: rgba(63, 81, 181, 0.4);
+            box-shadow: 0 12px 30px rgba(63, 81, 181, 0.14);
         }
 
         /* Animación de carga */
@@ -114,11 +212,11 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
         .glass-panel {
-            background: linear-gradient(120deg, rgba(255,255,255,0.85), rgba(255,255,255,0.78)) padding-box,
-                        linear-gradient(120deg, rgba(99,102,241,0.25), rgba(236,72,153,0.2)) border-box;
+            background: linear-gradient(120deg, rgba(255,255,255,0.9), rgba(255,255,255,0.82)) padding-box,
+                        linear-gradient(120deg, rgba(63,81,181,0.35), rgba(121,134,203,0.25)) border-box;
             border: 1px solid transparent;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(18px);
+            box-shadow: 0 14px 32px rgba(33, 41, 64, 0.14);
+            backdrop-filter: blur(14px);
         }
 
         /* Estilos del editor y visualización de notas */
@@ -665,11 +763,11 @@
             const showMoveControls = moveModeActive && (onMoveUp || onMoveDown);
             const previewText = collapsed ? getNotePreview(note.content, previewLength) : null;
 
-            return (
-                <div
-                    {...moveHandlers}
-                    className={`p-4 rounded-xl shadow-md border transition relative cursor-pointer select-none backdrop-blur-sm ${isSelected ? 'bg-gradient-to-r from-indigo-50 via-rose-50 to-amber-50 border-indigo-300 ring-2 ring-rose-200' : 'bg-white/90 border-white/60 hover:shadow-lg'}`}
-                    onClick={(e) => {
+                return (
+                    <div
+                        {...moveHandlers}
+                        className={`note-chip relative cursor-pointer select-none backdrop-blur-sm ${isSelected ? 'note-chip--selected' : ''}`}
+                        onClick={(e) => {
                         moveHandlers.onClick?.(e);
                         if (e.defaultPrevented) return;
                         if (selectionMode) {
@@ -1569,7 +1667,7 @@
 
                 return (
                     <>
-                    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-indigo-50 to-rose-50">
+                    <div className="app-shell">
                         <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
                         <div className="p-4 max-w-md mx-auto space-y-6">
                             
@@ -1761,7 +1859,7 @@
             if (view === 'home') {
                 return (
                     <>
-                    <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50 via-rose-50 to-amber-50">
+                    <div className="app-shell flex flex-col">
                         <Header title="Mis Libros" accentClass="text-blue-800" />
 
                         <main className="flex-1 px-4 pt-4 pb-24 max-w-md mx-auto w-full">
@@ -2295,7 +2393,7 @@
             };
 
             return (
-                <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-50 via-sky-50 to-amber-50">
+                <div className="app-shell flex flex-col">
                     <header className="glass-panel sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-200">
                         <div className="flex items-center gap-2">
                             <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 text-gray-600"><Icons.ChevronLeft /></button>
