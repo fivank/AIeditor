@@ -402,6 +402,14 @@
             ];
         };
 
+        const resolvePreferredLanguages = (engineId, engines, languagePreferences = {}) => {
+            const engine = engines.find((eng) => eng.id === engineId);
+            const preferred = languagePreferences?.[engineId];
+            if (preferred && preferred.length > 0) return preferred;
+            if (engine?.languages?.length > 0) return engine.languages.map((lang) => lang.code);
+            return [];
+        };
+
         const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
         const moveItem = (array, from, to) => {
             const arr = [...array];
@@ -1790,12 +1798,27 @@
                 if (micSupportError) return alert(micSupportError);
                 const preferredEngineId = settings.speechToText?.preferredEngine;
                 const preferredEngine = speechEngines.find((engine) => engine.id === preferredEngineId);
-                if (preferredEngine && !preferredEngine.available && preferredEngine.id !== 'ai-assisted') {
-                    alert(`${preferredEngine.label} no está disponible en este dispositivo. Se usará el motor del navegador.`);
+                const fallbackEngine = speechEngines.find((engine) => engine.id === 'browser' && engine.available)
+                    || speechEngines.find((engine) => engine.available)
+                    || speechEngines[0];
+                const engineForRecognition = preferredEngine && (preferredEngine.available || preferredEngine.id === 'ai-assisted')
+                    ? preferredEngine
+                    : fallbackEngine;
+
+                if (engineForRecognition && !engineForRecognition.available && engineForRecognition.id !== 'ai-assisted') {
+                    alert(`${engineForRecognition.label} no está disponible en este dispositivo. Se usará el motor del navegador.`);
                 }
+
+                const engineLanguages = resolvePreferredLanguages(
+                    engineForRecognition?.id,
+                    speechEngines,
+                    settings.speechToText?.languagePreferences
+                );
+                const recognitionLanguage = engineLanguages[0] || 'en-US';
+
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
-                recognition.lang = 'en-US';
+                recognition.lang = recognitionLanguage;
                 recognition.continuous = false;
                 recognition.onstart = () => setIsRecording(true);
                 recognition.onresult = (e) => {
