@@ -626,6 +626,7 @@
             const [fontSize, setFontSize] = useState(16);
             const [highlightColor, setHighlightColor] = useState('#fef3c7');
             const [textColor, setTextColor] = useState('#7c3aed');
+            const selectionRef = useRef(null);
             const [activeFormats, setActiveFormats] = useState({
                 bold: false,
                 italic: false,
@@ -676,8 +677,25 @@
 
             const colorsEqual = (a, b) => normalizeHex(a) === normalizeHex(b);
 
+            const saveSelection = () => {
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0) return;
+                const range = selection.getRangeAt(0);
+                if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
+                    selectionRef.current = range.cloneRange();
+                }
+            };
+
+            const restoreSelection = () => {
+                const selection = window.getSelection();
+                if (!selection || !selectionRef.current) return;
+                selection.removeAllRanges();
+                selection.addRange(selectionRef.current);
+            };
+
             const syncCommandStates = () => {
                 if (!editorRef.current) return;
+                saveSelection();
                 const highlightValue = document.queryCommandValue('hiliteColor');
                 const textColorValue = document.queryCommandValue('foreColor');
 
@@ -698,6 +716,7 @@
 
             const format = (command, arg = null) => {
                 if (!editorRef.current) return;
+                restoreSelection();
                 document.execCommand(command, false, arg);
                 editorRef.current.focus();
                 onChange(editorRef.current.innerHTML);
@@ -706,12 +725,14 @@
 
             const applyFontFamily = (family) => {
                 setFontFamily(family);
+                restoreSelection();
                 format('fontName', family);
             };
 
             const applyFontSize = (size) => {
                 if (!editorRef.current) return;
                 setFontSize(size);
+                restoreSelection();
                 const sizeMap = { 10: 2, 11: 2, 12: 3, 14: 4, 16: 5, 18: 6, 20: 7 };
                 const commandSize = sizeMap[size] || 3;
                 document.execCommand('fontSize', false, commandSize);
@@ -726,16 +747,20 @@
 
                 editorRef.current.focus();
                 onChange(editorRef.current.innerHTML);
+                syncCommandStates();
             };
 
             const applyHighlight = (color) => {
+                restoreSelection();
                 const current = document.queryCommandValue('hiliteColor');
                 const shouldClear = colorsEqual(current, color);
                 setHighlightColor(color);
                 format('hiliteColor', shouldClear ? 'transparent' : color);
+                setActiveFormats((prev) => ({ ...prev, highlight: !shouldClear }));
             };
 
             const applyTextColor = (color) => {
+                restoreSelection();
                 const current = document.queryCommandValue('foreColor');
                 const shouldClear = colorsEqual(current, color);
                 setTextColor(color);
@@ -766,7 +791,10 @@
                     </div>
                     <div className="px-3 py-2 bg-slate-50 border-b">
                         <div className="overflow-x-auto pb-2">
-                            <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 min-w-full">
+                            <div
+                                className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 min-w-full"
+                                onMouseDown={saveSelection}
+                            >
                                 <select
                                     value={fontFamily}
                                     onChange={(e) => applyFontFamily(e.target.value)}
