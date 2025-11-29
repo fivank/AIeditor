@@ -295,6 +295,7 @@
             ),
             Wand: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>,
             Merge: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3"/><path d="M12 12.3v9.3"/><path d="m8 18 4 4 4-4"/></svg>,
+            Link: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l2.92-2.92a5 5 0 0 0-7.07-7.07l-1.43 1.43" /><path d="M14 11a5 5 0 0 0-7.54-.54l-2.92 2.92a5 5 0 1 0 7.07 7.07l1.43-1.43" /></svg>,
             Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
             Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
@@ -454,6 +455,83 @@
             const looksLikeHtml = /<[^>]+>/.test(trimmed);
             if (looksLikeHtml) return trimmed;
             return `<p>${escapeHtml(trimmed).replace(/\n/g, '<br>')}</p>`;
+        };
+
+        const isValidHttpUrl = (text) => {
+            try {
+                const url = new URL(text.trim());
+                return ['http:', 'https:'].includes(url.protocol);
+            } catch (e) {
+                return false;
+            }
+        };
+
+        const shortenUrl = (url) => {
+            try {
+                const u = new URL(url);
+                const host = u.hostname.replace(/^www\./, '');
+                const path = u.pathname.replace(/\/$/, '');
+                const compactPath = path && path !== '/' ? path : '';
+                const finalPath = compactPath.length > 28 ? `${compactPath.slice(0, 28)}…` : compactPath;
+                return `${host}${finalPath ? `/${finalPath}` : ''}`;
+            } catch (e) {
+                return url;
+            }
+        };
+
+        const getYoutubeThumbnail = (url) => {
+            const host = url.hostname.replace(/^www\./, '');
+            if (host === 'youtu.be') {
+                const id = url.pathname.replace('/', '');
+                return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+            }
+            if (host.includes('youtube.com')) {
+                const id = new URLSearchParams(url.search).get('v');
+                return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+            }
+            return null;
+        };
+
+        const fetchLinkMetadata = async (rawUrl) => {
+            const url = new URL(rawUrl.trim());
+            let title = '';
+            let thumbnail = getYoutubeThumbnail(url);
+            try {
+                const jinaResponse = await fetch(`https://r.jina.ai/${url.href}`);
+                if (jinaResponse.ok) {
+                    const text = await jinaResponse.text();
+                    const foundTitle = text.match(/<title>(.*?)<\/title>/i)?.[1];
+                    const ogImage = text.match(/property="og:image" content="(.*?)"/i)?.[1]
+                        || text.match(/property='og:image' content='(.*?)'/i)?.[1];
+                    if (foundTitle) title = foundTitle;
+                    if (!thumbnail && ogImage) thumbnail = ogImage;
+                }
+            } catch (e) {
+                console.warn('No se pudo extraer metadata del enlace', e);
+            }
+
+            if (!thumbnail) {
+                const favIcon = `https://www.google.com/s2/favicons?sz=128&domain_url=${url.origin}`;
+                thumbnail = favIcon;
+            }
+
+            const displayUrl = shortenUrl(url.href);
+            const fallbackTitle = title?.trim() || url.hostname.replace(/^www\./, '');
+            return { title: fallbackTitle, thumbnail, displayUrl };
+        };
+
+        const buildLinkNote = async (rawUrl) => {
+            const normalizedUrl = rawUrl.trim();
+            if (!isValidHttpUrl(normalizedUrl)) throw new Error('No se encontró una URL válida en el portapapeles.');
+            const metadata = await fetchLinkMetadata(normalizedUrl);
+            return {
+                id: generateId(),
+                type: 'link',
+                url: normalizedUrl,
+                meta: metadata,
+                content: normalizeContent(metadata.title || metadata.displayUrl || normalizedUrl),
+                timestamp: Date.now()
+            };
         };
         const buildDestinations = (books, source) => {
             const options = [];
@@ -929,7 +1007,47 @@
         const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, moveHandlers = {}, moveModeActive = false, collapsed = false, previewLength = 140 }) => {
             const { onEdit, onMoveUp, onMoveDown } = actions;
             const showMoveControls = moveModeActive && (onMoveUp || onMoveDown);
-            const previewText = collapsed ? getNotePreview(note.content, previewLength) : null;
+            const isLinkNote = note?.type === 'link' && note?.url;
+            const linkHost = (() => {
+                try { return new URL(note.url).hostname.replace(/^www\./, ''); } catch (e) { return note.url || ''; }
+            })();
+            const previewText = collapsed
+                ? (isLinkNote ? (note?.meta?.title || shortenUrl(note.url || '')) : getNotePreview(note.content, previewLength))
+                : null;
+
+            const handleLinkOpen = () => {
+                if (!isLinkNote || !note.url) return;
+                window.open(note.url, '_blank', 'noopener,noreferrer');
+            };
+
+            const renderLinkCard = () => {
+                const title = note?.meta?.title || linkHost;
+                const subtitle = note?.meta?.displayUrl || shortenUrl(note.url || '');
+                const thumbnail = note?.meta?.thumbnail;
+                return (
+                    <div className="flex gap-3 items-center">
+                        <div className="w-24 h-16 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+                            {thumbnail
+                                ? <img src={thumbnail} alt={title} className="w-full h-full object-cover" />
+                                : (
+                                    <div className="flex flex-col items-center text-[11px] text-slate-500">
+                                        <Icons.Link />
+                                        <span>Enlace</span>
+                                    </div>
+                                )
+                            }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{title}</p>
+                            <p className="text-xs text-slate-500 truncate">{subtitle}</p>
+                            <p className="text-[11px] text-indigo-600 flex items-center gap-1 mt-1">
+                                <Icons.Link />
+                                <span className="truncate">{linkHost}</span>
+                            </p>
+                        </div>
+                    </div>
+                );
+            };
 
             return (
                 <div
@@ -942,6 +1060,10 @@
                             onCardClick?.(e);
                             return;
                         }
+                        if (isLinkNote && !moveModeActive) {
+                            handleLinkOpen();
+                            return;
+                        }
                         if (onEdit && !moveModeActive) {
                             onEdit();
                             return;
@@ -949,11 +1071,12 @@
                         onCardClick?.(e);
                     }}
                 >
-                    {collapsed ? (
-                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{previewText}</p>
-                    ) : (
-                        <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
-                    )}
+                    {isLinkNote
+                        ? renderLinkCard()
+                        : collapsed
+                            ? <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{previewText}</p>
+                            : <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
+                    }
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         {showMoveControls && (
@@ -1490,6 +1613,15 @@
                 if (!content || !content.trim()) return;
                 const cleanContent = normalizeContent(content);
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, { id: generateId(), content: cleanContent, timestamp: Date.now() }] } : c) } : b));
+                requestImmediateFirestoreSave();
+            };
+
+            const addLinkNote = (bookId, chapterId, note) => {
+                if (!note || !note.url) return;
+                setBooks(books.map(b => b.id === bookId ? {
+                    ...b,
+                    chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c)
+                } : b));
                 requestImmediateFirestoreSave();
             };
 
@@ -2689,6 +2821,7 @@
                     <>
                     <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
                         onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
+                        onAddLinkNote={(note) => addLinkNote(activeBookId, activeChapter.id, note)}
                         onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
                         editNote={editNote}
                         settings={settings} speechEngines={speechEngines} setLoading={setLoading}
@@ -2705,7 +2838,7 @@
         }
 
         // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, onBack, onAddNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions }) {
+        function NoteManager({ bookId, chapter, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions }) {
             const [isRecording, setIsRecording] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             const [selectionMode, setSelectionMode] = useState(false);
@@ -2714,6 +2847,7 @@
             const [editingNoteId, setEditingNoteId] = useState(null);
             const recognitionRef = useRef(null);
             const [supportError, setSupportError] = useState(null);
+            const [linkLoading, setLinkLoading] = useState(false);
 
             const reorderNotesByIndex = useCallback((from, to) => {
                 onUpdateNotes(moveItem(chapter.notes, from, to));
@@ -2773,6 +2907,25 @@
                     onAddNote(noteDraft);
                 }
                 closeNoteModal();
+            };
+
+            const handleAddLinkFromClipboard = async () => {
+                if (!navigator?.clipboard?.readText) {
+                    alert('Tu navegador no permite leer el portapapeles automáticamente.');
+                    return;
+                }
+                try {
+                    setLinkLoading(true);
+                    const clipboardText = await navigator.clipboard.readText();
+                    const linkNote = await buildLinkNote(clipboardText);
+                    onAddLinkNote?.(linkNote);
+                    setSelectionMode(false);
+                    setSelectedIds([]);
+                } catch (e) {
+                    alert(e.message || 'No se pudo crear la nota de enlace.');
+                } finally {
+                    setLinkLoading(false);
+                }
             };
 
             const reorderNote = (id, direction) => {
@@ -2948,6 +3101,14 @@
                     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                         {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleAddLinkFromClipboard}
+                                disabled={linkLoading}
+                                className={`w-12 h-12 rounded-full bg-white border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition ${linkLoading ? 'opacity-80 cursor-wait' : ''}`}
+                                title="Añadir enlace desde portapapeles"
+                            >
+                                {linkLoading ? <span className="w-5 h-5 border-2 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></span> : <Icons.Link />}
+                            </button>
                             <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
                                 <Icons.Pencil />
                             </button>
