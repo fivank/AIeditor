@@ -808,7 +808,7 @@
                                     onChange={(e) => applyFontFamily(e.target.value)}
                                     onPointerDown={rememberSelectionBeforeToolbarInteraction}
                                     onFocus={rememberSelectionBeforeToolbarInteraction}
-                                    className="h-8 rounded-md border bg-white px-2 text-xs shadow-sm min-w-[8rem]"
+                                    className="h-8 rounded-md border bg-white px-1.5 text-xs shadow-sm w-[3.6rem] min-w-[3.6rem] truncate"
                                 >
                                     {['Calibri', 'Arial', 'Georgia', 'Times New Roman', 'Segoe UI', 'Roboto'].map((font) => (
                                         <option key={font} value={font}>{font}</option>
@@ -819,7 +819,7 @@
                                     onChange={(e) => applyFontSize(Number(e.target.value))}
                                     onPointerDown={rememberSelectionBeforeToolbarInteraction}
                                     onFocus={rememberSelectionBeforeToolbarInteraction}
-                                    className="h-8 rounded-md border bg-white px-2 text-xs shadow-sm min-w-[4.5rem]"
+                                    className="h-8 rounded-md border bg-white px-1.5 text-xs shadow-sm w-[2rem] min-w-[2rem]"
                                 >
                                     {[10, 11, 12, 14, 16, 18, 20].map((size) => (
                                         <option key={size} value={size}>{size}</option>
