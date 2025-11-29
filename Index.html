@@ -695,13 +695,6 @@
             const restoreSelection = () => {
                 const selection = window.getSelection();
                 if (!selection || !selectionRef.current) return;
-
-                // Ensure the editable field regains focus before applying the range.
-                // Mobile browsers ignore selections on unfocused elements, which caused
-                // the range to be lost when opening dropdowns like font size/family.
-                if (editorRef.current) {
-                    editorRef.current.focus({ preventScroll: true });
-                }
                 selection.removeAllRanges();
                 selection.addRange(selectionRef.current);
             };
