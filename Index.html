@@ -686,6 +686,12 @@
                 }
             };
 
+            const rememberSelectionBeforeToolbarInteraction = () => {
+                // Pointer/touch interactions on mobile clear the editable selection.
+                // Capture the current range so formatting commands can restore it.
+                saveSelection();
+            };
+
             const restoreSelection = () => {
                 const selection = window.getSelection();
                 if (!selection || !selectionRef.current) return;
@@ -795,11 +801,13 @@
                         <div className="overflow-x-auto pb-2">
                             <div
                                 className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 min-w-full"
-                                onMouseDown={saveSelection}
+                                onPointerDown={rememberSelectionBeforeToolbarInteraction}
                             >
                                 <select
                                     value={fontFamily}
                                     onChange={(e) => applyFontFamily(e.target.value)}
+                                    onPointerDown={rememberSelectionBeforeToolbarInteraction}
+                                    onFocus={rememberSelectionBeforeToolbarInteraction}
                                     className="h-8 rounded-md border bg-white px-2 text-xs shadow-sm min-w-[8rem]"
                                 >
                                     {['Calibri', 'Arial', 'Georgia', 'Times New Roman', 'Segoe UI', 'Roboto'].map((font) => (
@@ -809,6 +817,8 @@
                                 <select
                                     value={fontSize}
                                     onChange={(e) => applyFontSize(Number(e.target.value))}
+                                    onPointerDown={rememberSelectionBeforeToolbarInteraction}
+                                    onFocus={rememberSelectionBeforeToolbarInteraction}
                                     className="h-8 rounded-md border bg-white px-2 text-xs shadow-sm min-w-[4.5rem]"
                                 >
                                     {[10, 11, 12, 14, 16, 18, 20].map((size) => (
