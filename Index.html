@@ -622,7 +622,6 @@
 
         const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
             const editorRef = useRef(null);
-            const savedSelection = useRef(null);
             const [fontFamily, setFontFamily] = useState('Calibri');
             const [fontSize, setFontSize] = useState(16);
             const [highlightColor, setHighlightColor] = useState('#fef3c7');
@@ -655,10 +654,7 @@
 
             useEffect(() => {
                 if (!isOpen) return;
-                const handleSelectionChange = () => {
-                    updateSavedSelection();
-                    syncCommandStates();
-                };
+                const handleSelectionChange = () => syncCommandStates();
                 document.addEventListener('selectionchange', handleSelectionChange);
                 return () => document.removeEventListener('selectionchange', handleSelectionChange);
             }, [isOpen]);
@@ -679,22 +675,6 @@
             };
 
             const colorsEqual = (a, b) => normalizeHex(a) === normalizeHex(b);
-
-            const updateSavedSelection = () => {
-                const selection = window.getSelection();
-                if (!selection || selection.rangeCount === 0) return;
-                const range = selection.getRangeAt(0);
-                if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
-                    savedSelection.current = range;
-                }
-            };
-
-            const restoreSelection = () => {
-                if (!savedSelection.current) return;
-                const selection = window.getSelection();
-                selection?.removeAllRanges();
-                selection?.addRange(savedSelection.current);
-            };
 
             const syncCommandStates = () => {
                 if (!editorRef.current) return;
@@ -718,12 +698,10 @@
 
             const format = (command, arg = null) => {
                 if (!editorRef.current) return;
-                restoreSelection();
                 document.execCommand(command, false, arg);
                 editorRef.current.focus();
                 onChange(editorRef.current.innerHTML);
                 syncCommandStates();
-                updateSavedSelection();
             };
 
             const applyFontFamily = (family) => {
@@ -733,7 +711,6 @@
 
             const applyFontSize = (size) => {
                 if (!editorRef.current) return;
-                restoreSelection();
                 setFontSize(size);
                 const sizeMap = { 10: 2, 11: 2, 12: 3, 14: 4, 16: 5, 18: 6, 20: 7 };
                 const commandSize = sizeMap[size] || 3;
@@ -749,27 +726,20 @@
 
                 editorRef.current.focus();
                 onChange(editorRef.current.innerHTML);
-                updateSavedSelection();
             };
 
             const applyHighlight = (color) => {
-                restoreSelection();
                 const current = document.queryCommandValue('hiliteColor');
                 const shouldClear = colorsEqual(current, color);
                 setHighlightColor(color);
                 format('hiliteColor', shouldClear ? 'transparent' : color);
-                if (shouldClear) {
-                    setActiveFormats((prev) => ({ ...prev, highlight: false }));
-                }
             };
 
             const applyTextColor = (color) => {
-                restoreSelection();
                 const current = document.queryCommandValue('foreColor');
                 const shouldClear = colorsEqual(current, color);
                 setTextColor(color);
                 format('foreColor', shouldClear ? '#000000' : color);
-                updateSavedSelection();
             };
 
             const handleInput = () => {
@@ -799,7 +769,6 @@
                             <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 min-w-full">
                                 <select
                                     value={fontFamily}
-                                    onMouseDown={updateSavedSelection}
                                     onChange={(e) => applyFontFamily(e.target.value)}
                                     className="h-8 rounded-md border bg-white px-2 text-xs shadow-sm min-w-[8rem]"
                                 >
@@ -809,7 +778,6 @@
                                 </select>
                                 <select
                                     value={fontSize}
-                                    onMouseDown={updateSavedSelection}
                                     onChange={(e) => applyFontSize(Number(e.target.value))}
                                     className="h-8 rounded-md border bg-white px-2 text-xs shadow-sm min-w-[4.5rem]"
                                 >
