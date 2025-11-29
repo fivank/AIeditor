@@ -682,7 +682,7 @@
                 if (!selection || selection.rangeCount === 0) return;
                 const range = selection.getRangeAt(0);
                 if (editorRef.current && editorRef.current.contains(range.commonAncestorContainer)) {
-                    selectionRef.current = range;
+                    selectionRef.current = range.cloneRange();
                 }
             };
 
@@ -748,11 +748,17 @@
             };
 
             const applyHighlight = (color) => {
+                saveSelection();
                 restoreSelection();
                 const current = document.queryCommandValue('hiliteColor');
                 const shouldClear = colorsEqual(current, color);
                 setHighlightColor(color);
-                format('hiliteColor', shouldClear ? 'transparent' : color);
+
+                if (shouldClear) {
+                    format('hiliteColor', 'transparent');
+                } else {
+                    format('hiliteColor', color);
+                }
             };
 
             const applyTextColor = (color) => {
