@@ -322,8 +322,16 @@
         const LOCAL_USAGE_KEY = 'voiceNotes_lastUse';
         const FIRESTORE_SYNC_KEY = 'voiceNotes_lastFirestoreSync';
         const SESSION_KEY = 'voiceNotes_sessionId';
+        const COLLECTIONS_STORAGE_KEY = 'voiceNotes_collections';
+        const LIBRARY_VIEW_STORAGE_KEY = 'voiceNotes_libraryView';
         const LOCAL_RECENCY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
         const AUTO_FIRESTORE_SAVE_DELAY = 2 * 60 * 1000; // 2 minutos
+
+        const DEFAULT_COLLECTION = {
+            id: 'uncollected',
+            title: 'Sin colección',
+            description: 'Libros sin colección asignada'
+        };
 
         const firebaseConfig = {
             apiKey: "AIzaSyA-wfyW4A1x0OhlBnnPhN2xwgs8N0e_3ek",
@@ -334,8 +342,17 @@
             appId: "1:924785765286:web:42b733d5914b095bbf7d67"
         };
 
+        const ensureCollectionList = (list = []) => {
+            const hasDefault = list.some(c => c.id === DEFAULT_COLLECTION.id);
+            if (hasDefault) {
+                return list.map(c => c.id === DEFAULT_COLLECTION.id ? { ...DEFAULT_COLLECTION, ...c } : c);
+            }
+            return [{ ...DEFAULT_COLLECTION }, ...list];
+        };
+
         const normalizeBooksData = (bookList = []) => bookList.map(b => ({
             ...b,
+            collectionId: b.collectionId || DEFAULT_COLLECTION.id,
             notes: b.notes || [],
             chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
         }));
@@ -1359,6 +1376,7 @@
         // --- COMPONENTE PRINCIPAL ---
         function App() {
             const [books, setBooks] = useState([]);
+            const [collections, setCollections] = useState(ensureCollectionList([]));
             const [rootNotes, setRootNotes] = useState([]);
             const [settings, setSettings] = useState({
                 apiKey: DEFAULT_API_KEY,
@@ -1373,6 +1391,7 @@
             const [loading, setLoading] = useState(false);
             const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
             const [testMsg, setTestMsg] = useState("");
+            const [libraryView, setLibraryView] = useState('list');
             const [selectedBookIds, setSelectedBookIds] = useState([]);
             const [bookSelectionMode, setBookSelectionMode] = useState(false);
             const [activeSelectedBookId, setActiveSelectedBookId] = useState(null);
@@ -1439,10 +1458,14 @@
 
                 const savedBooks = localStorage.getItem('voiceNotes_books');
                 const savedSettings = localStorage.getItem('voiceNotes_settings');
+                const savedCollections = localStorage.getItem(COLLECTIONS_STORAGE_KEY);
+                const savedLibraryView = localStorage.getItem(LIBRARY_VIEW_STORAGE_KEY);
                 if (savedBooks) {
                     const parsed = JSON.parse(savedBooks);
                     setBooks(normalizeBooksData(parsed));
                 }
+                if (savedCollections) setCollections(ensureCollectionList(JSON.parse(savedCollections)));
+                if (savedLibraryView) setLibraryView(savedLibraryView);
                 const savedRoot = localStorage.getItem('voiceNotes_rootNotes');
                 if (savedRoot) setRootNotes(JSON.parse(savedRoot));
                 if (savedSettings) {
@@ -1468,9 +1491,15 @@
                 setDataLoaded(true);
             }, []);
 
+            useEffect(() => {
+                setCollections(prev => ensureCollectionList(prev));
+            }, []);
+
             useEffect(() => { localStorage.setItem('voiceNotes_books', JSON.stringify(books)); }, [books]);
             useEffect(() => { localStorage.setItem('voiceNotes_settings', JSON.stringify(settings)); }, [settings]);
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
+            useEffect(() => { localStorage.setItem(COLLECTIONS_STORAGE_KEY, JSON.stringify(ensureCollectionList(collections))); }, [collections]);
+            useEffect(() => { localStorage.setItem(LIBRARY_VIEW_STORAGE_KEY, libraryView); }, [libraryView]);
             useEffect(() => {
                 if (!dataLoaded) return;
                 localStorage.setItem(LOCAL_USAGE_KEY, String(Date.now()));
@@ -1538,7 +1567,7 @@
             }, []);
 
             // Helpers de navegación y datos
-            const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [], notes: [] }]);
+            const addBook = (title) => setBooks([...books, { id: generateId(), title, chapters: [], notes: [], collectionId: DEFAULT_COLLECTION.id }]);
             const renameBook = (id, title) => {
                 setBooks(books.map(b => b.id === id ? { ...b, title } : b));
                 requestImmediateFirestoreSave();
@@ -1579,6 +1608,7 @@
                     ...book,
                     id: generateId(),
                     title: `${book.title} (copia)`,
+                    collectionId: book.collectionId || DEFAULT_COLLECTION.id,
                     notes: (book.notes || []).map(cloneNote),
                     chapters: book.chapters.map(ch => ({
                         ...ch,
@@ -1588,6 +1618,24 @@
                 };
                 setBooks([...books, copy]);
                 requestImmediateFirestoreSave();
+            };
+            const addCollection = (title) => {
+                const trimmed = title?.trim();
+                if (!trimmed) return;
+                const exists = collections.some(c => c.title.toLowerCase() === trimmed.toLowerCase());
+                const next = [...ensureCollectionList(collections), { id: generateId(), title: trimmed, description: '' }];
+                setCollections(exists ? ensureCollectionList(collections) : next);
+                requestImmediateFirestoreSave();
+            };
+            const promptNewCollection = () => {
+                const title = promptForName('Nueva colección:');
+                if (title) addCollection(title);
+            };
+            const assignBookToCollection = async (bookId) => {
+                const pickerOptions = ensureCollectionList(collections).map(col => ({ label: col.title, id: col.id }));
+                const choice = await openPickerWithOptions(pickerOptions, 'Mover libro a colección');
+                if (!choice?.id) return;
+                setBooks(prev => prev.map(b => b.id === bookId ? { ...b, collectionId: choice.id } : b));
             };
             const addChapter = (bookId, title) => {
                 setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] } : b));
@@ -1833,9 +1881,11 @@
 
             const buildCloudPayload = () => ({
                 books,
+                collections: ensureCollectionList(collections),
                 rootNotes,
                 settings,
                 view,
+                libraryView,
                 activeBookId,
                 activeChapterId,
                 timestamp: Date.now()
@@ -1926,6 +1976,7 @@
                     }
                     const data = snap.data();
                     setBooks(normalizeBooksData(data.books || []));
+                    setCollections(ensureCollectionList(data.collections || []));
                     setRootNotes(data.rootNotes || []);
                     setSettings({
                         apiKey: data.settings?.apiKey || DEFAULT_API_KEY,
@@ -1934,6 +1985,7 @@
                         speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(data.settings?.speechToText || {}) }
                     });
                     setView(data.view || 'home');
+                    setLibraryView(data.libraryView || 'list');
                     setActiveBookId(data.activeBookId || null);
                     setActiveChapterId(data.activeChapterId || null);
                     setDataLoaded(true);
@@ -2434,142 +2486,254 @@
             };
 
             if (view === 'home') {
-                return (
-                    <>
-                    <div className="min-h-screen flex flex-col app-surface">
-                        <HomeHeader bookCount={books.length} />
+                const collectionsWithStats = ensureCollectionList(collections).map(col => ({
+                    ...col,
+                    bookCount: books.filter(b => (b.collectionId || DEFAULT_COLLECTION.id) === col.id).length,
+                }));
+                const viewOptions = [
+                    { id: 'list', label: 'Lista', description: 'Vista detallada', preview: 'list' },
+                    { id: 'grid', label: 'Cuadrícula', description: 'Vista compacta', preview: 'grid' },
+                    { id: 'collections', label: 'Colecciones', description: 'Agrupa tus libros', preview: 'collections' },
+                ];
+                const renderPreview = (mode) => {
+                    if (mode === 'collections') {
+                        return (
+                            <div className="grid grid-cols-2 gap-1 w-full">
+                                <span className="h-2.5 rounded-full bg-purple-200 col-span-2"></span>
+                                <span className="h-6 rounded-lg bg-purple-100"></span>
+                                <span className="h-6 rounded-lg bg-purple-50"></span>
+                            </div>
+                        );
+                    }
+                    if (mode === 'grid') {
+                        return (
+                            <div className="grid grid-cols-2 gap-1 w-full">
+                                {[...Array(4)].map((_, idx) => <span key={idx} className="h-4 rounded bg-slate-100"></span>)}
+                            </div>
+                        );
+                    }
+                    return (
+                        <div className="space-y-1 w-full">
+                            <span className="block h-2.5 w-10/12 rounded-full bg-slate-100"></span>
+                            <span className="block h-2 w-8/12 rounded-full bg-slate-100"></span>
+                            <span className="block h-2 w-6/12 rounded-full bg-slate-100"></span>
+                        </div>
+                    );
+                };
 
-                        <main className="flex-1 px-5 pt-2 pb-28 max-w-xl mx-auto w-full space-y-4">
-                            {bookSelectionMode && (
-                                <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-50 space-y-3">
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        <span className="text-sm font-semibold text-indigo-800">{selectedBookIds.length} seleccionados</span>
-                                        <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium">Cancelar</button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
-                                        <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
-                                        <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
-                                        <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
-                                    </div>
-                                </div>
-                            )}
+                const getCollectionName = (collectionId) => collectionsWithStats.find(c => c.id === collectionId)?.title || DEFAULT_COLLECTION.title;
+                const isGrid = libraryView === 'grid';
+                const renderBookCard = (book) => {
+                    const moveProps = booksMoveMode.getItemProps(book.id);
+                    const isSelected = selectedBookIds.includes(book.id);
+                    const showMoveControls = bookSelectionMode && primaryBookId === book.id;
+                    const totalNotes = (book.notes?.length || 0) + book.chapters.reduce((sum, c) => sum + (c.notes?.length || 0), 0);
+                    const baseClasses = isGrid
+                        ? 'p-3 space-y-2'
+                        : 'flex items-center gap-3 p-4';
 
-                            {books.length === 0 && (
-                                <div className="text-center py-10 text-gray-400">
-                                    <p>No tienes libros creados.</p>
-                                </div>
-                            )}
+                    return (
+                    <div
+                        key={book.id}
+                        {...moveProps}
+                        onClick={(e) => {
+                            moveProps.onClick?.(e);
+                            if (e.defaultPrevented) return;
+                            if (bookSelectionMode) {
+                                toggleBookSelection(book.id);
+                            } else {
+                                goBook(book.id);
+                            }
+                        }}
+                        className={`relative overflow-hidden rounded-xl border ${isSelected ? 'ring-2 ring-indigo-200 bg-indigo-50/50 border-indigo-100' : 'border-slate-100 bg-white'} shadow-[0_12px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_40px_rgba(15,23,42,0.12)] transition-transform hover:-translate-y-0.5 card-tap`}
+                    >
+                        <div className={baseClasses}>
+                            <div className={`${isGrid ? 'flex items-start gap-2' : 'flex items-center gap-3'}`}>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (bookSelectionMode) {
+                                            toggleBookSelection(book.id);
+                                        } else {
+                                            goBook(book.id);
+                                        }
+                                    }}
+                                    className={`flex-shrink-0 ${isGrid ? 'w-10 h-10' : 'w-12 h-12'} rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 flex items-center justify-center shadow-inner`}
+                                >
+                                    <Icons.Book />
+                                </button>
 
-                            <div className="space-y-3">
-                                {books.map((book) => {
-                                    const moveProps = booksMoveMode.getItemProps(book.id);
-                                    const isSelected = selectedBookIds.includes(book.id);
-                                    const showMoveControls = bookSelectionMode && primaryBookId === book.id;
-                                    const totalNotes = (book.notes?.length || 0) + book.chapters.reduce((sum, c) => sum + (c.notes?.length || 0), 0);
-                                    return (
-                                    <div
-                                        key={book.id}
-                                        {...moveProps}
+                                <div className="flex-1 min-w-0 space-y-1">
+                                    <button
                                         onClick={(e) => {
-                                            moveProps.onClick?.(e);
-                                            if (e.defaultPrevented) return;
+                                            e.stopPropagation();
                                             if (bookSelectionMode) {
                                                 toggleBookSelection(book.id);
                                             } else {
                                                 goBook(book.id);
                                             }
                                         }}
-                                        className={`relative overflow-hidden rounded-xl border ${isSelected ? 'ring-2 ring-indigo-200 bg-indigo-50/50 border-indigo-100' : 'border-slate-100 bg-white'} shadow-[0_12px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_40px_rgba(15,23,42,0.12)] transition-transform hover:-translate-y-0.5 card-tap`}
+                                        className="w-full text-left"
                                     >
-                                        <div className="flex items-center gap-3 p-4">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (bookSelectionMode) {
-                                                        toggleBookSelection(book.id);
-                                                    } else {
-                                                        goBook(book.id);
-                                                    }
-                                                }}
-                                                className="flex-shrink-0 w-12 h-12 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 flex items-center justify-center shadow-inner"
-                                            >
-                                                <Icons.Book />
-                                            </button>
-
-                                            <div className="flex-1 min-w-0">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (bookSelectionMode) {
-                                                            toggleBookSelection(book.id);
-                                                        } else {
-                                                            goBook(book.id);
-                                                        }
-                                                    }}
-                                                    className="w-full text-left"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-[15px] truncate">
-                                                        {book.title}
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        {book.chapters.length} cap · {totalNotes} notas
-                                                    </p>
-                                                </button>
-                                            </div>
-
-                                            <div className="flex-shrink-0 text-slate-400 text-lg">›</div>
-
-                                            {showMoveControls && (
-                                                <div className="flex-shrink-0 flex items-center">
-                                                    <MoveControls
-                                                        onMoveUp={() => reorderBook(book.id, -1)}
-                                                        onMoveDown={() => reorderBook(book.id, 1)}
-                                                        accentClass="text-blue-800"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        <h3 className="font-semibold text-slate-900 text-[15px] truncate">
+                                            {book.title}
+                                        </h3>
+                                        <p className="text-xs text-slate-500">
+                                            {book.chapters.length} cap · {totalNotes} notas
+                                        </p>
+                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 truncate" title={getCollectionName(book.collectionId)}>
+                                            {getCollectionName(book.collectionId)}
+                                        </span>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); assignBookToCollection(book.id); }}
+                                            className="text-[11px] text-indigo-600 font-semibold"
+                                        >
+                                            Cambiar
+                                        </button>
                                     </div>
+                                </div>
+
+                                {!isGrid && <div className="flex-shrink-0 text-slate-400 text-lg">›</div>}
+                            </div>
+
+                            {showMoveControls && (
+                                <div className="flex-shrink-0 flex items-center">
+                                    <MoveControls
+                                        onMoveUp={() => reorderBook(book.id, -1)}
+                                        onMoveDown={() => reorderBook(book.id, 1)}
+                                        accentClass="text-blue-800"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    );
+                };
+
+                const renderCollections = () => (
+                    <div className="space-y-4">
+                        <p className="text-sm text-slate-500">Organiza tus libros en colecciones personalizadas.</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {collectionsWithStats.map(col => (
+                                <div key={col.id} className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 space-y-2">
+                                    <div className="text-[11px] uppercase tracking-wide text-slate-400">Colección</div>
+                                    <h3 className="font-semibold text-slate-900 truncate">{col.title}</h3>
+                                    <p className="text-xs text-slate-500">{col.bookCount} {col.bookCount === 1 ? 'libro' : 'libros'}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+
+                const renderBooks = () => (
+                    <>
+                        {bookSelectionMode && (
+                            <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-50 space-y-3">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-indigo-800">{selectedBookIds.length} seleccionados</span>
+                                    <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium">Cancelar</button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
+                                    <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
+                                    <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
+                                    <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {books.length === 0 && (
+                            <div className="text-center py-10 text-gray-400">
+                                <p>No tienes libros creados.</p>
+                            </div>
+                        )}
+
+                        <div className={isGrid ? 'grid grid-cols-2 sm:grid-cols-3 gap-3' : 'space-y-3'}>
+                            {books.map(renderBookCard)}
+                        </div>
+
+                        {rootNotes.length > 0 && (
+                            <div className="space-y-2">
+                                {rootNotes.map(note => {
+                                    const moveProps = rootNotesMoveMode.getItemProps(note.id);
+                                    return (
+                                        <NoteChip
+                                            key={note.id}
+                                            note={note}
+                                            moveHandlers={moveProps}
+                                            moveModeActive={rootNotesMoveMode.moveModeId === note.id}
+                                            actions={{
+                                                onEdit: () => openNoteModal({
+                                                    title: 'Editar nota',
+                                                    initialContent: note.content,
+                                                    onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                }),
+                                                onMoveUp: () => reorderRootNote(note.id, -1),
+                                                onMoveDown: () => reorderRootNote(note.id, 1)
+                                            }}
+                                        />
                                     );
                                 })}
                             </div>
+                        )}
+                    </>
+                );
 
-                            {rootNotes.length > 0 && (
-                                <div className="space-y-2">
-                                    {rootNotes.map(note => {
-                                        const moveProps = rootNotesMoveMode.getItemProps(note.id);
+                return (
+                    <>
+                    <div className="min-h-screen flex flex-col app-surface">
+                        <HomeHeader bookCount={books.length} />
+
+                        <main className="flex-1 px-5 pt-2 pb-28 max-w-xl mx-auto w-full space-y-4">
+                            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs uppercase tracking-wide text-slate-400">Vista</p>
+                                        <p className="text-sm font-semibold text-slate-800">Biblioteca</p>
+                                    </div>
+                                    <span className="text-[11px] text-slate-400">Previsualización</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {viewOptions.map(opt => {
+                                        const active = libraryView === opt.id;
                                         return (
-                                            <NoteChip
-                                                key={note.id}
-                                                note={note}
-                                                moveHandlers={moveProps}
-                                                moveModeActive={rootNotesMoveMode.moveModeId === note.id}
-                                                actions={{
-                                                    onEdit: () => openNoteModal({
-                                                        title: 'Editar nota',
-                                                        initialContent: note.content,
-                                                        onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
-                                                    }),
-                                                    onMoveUp: () => reorderRootNote(note.id, -1),
-                                                    onMoveDown: () => reorderRootNote(note.id, 1)
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => {
+                                                    setLibraryView(opt.id);
+                                                    if (opt.id === 'collections') cancelBookSelection();
                                                 }}
-                                            />
+                                                className={`rounded-xl border p-3 text-left space-y-2 transition ${active ? 'border-indigo-200 bg-indigo-50 shadow-inner' : 'border-slate-200 bg-white hover:border-indigo-200'}`}
+                                            >
+                                                <div className="h-10">{renderPreview(opt.preview)}</div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-800">{opt.label}</p>
+                                                    <p className="text-xs text-slate-500">{opt.description}</p>
+                                                </div>
+                                            </button>
                                         );
                                     })}
                                 </div>
-                            )}
+                            </div>
+
+                            {libraryView === 'collections' ? renderCollections() : renderBooks()}
 
                             <div className="pt-2">
                                 <button
                                     onClick={() => {
-                                        const title = promptForName("Nuevo libro:");
-                                        if (title) addBook(title);
+                                        if (libraryView === 'collections') {
+                                            promptNewCollection();
+                                        } else {
+                                            const title = promptForName("Nuevo libro:");
+                                            if (title) addBook(title);
+                                        }
                                     }}
                                     className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-500 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition"
                                 >
                                     <Icons.Plus />
-                                    <span>Crear Libro</span>
+                                    <span>{libraryView === 'collections' ? 'Nueva colección' : 'Crear Libro'}</span>
                                 </button>
                             </div>
                         </main>
