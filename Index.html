@@ -345,6 +345,7 @@
                 speechModalTitle: 'Speech settings',
                 speechModalDescription: 'Choose your preferred dictation engine and allowed languages.',
                 engineUnavailable: 'Unavailable on this device',
+                speechUnavailable: 'Browser without speech support',
                 preferredEngineLabel: 'Preferred engine',
                 aiAssist: 'AI-assisted notes',
                 aiAssistDescription: 'Enables the app to improve raw dictation with AI suggestions.',
@@ -377,10 +378,79 @@
                 libraryViewList: 'List view',
                 libraryViewGrid: 'Grid view',
                 collectionsView: 'Collections',
+                libraryViewListLabel: 'List',
+                libraryViewListDescription: 'Detailed view',
+                libraryViewGridLabel: 'Grid',
+                libraryViewGridDescription: 'Compact view',
+                collectionsViewLabel: 'Collections',
+                collectionsViewDescription: 'Group and organize',
                 sortLatest: 'Last updated',
                 sortOldest: 'Oldest first',
                 sortNewest: 'Newest',
                 sortAlpha: 'A-Z',
+                sort: 'Sort',
+                sortBy: 'Sort by',
+                move: 'Move',
+                rename: 'Rename',
+                duplicate: 'Duplicate',
+                delete: 'Delete',
+                moveToBook: 'Move to book',
+                copyToBook: 'Copy to book',
+                selectedItems: (count) => `${count} selected`,
+                selectedNotes: (count) => `${count} selected`,
+                createBook: 'Create Book',
+                createCollection: 'Create collection',
+                newNote: 'New note',
+                newBook: 'New book',
+                newChapter: 'New Chapter',
+                newQuickNote: 'New quick note',
+                newBookNote: 'New book note',
+                writeNote: 'Write note',
+                writeBookNote: 'Write book note',
+                addWrittenNote: 'Add written note',
+                note: 'Note',
+                bulletList: 'Bulleted list',
+                numberedList: 'Numbered list',
+                notePlaceholder: 'Type or paste your formatted note...'
+                bookViewSubtitle: 'Book view',
+                bookAiActions: 'Book AI actions',
+                chapterAiActions: 'Chapter AI actions',
+                chapterNumberLabel: (num) => `Chapter ${num}`,
+                notesCountLabel: (count) => `${count} ${count === 1 ? 'note' : 'notes'}`,
+                chaptersCountLabel: (count) => `${count} ${count === 1 ? 'chapter' : 'chapters'}`,
+                libraryEmpty: 'You have no books yet.',
+                bookEmpty: 'Empty book.',
+                listening: 'Listening...',
+                link: 'Link',
+                renameNote: 'Rename note',
+                concat: 'Concatenate',
+                recordANote: 'Record a note',
+                moveUp: 'Move up',
+                moveDown: 'Move down',
+                collection: 'Collection',
+                activeCollection: 'Active collection',
+                moveBooksHint: 'Move books to this collection to see previews.',
+                moreCount: (count) => `+${count} more`,
+                collectionPrefix: (name) => `Collection: ${name}`,
+                collectionExists: 'A collection with that name already exists.',
+                newCollectionPrompt: 'New collection:',
+                customCollectionDescription: 'Custom collection',
+                moveToCollection: 'Move to collection',
+                selectedChapters: (count) => `${count} selected`,
+                selectedBooks: (count) => `${count} selected`,
+                selectedNotesLabel: (count) => `${count} selected`,
+                deleteNotesConfirm: 'Delete selected notes?',
+                noOtherBooks: 'No other books available.',
+                chooseDestinationDifferent: 'Choose a different destination.',
+                clipboardNotAllowed: 'Your browser does not allow reading the clipboard automatically.',
+                linkNoteError: 'Could not create the link note.',
+                mergeSelection: 'Merge selection',
+                restyleSelection: 'Restyle selection',
+                generateFromSelection: 'Generate from selection',
+                restyleBook: 'Restyle book',
+                restyleChapter: 'Restyle chapter',
+                generateFromChapter: 'Generate new from chapter',
+                bookGeneratePrompt: 'What do you need to generate from the book?',
                 noNotes: 'No notes yet',
                 homeBooksSubtitle: (count) => `${count} ${count === 1 ? 'book' : 'books'}`,
                 settingsSaved: 'Preferences saved',
@@ -413,6 +483,7 @@
                 speechModalTitle: 'Preferencias de voz',
                 speechModalDescription: 'Elige tu motor de dictado preferido y los idiomas permitidos.',
                 engineUnavailable: 'No disponible en este dispositivo',
+                speechUnavailable: 'Navegador sin soporte de voz',
                 preferredEngineLabel: 'Motor preferido',
                 aiAssist: 'Notas asistidas por IA',
                 aiAssistDescription: 'Activa que la app mejore el dictado bruto con sugerencias de IA.',
@@ -445,10 +516,79 @@
                 libraryViewList: 'Vista de lista',
                 libraryViewGrid: 'Vista de cuadrícula',
                 collectionsView: 'Colecciones',
+                libraryViewListLabel: 'Lista',
+                libraryViewListDescription: 'Vista detallada',
+                libraryViewGridLabel: 'Grid',
+                libraryViewGridDescription: 'Vista compacta',
+                collectionsViewLabel: 'Colecciones',
+                collectionsViewDescription: 'Agrupa y organiza',
                 sortLatest: 'Más reciente',
                 sortOldest: 'Más antiguo',
                 sortNewest: 'Más nuevo',
                 sortAlpha: 'A-Z',
+                sort: 'Ordenar',
+                sortBy: 'Ordenar por',
+                move: 'Mover',
+                rename: 'Renombrar',
+                duplicate: 'Duplicar',
+                delete: 'Eliminar',
+                moveToBook: 'Mover a libro',
+                copyToBook: 'Copiar en libro',
+                selectedItems: (count) => `${count} seleccionados`,
+                selectedNotes: (count) => `${count} seleccionadas`,
+                createBook: 'Crear Libro',
+                createCollection: 'Crear colección',
+                newNote: 'Nueva nota',
+                newBook: 'Nuevo libro',
+                newChapter: 'Nuevo capítulo',
+                newQuickNote: 'Nueva nota rápida',
+                newBookNote: 'Nueva nota del libro',
+                writeNote: 'Escribir nota',
+                writeBookNote: 'Escribir nota del libro',
+                addWrittenNote: 'Añadir nota escrita',
+                note: 'Nota',
+                bulletList: 'Lista con viñetas',
+                numberedList: 'Lista numerada',
+                notePlaceholder: 'Escribe o pega tu nota con formato...'
+                bookViewSubtitle: 'Vista de Libro',
+                bookAiActions: 'Acciones IA del libro',
+                chapterAiActions: 'Acciones IA del capítulo',
+                chapterNumberLabel: (num) => `Capítulo ${num}`,
+                notesCountLabel: (count) => `${count} ${count === 1 ? 'nota' : 'notas'}`,
+                chaptersCountLabel: (count) => `${count} ${count === 1 ? 'capítulo' : 'capítulos'}`,
+                libraryEmpty: 'No tienes libros creados.',
+                bookEmpty: 'Libro vacío.',
+                listening: 'Escuchando...',
+                link: 'Enlace',
+                renameNote: 'Renombrar nota',
+                concat: 'Concatenar',
+                recordANote: 'Graba una nota',
+                moveUp: 'Mover hacia arriba',
+                moveDown: 'Mover hacia abajo',
+                collection: 'Colección',
+                activeCollection: 'Colección activa',
+                moveBooksHint: 'Mueve libros a esta colección para ver vistas previas.',
+                moreCount: (count) => `+${count} más`,
+                collectionPrefix: (name) => `Colección: ${name}`,
+                collectionExists: 'Ya existe una colección con ese nombre.',
+                newCollectionPrompt: 'Nueva colección:',
+                customCollectionDescription: 'Colección personalizada',
+                moveToCollection: 'Mover a colección',
+                selectedChapters: (count) => `${count} seleccionados`,
+                selectedBooks: (count) => `${count} seleccionados`,
+                selectedNotesLabel: (count) => `${count} seleccionadas`,
+                deleteNotesConfirm: '¿Eliminar notas seleccionadas?',
+                noOtherBooks: 'No hay otros libros disponibles.',
+                chooseDestinationDifferent: 'Elige un destino diferente.',
+                clipboardNotAllowed: 'Tu navegador no permite leer el portapapeles automáticamente.',
+                linkNoteError: 'No se pudo crear la nota de enlace.',
+                mergeSelection: 'Fusionar selección',
+                restyleSelection: 'Re-estilar selección',
+                generateFromSelection: 'Generar desde selección',
+                restyleBook: 'Re-estilar libro',
+                restyleChapter: 'Re-estilar capítulo',
+                generateFromChapter: 'Generar nuevo desde capítulo',
+                bookGeneratePrompt: '¿Qué necesitas generar a partir del libro?',
                 noNotes: 'Sin notas todavía',
                 homeBooksSubtitle: (count) => `${count} ${count === 1 ? 'libro' : 'libros'}`,
                 settingsSaved: 'Preferencias guardadas',
@@ -459,6 +599,16 @@
                 chooseLanguage: 'Elige un idioma',
                 languageSaved: 'Idioma actualizado'
             }
+        };
+
+        let activeLanguage = 'es';
+
+        const translateWithLanguage = (lang, key, params) => {
+            const value = translations[lang]?.[key] ?? translations.es[key] ?? key;
+            if (typeof value === 'function') {
+                return value(params);
+            }
+            return value;
         };
 
         // --- CONFIGURACIÓN INICIAL ---
@@ -1155,14 +1305,14 @@
                                         <path d="M7 6h11" /><path d="M7 12h11" /><path d="M7 18h11" />
                                         <path d="M4 6h.01" /><path d="M4 12h.01" /><path d="M4 18h.01" />
                                     </svg>
-                                    <span className="sr-only">Lista con viñetas</span>
+                                    <span className="sr-only">{translateWithLanguage(activeLanguage, 'bulletList')}</span>
                                 </button>
                                 <button onClick={() => format('insertOrderedList')} className={getButtonClasses(activeFormats.orderedList)}>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M6 6h12" /><path d="M6 12h12" /><path d="M6 18h12" />
                                         <path d="M4 6h.01" /><path d="M4 12h.01" /><path d="M4 18h.01" />
                                     </svg>
-                                    <span className="sr-only">Lista numerada</span>
+                                    <span className="sr-only">{translateWithLanguage(activeLanguage, 'numberedList')}</span>
                                 </button>
                             </div>
                         </div>
@@ -1172,8 +1322,8 @@
                             ref={editorRef}
                             contentEditable
                             onInput={handleInput}
-                            className="max-w-4xl mx-auto p-5 min-h-[60vh] prose prose-slate focus:outline-none editor-content"
-                            placeholder="Escribe o pega tu nota con formato..."
+                              className="max-w-4xl mx-auto p-5 min-h-[60vh] prose prose-slate focus:outline-none editor-content"
+                              placeholder={translateWithLanguage(activeLanguage, 'notePlaceholder')}
                         ></div>
                     </div>
                 </div>
@@ -1186,7 +1336,7 @@
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 active:scale-95 ${accentClass}`}
-                    aria-label="Mover hacia arriba"
+                    aria-label={translateWithLanguage(activeLanguage, 'moveUp')}
                 >
                     ▲
                 </button>
@@ -1194,7 +1344,7 @@
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 active:scale-95 ${accentClass}`}
-                    aria-label="Mover hacia abajo"
+                    aria-label={translateWithLanguage(activeLanguage, 'moveDown')}
                 >
                     ▼
                 </button>
@@ -1211,10 +1361,10 @@
             const text = getPlainTextFromHtml(htmlContent);
             const firstLine = text.split(/\n/).map(line => line.trim()).find(Boolean);
 
-            if (!firstLine) return 'Nueva nota';
+            if (!firstLine) return translateWithLanguage(activeLanguage, 'newNote');
 
             const firstSentence = firstLine.split(/(?<=[.!?])\s+/).find(Boolean);
-            return (firstSentence || firstLine || '').trim() || 'Nueva nota';
+            return (firstSentence || firstLine || '').trim() || translateWithLanguage(activeLanguage, 'newNote');
         };
 
         const getNoteBodyPreview = (note, limit = 140) => {
@@ -1254,7 +1404,7 @@
                                 : (
                                     <div className="flex flex-col items-center text-[11px] text-slate-500">
                                         <Icons.Link />
-                                        <span>Enlace</span>
+                                        <span>{translateWithLanguage(activeLanguage, 'link')}</span>
                                     </div>
                                 )
                             }
@@ -1684,17 +1834,16 @@
                 const browserLang = navigator.language?.toLowerCase?.() || '';
                 return browserLang.startsWith('es') ? 'es' : 'en';
             });
+            activeLanguage = language;
 
             const speechEngines = useMemo(() => detectSpeechEngines(), []);
             const availableCollections = useMemo(() => ensureCollectionsWithDefault(collections), [collections]);
             const currentLanguage = useMemo(() => SUPPORTED_LANGUAGES.find((l) => l.code === language) || SUPPORTED_LANGUAGES[0], [language]);
-            const t = useCallback((key, params) => {
-                const value = translations[language]?.[key] ?? translations.es[key] ?? key;
-                if (typeof value === 'function') {
-                    return value(params);
-                }
-                return value;
+            useEffect(() => {
+                activeLanguage = language;
             }, [language]);
+
+            const t = useCallback((key, params) => translateWithLanguage(language, key, params), [language]);
 
             const getCollectionName = useCallback((collectionId) => {
                 const found = availableCollections.find(c => c.id === collectionId);
@@ -1706,7 +1855,7 @@
                 const chapterNotes = (book.chapters || []).flatMap(ch => ch.notes || []);
                 const sample = [...directNotes, ...chapterNotes].find(n => n?.content);
                 const text = toPlainText(sample?.content || '');
-                if (!text) return 'Sin notas todavía';
+                if (!text) return t('noNotes');
                 return text.length > 110 ? `${text.slice(0, 110)}…` : text;
             }, []);
 
@@ -1926,17 +2075,17 @@
                 const trimmed = (name || '').trim();
                 if (!trimmed) return;
                 const exists = availableCollections.some(c => c.name.toLowerCase() === trimmed.toLowerCase());
-                if (exists) return alert('Ya existe una colección con ese nombre.');
-                const newCollection = { id: generateId(), name: trimmed, description: 'Colección personalizada' };
+                if (exists) return alert(t('collectionExists'));
+                const newCollection = { id: generateId(), name: trimmed, description: t('customCollectionDescription') };
                 setCollections(prev => ensureCollectionsWithDefault([...prev, newCollection]));
                 requestImmediateFirestoreSave();
             };
             const handleCreateCollection = () => {
-                const title = promptForName("Nueva colección:");
+                const title = promptForName(t('newCollectionPrompt'));
                 if (title) addCollection(title);
             };
             const moveBookToCollection = async (bookId) => {
-                const choice = await openPickerWithOptions(availableCollections.map(c => ({ label: c.name, id: c.id })), 'Mover a colección');
+                const choice = await openPickerWithOptions(availableCollections.map(c => ({ label: c.name, id: c.id })), t('moveToCollection'));
                 if (!choice?.id) return;
                 const now = Date.now();
                 setBooks(prev => prev.map(b => b.id === bookId ? touchBook({ ...b, collectionId: choice.id }, now) : b));
@@ -2892,14 +3041,14 @@
                 cancelChapterSelection();
             };
 
-            const handleChapterMoveOrCopy = async (mode) => {
-                if (!primaryChapterId) return;
-                const available = books.filter(b => b.id !== activeBookId);
-                if (available.length === 0) return alert('No hay otros libros disponibles.');
-                const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), mode === 'move' ? 'Mover a libro' : 'Copiar en libro');
-                if (!choice?.bookId) return;
-                if (mode === 'move') {
-                    moveChapterToBook(activeBookId, primaryChapterId, choice.bookId);
+                const handleChapterMoveOrCopy = async (mode) => {
+                    if (!primaryChapterId) return;
+                    const available = books.filter(b => b.id !== activeBookId);
+                    if (available.length === 0) return alert(t('noOtherBooks'));
+                    const choice = await openPickerWithOptions(available.map(b => ({ label: b.title, bookId: b.id })), mode === 'move' ? t('moveToBook') : t('copyToBook'));
+                    if (!choice?.bookId) return;
+                    if (mode === 'move') {
+                        moveChapterToBook(activeBookId, primaryChapterId, choice.bookId);
                     cancelChapterSelection();
                 } else {
                     copyChapterToBook(activeBookId, primaryChapterId, choice.bookId);
@@ -2908,16 +3057,16 @@
 
             if (view === 'home') {
                 const libraryViewOptions = [
-                    { id: 'list', label: 'Lista', description: 'Vista detallada', icon: <Icons.Menu /> },
-                    { id: 'grid', label: 'Grid', description: 'Vista compacta', icon: <Icons.Grid /> },
-                    { id: 'collections', label: 'Colecciones', description: 'Agrupa y organiza', icon: <Icons.Folder /> },
+                    { id: 'list', label: t('libraryViewListLabel'), description: t('libraryViewListDescription'), icon: <Icons.Menu /> },
+                    { id: 'grid', label: t('libraryViewGridLabel'), description: t('libraryViewGridDescription'), icon: <Icons.Grid /> },
+                    { id: 'collections', label: t('collectionsViewLabel'), description: t('collectionsViewDescription'), icon: <Icons.Folder /> },
                 ];
 
                 const sortOptions = [
-                    { id: 'latest', label: 'Últimos modificados' },
-                    { id: 'oldest', label: 'Más antiguos (creados)' },
-                    { id: 'newest', label: 'Más nuevos (creados)' },
-                    { id: 'name', label: 'Nombre (A-Z)' },
+                    { id: 'latest', label: t('sortLatest') },
+                    { id: 'oldest', label: t('sortOldest') },
+                    { id: 'newest', label: t('sortNewest') },
+                    { id: 'name', label: t('sortAlpha') },
                 ];
 
                 const activeCollection = activeCollectionId
@@ -2938,7 +3087,7 @@
                             }}
                             className="text-indigo-600 font-semibold"
                         >
-                            Mover
+                            {t('move')}
                         </button>
                     </div>
                 );
@@ -2996,8 +3145,8 @@
                                                     <h3 className="font-semibold text-slate-900 text-[15px] truncate">
                                                         {book.title}
                                                     </h3>
-                                                    <p className="text-[12px] text-slate-500 truncate">{book.chapters.length} cap · {totalNotes} notas</p>
-                                                </button>
+                                                      <p className="text-[12px] text-slate-500 truncate">{t('chaptersCountLabel', book.chapters.length)} · {t('notesCountLabel', totalNotes)}</p>
+                                                  </button>
                                                 {showMoveControls && (
                                                     <div className="flex-shrink-0 flex items-center">
                                                         <MoveControls
@@ -3046,12 +3195,12 @@
                                             {book.title.charAt(0).toUpperCase()}
                                         </div>
                                         <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-full">
-                                            {totalNotes} notas
+                                            {t('notesCountLabel', totalNotes)}
                                         </span>
                                     </div>
                                     <div>
                                         <p className="font-semibold text-slate-900 text-sm leading-tight truncate">{book.title}</p>
-                                        <p className="text-[11px] text-slate-500">{book.chapters.length} cap</p>
+                                        <p className="text-[11px] text-slate-500">{t('chaptersCountLabel', book.chapters.length)}</p>
                                     </div>
                                     <p className="text-[11px] text-slate-500 h-10 overflow-hidden">{getBookPreview(book)}</p>
                                     <div className="flex items-center justify-between gap-2">
@@ -3065,7 +3214,7 @@
                                             }}
                                             className="text-[11px] font-semibold text-indigo-600"
                                         >
-                                            Mover
+                                            {t('move')}
                                         </button>
                                     </div>
                                 </div>
@@ -3089,9 +3238,9 @@
                                 >
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="min-w-0">
-                                            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-bold">Colección</p>
+                                            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-bold">{t('collection')}</p>
                                             <h3 className="text-base font-semibold text-slate-900 leading-tight truncate">{collection.name}</h3>
-                                            <p className="text-[12px] text-slate-500">{collection.books.length} {collection.books.length === 1 ? 'libro' : 'libros'}</p>
+                                            <p className="text-[12px] text-slate-500">{t('booksCount', collection.books.length)}</p>
                                         </div>
                                         <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold border border-indigo-100 shadow-inner">
                                             {collection.name.charAt(0).toUpperCase()}
@@ -3106,11 +3255,11 @@
                                                 </div>
                                             ))
                                         ) : (
-                                            <p className="col-span-2 text-sm text-slate-500">Mueve libros a esta colección para ver vistas previas.</p>
+                                            <p className="col-span-2 text-sm text-slate-500">{t('moveBooksHint')}</p>
                                         )}
                                     </div>
                                     {collection.books.length > previewBooks.length && (
-                                        <p className="text-[11px] font-semibold text-indigo-600">+{collection.books.length - previewBooks.length} más</p>
+                                        <p className="text-[11px] font-semibold text-indigo-600">{t('moreCount', collection.books.length - previewBooks.length)}</p>
                                     )}
                                 </div>
                             );
@@ -3123,17 +3272,17 @@
 
                     const collectionBooks = activeCollectionBooks;
                     const collectionViewOptions = [
-                        { id: 'list', label: 'Lista', icon: <Icons.Menu /> },
-                        { id: 'grid', label: 'Grid', icon: <Icons.Grid /> },
+                        { id: 'list', label: t('libraryViewListLabel'), icon: <Icons.Menu /> },
+                        { id: 'grid', label: t('libraryViewGridLabel'), icon: <Icons.Grid /> },
                     ];
 
                     return (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between gap-3 flex-wrap">
                                 <div>
-                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-bold">Colección activa</p>
+                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-bold">{t('activeCollection')}</p>
                                     <h3 className="text-base font-semibold text-slate-900 leading-tight">{activeCollection.name}</h3>
-                                    <p className="text-xs text-slate-500">{collectionBooks.length} {collectionBooks.length === 1 ? 'libro' : 'libros'}</p>
+                                    <p className="text-xs text-slate-500">{t('booksCount', collectionBooks.length)}</p>
                                 </div>
                                 <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-full p-1 overflow-x-auto w-full sm:w-auto">
                                     {collectionViewOptions.map((option) => (
@@ -3153,7 +3302,7 @@
 
                             {collectionBooks.length === 0 ? (
                                 <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                                    <p className="text-sm text-slate-600">No hay libros en esta colección. Mueve libros existentes o crea nuevos para comenzar.</p>
+                                    <p className="text-sm text-slate-600">{t('moveBooksHint')}</p>
                                 </div>
                             ) : (
                                 collectionViewMode === 'list'
@@ -3177,9 +3326,9 @@
                                     <Icons.ChevronLeft />
                                 </button>
                                 <div className="flex flex-col gap-0.5">
-                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-bold">Colección</p>
-                                    <h1 className="text-xl font-bold text-slate-900 leading-tight">Colección: {activeCollection.name}</h1>
-                                    <p className="text-xs text-slate-500">{activeCollection.books.length} {activeCollection.books.length === 1 ? 'libro' : 'libros'}</p>
+                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-bold">{t('collection')}</p>
+                                    <h1 className="text-xl font-bold text-slate-900 leading-tight">{t('collectionPrefix', activeCollection.name)}</h1>
+                                    <p className="text-xs text-slate-500">{t('booksCount', activeCollection.books.length)}</p>
                                 </div>
                             </header>
                         ) : (
@@ -3209,13 +3358,13 @@
                                     {libraryView !== 'collections' && (
                                         <button
                                             onClick={async () => {
-                                                const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), 'Ordenar por');
+                                                const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
                                                 if (choice?.id) setLibrarySort(choice.id);
                                             }}
                                             className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
                                         >
                                             <span className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
-                                            <span className="truncate">Ordenar</span>
+                                            <span className="truncate">{t('sort')}</span>
                                             <span className="text-xs text-slate-500">{currentSortLabel}</span>
                                         </button>
                                     )}
@@ -3225,14 +3374,14 @@
                             {libraryView !== 'collections' && bookSelectionMode && (
                                 <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-50 space-y-3">
                                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        <span className="text-sm font-semibold text-indigo-800">{selectedBookIds.length} seleccionados</span>
-                                        <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium">Cancelar</button>
+                                        <span className="text-sm font-semibold text-indigo-800">{t('selectedBooks', selectedBookIds.length)}</span>
+                                        <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium">{t('cancel')}</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover</button>
-                                        <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
-                                        <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
-                                        <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
+                                        <button disabled={!primaryBookId} onClick={handleBookMoveToPosition} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('move')}</button>
+                                        <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
+                                        <button disabled={!primaryBookId} onClick={handleDuplicateBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('duplicate')}</button>
+                                        <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
                                     </div>
                                 </div>
                             )}
@@ -3244,13 +3393,13 @@
                                         {activeCollection ? (
                                             <button
                                                 onClick={() => {
-                                                    const title = promptForName("Nuevo libro:");
-                                                    if (title) addBook(title, activeCollection.id);
-                                                }}
+                                                const title = promptForName(`${t('newBook')}:`);
+                                                if (title) addBook(title, activeCollection.id);
+                                            }}
                                                 className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-500 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition"
                                             >
                                                 <Icons.Plus />
-                                                <span>Crear Libro</span>
+                                                <span>{t('createBook')}</span>
                                             </button>
                                         ) : (
                                             <>
@@ -3259,17 +3408,17 @@
                                                     className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-600 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-700 transition"
                                                 >
                                                     <Icons.Plus />
-                                                    <span>Crear colección</span>
+                                                    <span>{t('createCollection')}</span>
                                                 </button>
                                                 <button
                                                     onClick={() => {
-                                                        const title = promptForName("Nuevo libro:");
+                                                        const title = promptForName(`${t('newBook')}:`);
                                                         if (title) addBook(title);
                                                     }}
                                                     className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-500 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition"
                                                 >
                                                     <Icons.Plus />
-                                                    <span>Crear Libro</span>
+                                                    <span>{t('createBook')}</span>
                                                 </button>
                                             </>
                                         )}
@@ -3279,9 +3428,9 @@
                                 <>
                                     {books.length === 0 && (
                                         <div className="text-center py-10 text-gray-400">
-                                            <p>No tienes libros creados.</p>
-                                        </div>
-                                    )}
+                                        <p>{t('libraryEmpty')}</p>
+                                    </div>
+                                )}
 
                                     {libraryView === 'list' ? renderListCards() : renderGridCards()}
 
@@ -3297,7 +3446,7 @@
                                                         moveModeActive={rootNotesMoveMode.moveModeId === note.id}
                                                         actions={{
                                                             onEdit: () => openNoteModal({
-                                                                title: 'Editar nota',
+                                                                title: t('renameNote'),
                                                                 initialContent: note.content,
                                                                 initialName: note.name,
                                                                 onSave: (html, name) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html, name } : n))
@@ -3314,13 +3463,13 @@
                                     <div className="pt-2">
                                         <button
                                             onClick={() => {
-                                                const title = promptForName("Nuevo libro:");
+                                                const title = promptForName(`${t('newBook')}:`);
                                                 if (title) addBook(title);
                                             }}
                                             className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-500 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition"
                                         >
                                             <Icons.Plus />
-                                            <span>Crear Libro</span>
+                                            <span>{t('createBook')}</span>
                                         </button>
                                     </div>
                                 </>
@@ -3328,9 +3477,9 @@
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                            {isRecording && recordingTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                            {isRecording && recordingTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">{t('listening')}</p>}
                             <div className="flex items-center gap-3">
-                                <button onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html, name) => addRootNote(html, name) })} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
+                                <button onClick={() => openNoteModal({ title: t('newQuickNote'), onSave: (html, name) => addRootNote(html, name) })} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title={t('writeNote')}>
                                     <Icons.Pencil />
                                 </button>
                                 <button
@@ -3343,11 +3492,11 @@
                             </div>
                         </div>
 
-                        <NoteEditorModal
-                            isOpen={noteModal.open}
-                            title={noteModal.target?.title || 'Nueva nota'}
-                            value={noteDraft}
-                            nameValue={noteTitleDraft}
+                            <NoteEditorModal
+                                isOpen={noteModal.open}
+                                title={noteModal.target?.title || t('newNote')}
+                                value={noteDraft}
+                                nameValue={noteTitleDraft}
                             onNameChange={setNoteTitleDraft}
                             onChange={setNoteDraft}
                             onSave={handleSaveTypedNote}
@@ -3377,13 +3526,13 @@
                             chapter.notes = [buildNoteObject(newText)];
                         }
                         updateBookChapters(activeBook.id, newChapters);
-                        alert("¡Libro reescrito!");
+                        alert(t('bookAiRewriteSuccess'));
                     } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
                 };
 
                 const handleGenerateBook = async () => {
-                    if(activeBook.chapters.length === 0) return alert("Libro vacío.");
-                    const promptText = prompt("¿Qué necesitas generar a partir del libro?");
+                    if(activeBook.chapters.length === 0) return alert(t('bookEmpty'));
+                    const promptText = prompt(t('bookGeneratePrompt'));
                     if (!promptText) return;
                     setLoading(true);
                     try {
@@ -3397,16 +3546,16 @@
                             ...b,
                             chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, notes: [newNote] }]
                         }, now) : b));
-                        alert("Nueva nota generada y guardada en un capítulo nuevo.");
+                        alert(t('newNoteGenerated'));
                     } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
                 };
 
                 const openBookAiMenu = () => {
                     const options = [
-                        { label: 'Generar nuevo capítulo', onSelect: handleGenerateBook },
-                        { label: 'Re-estilar libro', onSelect: handleStyleBook }
+                        { label: t('newChapter'), onSelect: handleGenerateBook },
+                        { label: t('restyleBook'), onSelect: handleStyleBook }
                     ];
-                    presentAiActions(options, 'Acciones IA de libro');
+                    presentAiActions(options, t('bookAiActions'));
                 };
 
                 return (
@@ -3414,29 +3563,29 @@
                     <div className="min-h-screen flex flex-col app-surface">
                         <Header
                             title={activeBook.title}
-                            subtitle="Vista de Libro"
+                            subtitle={t('bookViewSubtitle')}
                             onBack={goHome}
                             accentClass="text-slate-900"
-                            rightContent={<AiCornerButton onClick={openBookAiMenu} title="Acciones IA del libro" />}
+                            rightContent={<AiCornerButton onClick={openBookAiMenu} title={t('bookAiActions')} />}
                         />
                         <main className="flex-1 px-4 pt-5 pb-28 max-w-md mx-auto w-full">
                             <div className="space-y-4">
                                 {chapterSelectionMode && (
                                     <div className="p-3 bg-white rounded-xl shadow border border-violet-100 space-y-2">
                                         <div className="flex items-center justify-between gap-2 flex-wrap">
-                                            <span className="text-sm font-semibold text-violet-800">{selectedChapterIds.length} seleccionados</span>
-                                            <button onClick={cancelChapterSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">Cancelar</button>
+                                            <span className="text-sm font-semibold text-violet-800">{t('selectedChapters', selectedChapterIds.length)}</span>
+                                            <button onClick={cancelChapterSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">{t('cancel')}</button>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
-                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('move')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Mover de libro</button>
-                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('copy')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Copiar</button>
-                                            <button disabled={!primaryChapterId} onClick={handleRenameChapter} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-100 text-violet-900 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Renombrar</button>
-                                            <button disabled={selectedChapterIds.length === 0} onClick={handleChapterBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedChapterIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>Eliminar</button>
+                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('move')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('moveToBook')}</button>
+                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('copy')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('copyToBook')}</button>
+                                            <button disabled={!primaryChapterId} onClick={handleRenameChapter} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-100 text-violet-900 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
+                                            <button disabled={selectedChapterIds.length === 0} onClick={handleChapterBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedChapterIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
                                         </div>
                                     </div>
                                 )}
 
-                                {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
+                                {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>{t('bookEmpty')}</p></div>}
                                 <div className="space-y-3">
                                     {activeBook.chapters.map((chap, idx) => {
                                         const moveProps = chaptersMoveMode.getItemProps(chap.id);
@@ -3476,11 +3625,11 @@
                                                 <h3 className="font-semibold text-slate-900 text-base truncate">
                                                     {chap.title}
                                                 </h3>
-                                                <p className="text-xs text-slate-400">Capítulo {chapterNumber}</p>
+                                                <p className="text-xs text-slate-400">{t('chapterNumberLabel', chapterNumber)}</p>
                                             </div>
 
                                             <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
-                                                {chap.notes.length} notas
+                                                {t('notesCountLabel', chap.notes.length)}
                                             </span>
 
                                             {showMoveControls && (
@@ -3498,7 +3647,7 @@
 
                                     <button
                                         onClick={() => {
-                                            const title = promptForName("Nuevo capítulo:");
+                                            const title = promptForName(`${t('newChapter')}:`);
                                             if (title) addChapter(activeBook.id, title);
                                         }}
                                         className="w-full border-2 border-dashed border-slate-300 rounded-2xl bg-white text-slate-500 py-3 shadow-sm hover:border-indigo-300 active:scale-[0.99] transition"
@@ -3507,7 +3656,7 @@
                                             <span className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
                                                 <Icons.Plus />
                                             </span>
-                                            <span className="font-semibold text-slate-500">Nuevo Capítulo</span>
+                                            <span className="font-semibold text-slate-500">{t('newChapter')}</span>
                                         </div>
                                     </button>
                                 </div>
@@ -3524,7 +3673,7 @@
                                                     moveModeActive={bookNotesMoveMode.moveModeId === note.id}
                                                     actions={{
                                                         onEdit: () => openNoteModal({
-                                                            title: 'Editar nota',
+                                                            title: t('renameNote'),
                                                             initialContent: note.content,
                                                             initialName: note.name,
                                                             onSave: (html, name) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html, name } : n))
@@ -3542,9 +3691,9 @@
                         </main>
 
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                            {isRecording && recordingTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                            {isRecording && recordingTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">{t('listening')}</p>}
                             <div className="flex items-center gap-3">
-                                <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html, name) => addBookNote(activeBook.id, html, name) })} className="w-12 h-12 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota del libro">
+                                <button onClick={() => openNoteModal({ title: t('newBookNote'), onSave: (html, name) => addBookNote(activeBook.id, html, name) })} className="w-12 h-12 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title={t('writeBookNote')}>
                                     <Icons.Pencil />
                                 </button>
                                 <button
@@ -3559,7 +3708,7 @@
 
                         <NoteEditorModal
                             isOpen={noteModal.open}
-                            title={noteModal.target?.title || 'Nota'}
+                            title={noteModal.target?.title || t('note')}
                             value={noteDraft}
                             nameValue={noteTitleDraft}
                             onNameChange={setNoteTitleDraft}
@@ -3587,7 +3736,8 @@
                         settings={settings} speechEngines={speechEngines} setLoading={setLoading}
                         chooseDestination={chooseDestination}
                         relocateNote={relocateNote}
-                        presentAiActions={presentAiActions} />
+                        presentAiActions={presentAiActions}
+                        t={t} />
                     {menuPortal}
                     {pickerPortal}
                     {speechConfigPortal}
@@ -3598,7 +3748,7 @@
         }
 
         // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, chapterNumber, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions }) {
+        function NoteManager({ bookId, chapter, chapterNumber, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions, t }) {
             const [isRecording, setIsRecording] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             const [selectionMode, setSelectionMode] = useState(false);
@@ -3621,9 +3771,9 @@
             });
 
             useEffect(() => {
-                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) setSupportError("Navegador sin soporte de voz");
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) setSupportError(t('speechUnavailable'));
                 return () => { if (recognitionRef.current) recognitionRef.current.stop(); }
-            }, []);
+            }, [t]);
 
             const startRecording = () => {
                 if (supportError) return alert(supportError);
@@ -3637,7 +3787,7 @@
                 }
 
                 if (!language) {
-                    return alert('Selecciona al menos un idioma en la configuración de voz antes de dictar.');
+                    return alert(t('speechLanguagesHint'));
                 }
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 const recognition = new SpeechRecognition();
@@ -3679,7 +3829,7 @@
 
             const handleAddLinkFromClipboard = async () => {
                 if (!navigator?.clipboard?.readText) {
-                    alert('Tu navegador no permite leer el portapapeles automáticamente.');
+                    alert(t('clipboardNotAllowed'));
                     return;
                 }
                 try {
@@ -3690,7 +3840,7 @@
                     setSelectionMode(false);
                     setSelectedIds([]);
                 } catch (e) {
-                    alert(e.message || 'No se pudo crear la nota de enlace.');
+                    alert(e.message || t('linkNoteError'));
                 } finally {
                     setLinkLoading(false);
                 }
@@ -3705,10 +3855,10 @@
 
             const processAI = async (type, scope) => {
                 const notes = scope === 'selection' ? chapter.notes.filter(n => selectedIds.includes(n.id)) : chapter.notes;
-                if (notes.length === 0) return alert("Sin notas seleccionadas.");
-                if (type === 'merge' && notes.length < 2) return alert("Selecciona 2+ notas.");
+                if (notes.length === 0) return alert(t('deleteNotesConfirm'));
+                if (type === 'merge' && notes.length < 2) return alert('Selecciona 2+ notas.');
 
-                const extraPrompt = type === 'style' ? prompt("Describe el estilo:") : type === 'generate' ? prompt("¿Qué necesitas generar?") : null;
+                const extraPrompt = type === 'style' ? prompt(t('restyleSelection')) : type === 'generate' ? prompt(t('generateFromSelection')) : null;
                 if ((type === 'style' || type === 'generate') && !extraPrompt) return;
 
                 setLoading(true);
@@ -3734,22 +3884,22 @@
             const openChapterAiMenu = () => {
                 const options = [];
                 if (selectionMode && selectedIds.length > 1) {
-                    options.push({ label: 'Fusionar selección', onSelect: () => processAI('merge', 'selection') });
+                    options.push({ label: t('mergeSelection'), onSelect: () => processAI('merge', 'selection') });
                 }
                 if (selectionMode && selectedIds.length > 0) {
-                    options.push({ label: 'Re-estilar selección', onSelect: () => processAI('style', 'selection') });
-                    options.push({ label: 'Generar desde selección', onSelect: () => processAI('generate', 'selection') });
+                    options.push({ label: t('restyleSelection'), onSelect: () => processAI('style', 'selection') });
+                    options.push({ label: t('generateFromSelection'), onSelect: () => processAI('generate', 'selection') });
                 }
                 if (!selectionMode && chapter.notes.length > 0) {
-                    options.push({ label: 'Re-estilar capítulo', onSelect: () => processAI('style', 'chapter') });
-                    options.push({ label: 'Generar nuevo desde capítulo', onSelect: () => processAI('generate', 'chapter') });
+                    options.push({ label: t('restyleChapter'), onSelect: () => processAI('style', 'chapter') });
+                    options.push({ label: t('generateFromChapter'), onSelect: () => processAI('generate', 'chapter') });
                 }
-                presentAiActions?.(options, 'Acciones IA del capítulo');
+                presentAiActions?.(options, t('chapterAiActions'));
             };
 
             const deleteSelectedNotes = () => {
                 if (selectedIds.length === 0) return;
-                if (!confirm("¿Eliminar notas seleccionadas?")) return;
+                if (!confirm(t('deleteNotesConfirm'))) return;
                 onUpdateNotes(chapter.notes.filter(n => !selectedIds.includes(n.id)));
                 setSelectedIds([]);
                 setSelectionMode(false);
@@ -3789,12 +3939,12 @@
             };
 
             const bulkRelocate = async (mode) => {
-                if (selectedIds.length === 0) return alert("Sin notas seleccionadas.");
+                if (selectedIds.length === 0) return alert(t('deleteNotesConfirm'));
                 const destination = await chooseDestination({ type: 'chapter', bookId, chapterId: chapter.id });
                 if (!destination) return;
 
                 const isSameDestination = destination.type === 'chapter' && destination.bookId === bookId && destination.chapterId === chapter.id;
-                if (isSameDestination) return alert('Elige un destino diferente.');
+                if (isSameDestination) return alert(t('chooseDestinationDifferent'));
 
                 selectedIds.forEach(id => relocateNote({ type: 'chapter', bookId, chapterId: chapter.id }, destination, id, mode));
                 setSelectedIds([]);
@@ -3809,7 +3959,7 @@
                 if (!noteToRename) return alert('No se encontró la nota seleccionada.');
 
                 const currentTitle = noteToRename.name || extractNoteName(noteToRename.content);
-                const newTitle = prompt('Nuevo título para la nota:', currentTitle);
+                const newTitle = prompt(t('renameNote'), currentTitle);
                 if (!newTitle || !newTitle.trim()) return;
 
                 const normalizedTitle = newTitle.trim();
@@ -3840,12 +3990,12 @@
                                     <Icons.ChevronLeft />
                                 </button>
                                 <div className="overflow-hidden">
-                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-semibold">Capítulo {chapterNumber || ''}</p>
+                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-semibold">{t('chapterNumberLabel', chapterNumber)}</p>
                                     <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">{chapter.title}</h1>
-                                    <p className="text-xs text-slate-500 truncate">{selectedIds.length} seleccionadas</p>
+                                    <p className="text-xs text-slate-500 truncate">{t('selectedNotesLabel', selectedIds.length)}</p>
                                 </div>
                             </div>
-                            <AiCornerButton onClick={openChapterAiMenu} title="Acciones IA del capítulo" />
+                            <AiCornerButton onClick={openChapterAiMenu} title={t('chapterAiActions')} />
                         </div>
                     </header>
 
@@ -3853,28 +4003,28 @@
                         <div className="space-y-4">
                             {selectionMode && selectedIds.length > 0 && (
                                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                    <button onClick={deleteSelectedNotes} className="whitespace-nowrap text-xs flex items-center gap-1 bg-red-50 text-red-700 px-3 py-2 rounded-lg border border-red-200 font-semibold active:scale-95 transition"><Icons.Trash className="w-3 h-3" /> Eliminar</button>
-                                    <button onClick={() => bulkRelocate('move')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-semibold active:scale-95 transition"><Icons.Folder className="w-3 h-3" /> Mover</button>
-                                    <button onClick={() => bulkRelocate('copy')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-semibold active:scale-95 transition"><Icons.Plus className="w-3 h-3" /> Duplicar</button>
+                                    <button onClick={deleteSelectedNotes} className="whitespace-nowrap text-xs flex items-center gap-1 bg-red-50 text-red-700 px-3 py-2 rounded-lg border border-red-200 font-semibold active:scale-95 transition"><Icons.Trash className="w-3 h-3" /> {t('delete')}</button>
+                                    <button onClick={() => bulkRelocate('move')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-semibold active:scale-95 transition"><Icons.Folder className="w-3 h-3" /> {t('move')}</button>
+                                    <button onClick={() => bulkRelocate('copy')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-semibold active:scale-95 transition"><Icons.Plus className="w-3 h-3" /> {t('duplicate')}</button>
                                     <button
                                         onClick={renameSelectedNote}
                                         disabled={!hasSingleNoteSelected}
                                         className={`whitespace-nowrap text-xs flex items-center gap-1 px-3 py-2 rounded-lg border font-semibold active:scale-95 transition ${hasSingleNoteSelected ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
                                     >
-                                        <Icons.Pencil /> Renombrar nota
+                                        <Icons.Pencil /> {t('renameNote')}
                                     </button>
                                     {selectedIds.length > 1 && (
                                         <button
                                             onClick={concatenateSelectedNotes}
                                             className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-800 px-3 py-2 rounded-lg border border-amber-200 font-semibold active:scale-95 transition"
                                         >
-                                            <Icons.Merge className="w-3 h-3" /> Concatenar
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                                            <Icons.Merge className="w-3 h-3" /> {t('concat')}
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
-                            {chapter.notes.length === 0 && <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Mic className="w-12 h-12 mb-2 opacity-20" /><p>Graba una nota</p></div>}
+                            {chapter.notes.length === 0 && <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Mic className="w-12 h-12 mb-2 opacity-20" /><p>{t('recordANote')}</p></div>}
 
                             <div className="space-y-3">
                                 {chapter.notes.map(note => {
@@ -3905,17 +4055,17 @@
                     </main>
 
                     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                        {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
+                        {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">{t('listening')}</p>}
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={handleAddLinkFromClipboard}
                                 disabled={linkLoading}
                                 className={`w-12 h-12 rounded-full bg-white border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition ${linkLoading ? 'opacity-80 cursor-wait' : ''}`}
-                                title="Añadir enlace desde portapapeles"
+                                title={t('link')}
                             >
                                 {linkLoading ? <span className="w-5 h-5 border-2 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></span> : <Icons.Link />}
                             </button>
-                            <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
+                            <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title={t('writeNote')}>
                                 <Icons.Pencil />
                             </button>
                             <button onClick={toggleRecording} disabled={!!supportError} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100' : ''}`}>
@@ -3926,7 +4076,7 @@
 
                     <NoteEditorModal
                         isOpen={noteModalOpen}
-                        title={editingNoteId ? 'Editar nota' : 'Añadir nota escrita'}
+                        title={editingNoteId ? t('renameNote') : t('addWrittenNote')}
                         value={noteDraft}
                         nameValue={noteNameDraft}
                         onNameChange={setNoteNameDraft}
