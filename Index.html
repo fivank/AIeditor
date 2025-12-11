@@ -2876,14 +2876,39 @@
                             {libraryView === 'collections' ? (
                                 <div className="space-y-3">
                                     {activeCollection ? renderActiveCollectionView() : renderCollectionsGrid()}
-                                    <div className="pt-2">
-                                        <button
-                                            onClick={handleCreateCollection}
-                                            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-600 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-700 transition"
-                                        >
-                                            <Icons.Plus />
-                                            <span>Crear colección</span>
-                                        </button>
+                                    <div className="pt-2 space-y-2">
+                                        {activeCollection ? (
+                                            <button
+                                                onClick={() => {
+                                                    const title = promptForName("Nuevo libro:");
+                                                    if (title) addBook(title, activeCollection.id);
+                                                }}
+                                                className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-500 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition"
+                                            >
+                                                <Icons.Plus />
+                                                <span>Crear Libro</span>
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={handleCreateCollection}
+                                                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-600 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-700 transition"
+                                                >
+                                                    <Icons.Plus />
+                                                    <span>Crear colección</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const title = promptForName("Nuevo libro:");
+                                                        if (title) addBook(title);
+                                                    }}
+                                                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl py-4 text-slate-500 bg-white shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition"
+                                                >
+                                                    <Icons.Plus />
+                                                    <span>Crear Libro</span>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ) : (
