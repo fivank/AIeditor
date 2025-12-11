@@ -329,6 +329,8 @@
         const SESSION_KEY = 'voiceNotes_sessionId';
         const LOCAL_COLLECTIONS_KEY = 'voiceNotes_collections';
         const LOCAL_LIBRARY_VIEW_KEY = 'voiceNotes_libraryView';
+        const LOCAL_COLLECTION_VIEW_KEY = 'voiceNotes_collectionViewMode';
+        const LOCAL_ACTIVE_COLLECTION_KEY = 'voiceNotes_activeCollectionId';
         const LOCAL_RECENCY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
         const AUTO_FIRESTORE_SAVE_DELAY = 2 * 60 * 1000; // 2 minutos
 
@@ -1502,6 +1504,8 @@
                 const savedSettings = localStorage.getItem('voiceNotes_settings');
                 const savedCollections = localStorage.getItem(LOCAL_COLLECTIONS_KEY);
                 const savedLibraryView = localStorage.getItem(LOCAL_LIBRARY_VIEW_KEY);
+                const savedCollectionViewMode = localStorage.getItem(LOCAL_COLLECTION_VIEW_KEY);
+                const savedActiveCollectionId = localStorage.getItem(LOCAL_ACTIVE_COLLECTION_KEY);
                 if (savedBooks) {
                     const parsed = JSON.parse(savedBooks);
                     setBooks(normalizeBooksData(parsed));
@@ -1522,6 +1526,8 @@
                     });
                 }
                 if (savedLibraryView) setLibraryView(savedLibraryView);
+                if (savedCollectionViewMode) setCollectionViewMode(savedCollectionViewMode);
+                if (savedActiveCollectionId) setActiveCollectionId(savedActiveCollectionId);
 
                 const lastUse = parseInt(localStorage.getItem(LOCAL_USAGE_KEY) || '0', 10);
                 const lastFirestoreSync = parseInt(localStorage.getItem(FIRESTORE_SYNC_KEY) || '0', 10);
@@ -1541,16 +1547,23 @@
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
             useEffect(() => { localStorage.setItem(LOCAL_COLLECTIONS_KEY, JSON.stringify(collections)); }, [collections]);
             useEffect(() => { localStorage.setItem(LOCAL_LIBRARY_VIEW_KEY, libraryView); }, [libraryView]);
+            useEffect(() => { localStorage.setItem(LOCAL_COLLECTION_VIEW_KEY, collectionViewMode); }, [collectionViewMode]);
+            useEffect(() => { localStorage.setItem(LOCAL_ACTIVE_COLLECTION_KEY, activeCollectionId || ''); }, [activeCollectionId]);
             useEffect(() => {
                 if (!dataLoaded) return;
                 localStorage.setItem(LOCAL_USAGE_KEY, String(Date.now()));
-            }, [books, rootNotes, settings, view, activeBookId, activeChapterId]);
+            }, [books, rootNotes, settings, view, activeBookId, activeChapterId, libraryView, activeCollectionId, collectionViewMode, collections]);
 
             useEffect(() => {
                 if (libraryView !== 'collections' && activeCollectionId) {
                     setActiveCollectionId(null);
                 }
             }, [libraryView, activeCollectionId]);
+
+            useEffect(() => {
+                if (!dataLoaded) return;
+                requestImmediateFirestoreSave();
+            }, [libraryView, collectionViewMode, activeCollectionId, collections]);
 
             useEffect(() => {
                 if (!activeCollectionId) return;
@@ -1628,6 +1641,7 @@
                 if (exists) return alert('Ya existe una colección con ese nombre.');
                 const newCollection = { id: generateId(), name: trimmed, description: 'Colección personalizada' };
                 setCollections(prev => ensureCollectionsWithDefault([...prev, newCollection]));
+                requestImmediateFirestoreSave();
             };
             const handleCreateCollection = () => {
                 const title = promptForName("Nueva colección:");
@@ -1637,6 +1651,7 @@
                 const choice = await openPickerWithOptions(availableCollections.map(c => ({ label: c.name, id: c.id })), 'Mover a colección');
                 if (!choice?.id) return;
                 setBooks(prev => prev.map(b => b.id === bookId ? { ...b, collectionId: choice.id } : b));
+                requestImmediateFirestoreSave();
             };
             const renameBook = (id, title) => {
                 setBooks(books.map(b => b.id === id ? { ...b, title } : b));
@@ -1934,7 +1949,11 @@
                 books,
                 rootNotes,
                 settings,
+                collections,
                 view,
+                libraryView,
+                activeCollectionId,
+                collectionViewMode,
                 activeBookId,
                 activeChapterId,
                 timestamp: Date.now()
@@ -2032,7 +2051,11 @@
                         prompts: { ...DEFAULT_PROMPTS, ...(data.settings?.prompts || {}) },
                         speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(data.settings?.speechToText || {}) }
                     });
+                    setCollections(ensureCollectionsWithDefault(data.collections || [DEFAULT_COLLECTION]));
                     setView(data.view || 'home');
+                    setLibraryView(data.libraryView || 'list');
+                    setActiveCollectionId(data.activeCollectionId || null);
+                    setCollectionViewMode(data.collectionViewMode || 'grid');
                     setActiveBookId(data.activeBookId || null);
                     setActiveChapterId(data.activeChapterId || null);
                     setDataLoaded(true);
@@ -2066,7 +2089,7 @@
                 return () => {
                     if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
                 };
-            }, [books, rootNotes, settings, view, activeBookId, activeChapterId]);
+            }, [books, rootNotes, settings, collections, view, libraryView, activeCollectionId, collectionViewMode, activeBookId, activeChapterId]);
 
             useEffect(() => {
                 if (immediateSaveCounter === 0) return;
