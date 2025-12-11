@@ -2056,19 +2056,32 @@
             const goChapter = (id) => { resetMoveModes(); setActiveChapterId(id); setView('chapter'); };
             const goSettings = () => setView('settings');
 
-            const buildCloudPayload = () => ({
-                books,
-                rootNotes,
-                settings,
-                collections,
-                view,
-                libraryView,
-                activeCollectionId,
-                collectionViewMode,
-                activeBookId,
-                activeChapterId,
-                timestamp: Date.now()
-            });
+        const buildCloudPayload = () => ({
+            books,
+            rootNotes,
+            settings,
+            collections,
+            view,
+            libraryView,
+            activeCollectionId,
+            collectionViewMode,
+            activeBookId,
+            activeChapterId,
+            timestamp: Date.now()
+        });
+
+        const sanitizeForFirestore = (value) => {
+            if (value === undefined) return null;
+            if (Array.isArray(value)) return value.map(sanitizeForFirestore).filter((v) => v !== undefined);
+            if (value && typeof value === 'object') {
+                return Object.entries(value).reduce((cleaned, [key, val]) => {
+                    const safeVal = sanitizeForFirestore(val);
+                    if (safeVal !== undefined) cleaned[key] = safeVal;
+                    return cleaned;
+                }, {});
+            }
+            return value;
+        };
 
             const handleFirebaseLogin = async () => {
                 if (!firebaseReady || !authRef.current) {
@@ -2117,7 +2130,7 @@
                 setCloudStatus('loading');
                 setCloudMessage(silent ? 'Guardado automático en progreso...' : 'Guardando en Firestore...');
                 try {
-                    const payload = buildCloudPayload();
+                    const payload = sanitizeForFirestore(buildCloudPayload());
                     await dbRef.current.collection(FIRESTORE_COLLECTION).doc(authUser.uid).set(payload);
                     const now = Date.now();
                     localStorage.setItem(FIRESTORE_SYNC_KEY, String(now));
