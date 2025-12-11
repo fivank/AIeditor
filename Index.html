@@ -1049,7 +1049,11 @@
         const extractNoteName = (htmlContent) => {
             const text = getPlainTextFromHtml(htmlContent);
             const firstLine = text.split(/\n/).map(line => line.trim()).find(Boolean);
-            return firstLine || 'Nueva nota';
+
+            if (!firstLine) return 'Nueva nota';
+
+            const firstSentence = firstLine.split(/(?<=[.!?])\s+/).find(Boolean);
+            return (firstSentence || firstLine || '').trim() || 'Nueva nota';
         };
 
         const getNoteBodyPreview = (note, limit = 140) => {
@@ -3481,25 +3485,23 @@
                 noteMoveMode.exitMoveMode();
             };
 
-            const renameSelectedLink = () => {
-                const linkNotes = chapter.notes.filter(
-                    (note) => selectedIds.includes(note.id) && note.type === 'link' && note.url
-                );
-                if (linkNotes.length === 0) return alert('Selecciona una nota de enlace para renombrar.');
-                if (linkNotes.length > 1) return alert('Selecciona solo una nota de enlace para renombrar.');
+            const renameSelectedNote = () => {
+                if (selectedIds.length !== 1) return alert('Selecciona una única nota para renombrar.');
 
-                const linkNote = linkNotes[0];
-                const currentTitle = linkNote.meta?.title || linkNote.content || '';
-                const newTitle = prompt('Nuevo título para el enlace:', currentTitle);
+                const noteToRename = chapter.notes.find((note) => selectedIds.includes(note.id));
+                if (!noteToRename) return alert('No se encontró la nota seleccionada.');
+
+                const currentTitle = noteToRename.name || extractNoteName(noteToRename.content);
+                const newTitle = prompt('Nuevo título para la nota:', currentTitle);
                 if (!newTitle || !newTitle.trim()) return;
 
                 const normalizedTitle = newTitle.trim();
                 const updatedNotes = chapter.notes.map((note) =>
-                    note.id === linkNote.id
+                    note.id === noteToRename.id
                         ? {
                             ...note,
-                            meta: { ...note.meta, title: normalizedTitle },
-                            content: normalizeContent(normalizedTitle),
+                            name: normalizedTitle,
+                            meta: note.type === 'link' ? { ...note.meta, title: normalizedTitle } : note.meta,
                         }
                         : note
                 );
@@ -3510,9 +3512,7 @@
                 noteMoveMode.exitMoveMode();
             };
 
-            const hasSingleLinkSelected = chapter.notes.filter(
-                (note) => selectedIds.includes(note.id) && note.type === 'link' && note.url
-            ).length === 1;
+            const hasSingleNoteSelected = selectedIds.length === 1;
 
             return (
                 <div className="min-h-screen flex flex-col app-surface">
@@ -3540,11 +3540,11 @@
                                     <button onClick={() => bulkRelocate('move')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-semibold active:scale-95 transition"><Icons.Folder className="w-3 h-3" /> Mover</button>
                                     <button onClick={() => bulkRelocate('copy')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-semibold active:scale-95 transition"><Icons.Plus className="w-3 h-3" /> Duplicar</button>
                                     <button
-                                        onClick={renameSelectedLink}
-                                        disabled={!hasSingleLinkSelected}
-                                        className={`whitespace-nowrap text-xs flex items-center gap-1 px-3 py-2 rounded-lg border font-semibold active:scale-95 transition ${hasSingleLinkSelected ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                        onClick={renameSelectedNote}
+                                        disabled={!hasSingleNoteSelected}
+                                        className={`whitespace-nowrap text-xs flex items-center gap-1 px-3 py-2 rounded-lg border font-semibold active:scale-95 transition ${hasSingleNoteSelected ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
                                     >
-                                        <Icons.Pencil /> Renombrar enlace
+                                        <Icons.Pencil /> Renombrar nota
                                     </button>
                                     {selectedIds.length > 1 && (
                                         <button
