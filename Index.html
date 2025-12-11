@@ -308,9 +308,7 @@
             Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
             Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
             Menu: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
-            Cloud: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a5 5 0 1 1 .9-9.9A7 7 0 0 1 21 12a4 4 0 0 1-3.5 7Z"/></svg>,
-            Sort: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="m3 17 4 4 4-4"/><path d="M7 21V4"/></svg>,
-            Clock: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Cloud: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a5 5 0 1 1 .9-9.9A7 7 0 0 1 21 12a4 4 0 0 1-3.5 7Z"/></svg>
         };
 
         // --- CONFIGURACIÓN INICIAL ---
@@ -341,7 +339,6 @@
         const LOCAL_LIBRARY_VIEW_KEY = 'voiceNotes_libraryView';
         const LOCAL_COLLECTION_VIEW_KEY = 'voiceNotes_collectionViewMode';
         const LOCAL_ACTIVE_COLLECTION_KEY = 'voiceNotes_activeCollectionId';
-        const LOCAL_LIBRARY_ORDER_KEY = 'voiceNotes_libraryOrder';
         const LOCAL_RECENCY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
         const AUTO_FIRESTORE_SAVE_DELAY = 2 * 60 * 1000; // 2 minutos
 
@@ -354,42 +351,12 @@
             appId: "1:924785765286:web:42b733d5914b095bbf7d67"
         };
 
-        const collectAllNotes = (book = {}) => ([
-            ...(book.notes || []),
-            ...((book.chapters || []).flatMap(ch => ch.notes || []))
-        ]);
-
-        const getLatestNoteTimestamp = (book = {}) => collectAllNotes(book).reduce((max, note) => {
-            if (!note?.timestamp) return max;
-            return Math.max(max, note.timestamp);
-        }, 0);
-
-        const getEarliestNoteTimestamp = (book = {}, fallback = Date.now()) => {
-            const timestamps = collectAllNotes(book)
-                .map(note => note?.timestamp)
-                .filter(Boolean);
-            if (timestamps.length === 0) return fallback;
-            return Math.min(...timestamps);
-        };
-
-        const touchBook = (book, touchedAt = Date.now()) => ({
-            ...book,
-            updatedAt: touchedAt,
-            createdAt: book.createdAt || touchedAt
-        });
-
-        const normalizeBooksData = (bookList = []) => bookList.map(b => {
-            const inferredCreated = b.createdAt || b.updatedAt || getEarliestNoteTimestamp(b);
-            const inferredUpdated = b.updatedAt || getLatestNoteTimestamp(b) || inferredCreated;
-            return {
-                ...b,
-                collectionId: b.collectionId || DEFAULT_COLLECTION.id,
-                notes: b.notes || [],
-                chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] })),
-                createdAt: inferredCreated,
-                updatedAt: inferredUpdated
-            };
-        });
+        const normalizeBooksData = (bookList = []) => bookList.map(b => ({
+            ...b,
+            collectionId: b.collectionId || DEFAULT_COLLECTION.id,
+            notes: b.notes || [],
+            chapters: (b.chapters || []).map(c => ({ ...c, notes: c.notes || [] }))
+        }));
 
         const detectSpeechEngines = () => {
             const ua = navigator?.userAgent?.toLowerCase?.() || '';
@@ -652,7 +619,7 @@
 
             if (!chapter) {
                 chapter = { id: generateId(), title: TEMP_CHAPTER_TITLE, notes: [] };
-                updated[bookIndex] = touchBook({ ...book, chapters: [...book.chapters, chapter] });
+                updated[bookIndex] = { ...book, chapters: [...book.chapters, chapter] };
                 changed = true;
             }
 
@@ -665,8 +632,7 @@
             let changed = false;
 
             if (!tempBook) {
-                const now = Date.now();
-                tempBook = { id: generateId(), title: TEMP_BOOK_TITLE, chapters: [], notes: [], collectionId: DEFAULT_COLLECTION.id, createdAt: now, updatedAt: now };
+                tempBook = { id: generateId(), title: TEMP_BOOK_TITLE, chapters: [], notes: [], collectionId: DEFAULT_COLLECTION.id };
                 updated = [...updated, tempBook];
                 changed = true;
             }
@@ -699,36 +665,11 @@
 
         const updateChapterNotesInBooks = (bookList, bookId, chapterId, updater) => bookList.map(book => {
             if (book.id !== bookId) return book;
-            const touchedAt = Date.now();
-            return touchBook({
+            return {
                 ...book,
                 chapters: book.chapters.map(chapter => chapter.id === chapterId ? { ...chapter, notes: updater(chapter.notes || []) } : chapter)
-            }, touchedAt);
+            };
         });
-
-        const sortBooksByOrder = (bookList = [], order = 'latest') => {
-            const withTimestamps = bookList.map(book => {
-                const latestNote = getLatestNoteTimestamp(book);
-                const createdAt = book.createdAt || getEarliestNoteTimestamp(book);
-                const updatedAt = book.updatedAt || latestNote || createdAt;
-                return { book, createdAt, updatedAt: Math.max(updatedAt, createdAt, latestNote || 0) };
-            });
-
-            const sorted = [...withTimestamps].sort((a, b) => {
-                switch (order) {
-                    case 'oldest':
-                        return a.createdAt - b.createdAt;
-                    case 'newest':
-                        return b.createdAt - a.createdAt;
-                    case 'name':
-                        return (a.book.title || '').localeCompare(b.book.title || '', 'es', { sensitivity: 'base' });
-                    default:
-                        return b.updatedAt - a.updatedAt;
-                }
-            });
-
-            return sorted.map(item => item.book);
-        };
 
         const useLongPressMoveMode = (duration = 500, { onEnterMoveMode } = {}) => {
             const [moveModeId, setMoveModeId] = useState(null);
@@ -1502,10 +1443,8 @@
             const [dataLoaded, setDataLoaded] = useState(false);
             const [view, setView] = useState('home');
             const [libraryView, setLibraryView] = useState('list');
-            const [libraryOrder, setLibraryOrder] = useState('latest');
             const [activeCollectionId, setActiveCollectionId] = useState(null);
             const [collectionViewMode, setCollectionViewMode] = useState('grid');
-            const [orderMenuOpen, setOrderMenuOpen] = useState(false);
             const [activeBookId, setActiveBookId] = useState(null);
             const [activeChapterId, setActiveChapterId] = useState(null);
             const [loading, setLoading] = useState(false);
@@ -1538,7 +1477,6 @@
             const dbRef = useRef(null);
             const autoSaveTimeoutRef = useRef(null);
             const [immediateSaveCounter, setImmediateSaveCounter] = useState(0);
-            const orderMenuRef = useRef(null);
 
             const speechEngines = useMemo(() => detectSpeechEngines(), []);
             const availableCollections = useMemo(() => ensureCollectionsWithDefault(collections), [collections]);
@@ -1615,7 +1553,6 @@
                 const savedLibraryView = localStorage.getItem(LOCAL_LIBRARY_VIEW_KEY);
                 const savedCollectionViewMode = localStorage.getItem(LOCAL_COLLECTION_VIEW_KEY);
                 const savedActiveCollectionId = localStorage.getItem(LOCAL_ACTIVE_COLLECTION_KEY);
-                const savedLibraryOrder = localStorage.getItem(LOCAL_LIBRARY_ORDER_KEY);
                 if (savedBooks) {
                     const parsed = JSON.parse(savedBooks);
                     setBooks(normalizeBooksData(parsed));
@@ -1636,7 +1573,6 @@
                     });
                 }
                 if (savedLibraryView) setLibraryView(savedLibraryView);
-                if (savedLibraryOrder) setLibraryOrder(savedLibraryOrder);
                 if (savedCollectionViewMode) setCollectionViewMode(savedCollectionViewMode);
                 if (savedActiveCollectionId) setActiveCollectionId(savedActiveCollectionId);
 
@@ -1658,7 +1594,6 @@
             useEffect(() => { localStorage.setItem('voiceNotes_rootNotes', JSON.stringify(rootNotes)); }, [rootNotes]);
             useEffect(() => { localStorage.setItem(LOCAL_COLLECTIONS_KEY, JSON.stringify(collections)); }, [collections]);
             useEffect(() => { localStorage.setItem(LOCAL_LIBRARY_VIEW_KEY, libraryView); }, [libraryView]);
-            useEffect(() => { localStorage.setItem(LOCAL_LIBRARY_ORDER_KEY, libraryOrder); }, [libraryOrder]);
             useEffect(() => { localStorage.setItem(LOCAL_COLLECTION_VIEW_KEY, collectionViewMode); }, [collectionViewMode]);
             useEffect(() => { localStorage.setItem(LOCAL_ACTIVE_COLLECTION_KEY, activeCollectionId || ''); }, [activeCollectionId]);
             useEffect(() => {
@@ -1676,16 +1611,6 @@
                 if (!dataLoaded) return;
                 requestImmediateFirestoreSave();
             }, [libraryView, collectionViewMode, activeCollectionId, collections]);
-
-            useEffect(() => {
-                if (!orderMenuOpen) return;
-                const handleClickOutside = (event) => {
-                    if (!orderMenuRef.current) return;
-                    if (!orderMenuRef.current.contains(event.target)) setOrderMenuOpen(false);
-                };
-                document.addEventListener('mousedown', handleClickOutside);
-                return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, [orderMenuOpen]);
 
             useEffect(() => {
                 if (!activeCollectionId) return;
@@ -1756,10 +1681,7 @@
 
             // Helpers de navegación y datos
             const addBook = (title, collectionId = DEFAULT_COLLECTION.id) => {
-                const trimmed = (title || '').trim();
-                if (!trimmed) return;
-                const now = Date.now();
-                setBooks([...books, { id: generateId(), title: trimmed, chapters: [], notes: [], collectionId, createdAt: now, updatedAt: now }]);
+                setBooks([...books, { id: generateId(), title, chapters: [], notes: [], collectionId }]);
                 requestImmediateFirestoreSave();
             };
             const addCollection = (name) => {
@@ -1778,13 +1700,11 @@
             const moveBookToCollection = async (bookId) => {
                 const choice = await openPickerWithOptions(availableCollections.map(c => ({ label: c.name, id: c.id })), 'Mover a colección');
                 if (!choice?.id) return;
-                const touchedAt = Date.now();
-                setBooks(prev => prev.map(b => b.id === bookId ? touchBook({ ...b, collectionId: choice.id }, touchedAt) : b));
+                setBooks(prev => prev.map(b => b.id === bookId ? { ...b, collectionId: choice.id } : b));
                 requestImmediateFirestoreSave();
             };
             const renameBook = (id, title) => {
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === id ? touchBook({ ...b, title }, touchedAt) : b));
+                setBooks(books.map(b => b.id === id ? { ...b, title } : b));
                 requestImmediateFirestoreSave();
             };
             const deleteBook = (id) => setBooks(books.filter(b => b.id !== id));
@@ -1819,13 +1739,10 @@
             const duplicateBook = (bookId) => {
                 const book = books.find(b => b.id === bookId);
                 if (!book) return;
-                const now = Date.now();
                 const copy = {
                     ...book,
                     id: generateId(),
                     title: `${book.title} (copia)`,
-                    createdAt: now,
-                    updatedAt: now,
                     notes: (book.notes || []).map(cloneNote),
                     chapters: book.chapters.map(ch => ({
                         ...ch,
@@ -1837,18 +1754,15 @@
                 requestImmediateFirestoreSave();
             };
             const addChapter = (bookId, title) => {
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: [...b.chapters, { id: generateId(), title, notes: [] }] } : b));
                 requestImmediateFirestoreSave();
             };
             const renameChapter = (bookId, chapterId, title) => {
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, title } : c) } : b));
                 requestImmediateFirestoreSave();
             };
             const reorderChaptersByIndex = useCallback((bookId, from, to) => {
-                const touchedAt = Date.now();
-                setBooks(prev => prev.map(b => b.id === bookId ? touchBook({ ...b, chapters: moveItem(b.chapters, from, to) }, touchedAt) : b));
+                setBooks(prev => prev.map(b => b.id === bookId ? { ...b, chapters: moveItem(b.chapters, from, to) } : b));
                 requestImmediateFirestoreSave();
             }, []);
             const updateBookTempNotes = (bookId, updater) => {
@@ -1868,18 +1782,16 @@
             const addNote = (bookId, chapterId, content, name) => {
                 if (!content || !content.trim()) return;
                 const note = buildNoteObject(content, name);
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c) }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c) } : b));
                 requestImmediateFirestoreSave();
             };
 
             const addLinkNote = (bookId, chapterId, note) => {
                 if (!note || !note.url) return;
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({
+                setBooks(books.map(b => b.id === bookId ? {
                     ...b,
                     chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c)
-                }, touchedAt) : b));
+                } : b));
                 requestImmediateFirestoreSave();
             };
 
@@ -1940,8 +1852,7 @@
                 updateBookNotes(bookId, moveItem(book.notes, index, target));
             };
             const reorderBookNotesByIndex = useCallback((bookId, from, to) => {
-                const touchedAt = Date.now();
-                setBooks(prev => prev.map(b => b.id === bookId ? touchBook({ ...b, notes: moveItem(b.notes || [], from, to) }, touchedAt) : b));
+                setBooks(prev => prev.map(b => b.id === bookId ? { ...b, notes: moveItem(b.notes || [], from, to) } : b));
                 requestImmediateFirestoreSave();
             }, []);
             const chooseDestination = async (source) => {
@@ -1983,40 +1894,34 @@
                     });
                 }
 
-                const touchedAt = Date.now();
                 setBooks(prevBooks => prevBooks.map(book => {
                     let updatedBook = book;
-                    let changed = false;
 
                     // Eliminar del origen si corresponde
                     if (mode === 'move') {
                         if (source.type === 'book' && book.id === source.bookId) {
                             updatedBook = { ...updatedBook, notes: (updatedBook.notes || []).filter(n => n.id !== noteId) };
-                            changed = true;
                         }
                         if (source.type === 'chapter' && book.id === source.bookId) {
                             updatedBook = {
                                 ...updatedBook,
                                 chapters: updatedBook.chapters.map(c => c.id === source.chapterId ? { ...c, notes: c.notes.filter(n => n.id !== noteId) } : c)
                             };
-                            changed = true;
                         }
                     }
 
                     // Agregar al destino
                     if (destination.type === 'book' && book.id === destination.bookId) {
                         updatedBook = { ...updatedBook, notes: [...(updatedBook.notes || []), noteForDestination] };
-                        changed = true;
                     }
                     if (destination.type === 'chapter' && book.id === destination.bookId) {
                         updatedBook = {
                             ...updatedBook,
                             chapters: updatedBook.chapters.map(c => c.id === destination.chapterId ? { ...c, notes: [...c.notes, noteForDestination] } : c)
                         };
-                        changed = true;
                     }
 
-                    return changed ? touchBook(updatedBook, touchedAt) : updatedBook;
+                    return updatedBook;
                 }));
 
                 if (source.type === 'root' && mode === 'move' && destination.type !== 'root') setRootNotes(notes => notes.filter(n => n.id !== noteId));
@@ -2025,28 +1930,23 @@
             const editNote = (bookId, chapterId, noteId, content, name) => {
                 const cleanContent = normalizeContent(content);
                 const finalName = (name && name.trim()) || extractNoteName(cleanContent);
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: c.notes.map(n => n.id === noteId ? { ...n, content: cleanContent, name: finalName } : n) } : c) }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: c.notes.map(n => n.id === noteId ? { ...n, content: cleanContent, name: finalName } : n) } : c) } : b));
                 requestImmediateFirestoreSave();
             };
             const updateNotes = (bookId, chapterId, newNotes) => {
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: newNotes } : c) }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: newNotes } : c) } : b));
                 requestImmediateFirestoreSave();
             };
             const updateBookNotes = (bookId, newNotes) => {
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, notes: newNotes }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, notes: newNotes } : b));
                 requestImmediateFirestoreSave();
             };
             const updateBookChapters = (bookId, newChapters) => {
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, chapters: newChapters }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: newChapters } : b));
                 requestImmediateFirestoreSave();
             };
             const deleteChapter = (bookId, chapterId) => {
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === bookId ? touchBook({ ...b, chapters: b.chapters.filter(c => c.id !== chapterId) }, touchedAt) : b));
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.filter(c => c.id !== chapterId) } : b));
                 requestImmediateFirestoreSave();
             };
             const reorderChapter = (bookId, chapterId, direction) => {
@@ -2065,8 +1965,7 @@
                 const chapter = source.chapters.find(c => c.id === chapterId);
                 if (!chapter) return;
                 const cloned = { ...chapter, id: generateId(), notes: chapter.notes.map(cloneNote) };
-                const touchedAt = Date.now();
-                setBooks(books.map(b => b.id === targetBookId ? touchBook({ ...b, chapters: [...b.chapters, cloned] }, touchedAt) : b));
+                setBooks(books.map(b => b.id === targetBookId ? { ...b, chapters: [...b.chapters, cloned] } : b));
                 requestImmediateFirestoreSave();
             };
             const moveChapterToBook = (sourceBookId, chapterId, targetBookId) => {
@@ -2075,10 +1974,9 @@
                 const chapter = source?.chapters.find(c => c.id === chapterId);
                 if (!chapter) return;
                 const cleanedSource = source.chapters.filter(c => c.id !== chapterId);
-                const touchedAt = Date.now();
                 setBooks(books.map(b => {
-                    if (b.id === sourceBookId) return touchBook({ ...b, chapters: cleanedSource }, touchedAt);
-                    if (b.id === targetBookId) return touchBook({ ...b, chapters: [...b.chapters, chapter] }, touchedAt);
+                    if (b.id === sourceBookId) return { ...b, chapters: cleanedSource };
+                    if (b.id === targetBookId) return { ...b, chapters: [...b.chapters, chapter] };
                     return b;
                 }));
                 requestImmediateFirestoreSave();
@@ -2723,16 +2621,6 @@
                     { id: 'collections', label: 'Colecciones', description: 'Agrupa y organiza', icon: <Icons.Folder /> },
                 ];
 
-                const libraryOrderOptions = [
-                    { id: 'latest', label: 'Último modificado', description: 'Recientes primero', icon: <Icons.Sort /> },
-                    { id: 'oldest', label: 'Más antiguos (creación)', description: 'Primero los originales', icon: <Icons.Clock /> },
-                    { id: 'newest', label: 'Más nuevos (creación)', description: 'Primero los recientes', icon: <Icons.Clock /> },
-                    { id: 'name', label: 'Nombre (A-Z)', description: 'Orden alfabético', icon: <Icons.Sort /> },
-                ];
-
-                const sortedBooks = useMemo(() => sortBooksByOrder(books, libraryOrder), [books, libraryOrder]);
-                const activeOrder = libraryOrderOptions.find(opt => opt.id === libraryOrder) || libraryOrderOptions[0];
-
                 const activeCollection = activeCollectionId
                     ? booksByCollection.find((collection) => collection.id === activeCollectionId)
                     : null;
@@ -2754,7 +2642,7 @@
                     </div>
                 );
 
-                const renderListCards = (bookList = sortedBooks) => (
+                const renderListCards = (bookList = books) => (
                     <div className="space-y-2">
                         {bookList.map((book) => {
                             const moveProps = booksMoveMode.getItemProps(book.id);
@@ -2831,7 +2719,7 @@
                     </div>
                 );
 
-                const renderGridCards = (bookList = sortedBooks) => (
+                const renderGridCards = (bookList = books) => (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {bookList.map((book) => {
                             const moveProps = booksMoveMode.getItemProps(book.id);
@@ -2933,7 +2821,6 @@
                     if (!activeCollection) return null;
 
                     const collectionBooks = activeCollection.books;
-                    const sortedCollectionBooks = sortBooksByOrder(collectionBooks, libraryOrder);
                     const collectionViewOptions = [
                         { id: 'list', label: 'Lista', icon: <Icons.Menu /> },
                         { id: 'grid', label: 'Grid', icon: <Icons.Grid /> },
@@ -2969,8 +2856,8 @@
                                 </div>
                             ) : (
                                 collectionViewMode === 'list'
-                                    ? renderListCards(sortedCollectionBooks)
-                                    : renderGridCards(sortedCollectionBooks)
+                                    ? renderListCards(collectionBooks)
+                                    : renderGridCards(collectionBooks)
                             )}
                         </div>
                     );
@@ -3000,65 +2887,22 @@
 
                         <main className="flex-1 px-5 pt-2 pb-28 max-w-xl mx-auto w-full space-y-4">
                             {!(libraryView === 'collections' && activeCollection) && (
-                                <div className="flex items-stretch gap-2 flex-wrap">
-                                    <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto flex-1 min-w-0">
-                                        {libraryViewOptions.map(option => (
-                                            <button
-                                                key={option.id}
-                                                onClick={() => {
-                                                    setLibraryView(option.id);
-                                                    if (option.id !== 'collections') setActiveCollectionId(null);
-                                                }}
-                                                className={`flex-1 min-w-[120px] flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-sm font-semibold transition ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
-                                            >
-                                                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
-                                                    {option.icon}
-                                                </div>
-                                                <span className="truncate">{option.label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {libraryView !== 'collections' && (
-                                        <div className="relative" ref={orderMenuRef}>
-                                            <button
-                                                onClick={() => setOrderMenuOpen(prev => !prev)}
-                                                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
-                                            >
-                                                <Icons.Sort />
-                                                <div className="flex flex-col items-start">
-                                                    <span>Ordenar</span>
-                                                    <span className="text-[11px] font-medium text-slate-500 truncate max-w-[160px]">{activeOrder.label}</span>
-                                                </div>
-                                            </button>
-
-                                            {orderMenuOpen && (
-                                                <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-xl p-2 space-y-1 z-10">
-                                                    {libraryOrderOptions.map((option) => (
-                                                        <button
-                                                            key={option.id}
-                                                            onClick={() => {
-                                                                setLibraryOrder(option.id);
-                                                                setOrderMenuOpen(false);
-                                                            }}
-                                                            className={`w-full text-left px-2.5 py-2 rounded-lg border ${libraryOrder === option.id ? 'border-indigo-200 bg-indigo-50/60' : 'border-transparent hover:border-indigo-100 hover:bg-slate-50'} transition`}
-                                                        >
-                                                            <div className="flex items-start gap-2">
-                                                                <span className="text-indigo-600 mt-0.5">{option.icon}</span>
-                                                                <div className="flex-1">
-                                                                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                                                                        <span>{option.label}</span>
-                                                                        {libraryOrder === option.id && <Icons.Check />}
-                                                                    </div>
-                                                                    <p className="text-xs text-slate-500">{option.description}</p>
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto">
+                                    {libraryViewOptions.map(option => (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => {
+                                                setLibraryView(option.id);
+                                                if (option.id !== 'collections') setActiveCollectionId(null);
+                                            }}
+                                            className={`flex-1 min-w-[140px] flex items-center gap-2 px-2.5 py-2 rounded-lg border text-sm font-semibold transition ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-md flex items-center justify-center ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
+                                                {option.icon}
+                                            </div>
+                                            <span className="truncate">{option.label}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             )}
 
