@@ -1633,7 +1633,10 @@
             }, []);
 
             // Helpers de navegación y datos
-            const addBook = (title, collectionId = DEFAULT_COLLECTION.id) => setBooks([...books, { id: generateId(), title, chapters: [], notes: [], collectionId }]);
+            const addBook = (title, collectionId = DEFAULT_COLLECTION.id) => {
+                setBooks([...books, { id: generateId(), title, chapters: [], notes: [], collectionId }]);
+                requestImmediateFirestoreSave();
+            };
             const addCollection = (name) => {
                 const trimmed = (name || '').trim();
                 if (!trimmed) return;
