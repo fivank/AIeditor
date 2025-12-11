@@ -1776,6 +1776,7 @@
             const [activeCollectionId, setActiveCollectionId] = useState(null);
             const [collectionViewMode, setCollectionViewMode] = useState('grid');
             const [activeBookId, setActiveBookId] = useState(null);
+            const [showSortLabel, setShowSortLabel] = useState(false);
             const [activeChapterId, setActiveChapterId] = useState(null);
             const [loading, setLoading] = useState(false);
             const [testStatus, setTestStatus] = useState(null); // null, 'loading', 'success', 'error'
@@ -3154,6 +3155,12 @@
                     { id: 'name', label: t('sortAlpha') },
                 ];
 
+                const handleSortClick = async () => {
+                    setShowSortLabel(true);
+                    const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
+                    if (choice?.id) setLibrarySort(choice.id);
+                };
+
                 const activeCollection = activeCollectionId
                     ? booksByCollection.find((collection) => collection.id === activeCollectionId)
                     : null;
@@ -3389,21 +3396,28 @@
                                                 <span className={`w-8 h-8 rounded-full flex items-center justify-center ${collectionViewMode === option.id ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-slate-500 border border-slate-200'}`}>
                                                     {option.icon}
                                                 </span>
-                                                {option.label}
+                                                {collectionViewMode === option.id ? (
+                                                    <span className="truncate">{option.label}</span>
+                                                ) : (
+                                                    <span className="sr-only">{option.label}</span>
+                                                )}
                                             </button>
                                         ))}
+                                        <button
+                                            onClick={handleSortClick}
+                                            className="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
+                                        >
+                                            <span className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
+                                            {showSortLabel ? (
+                                                <>
+                                                    <span className="truncate">{t('sort')}</span>
+                                                    <span className="text-xs text-slate-500 whitespace-nowrap">{currentSortLabel}</span>
+                                                </>
+                                            ) : (
+                                                <span className="sr-only">{`${t('sort')} ${currentSortLabel}`}</span>
+                                            )}
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={async () => {
-                                            const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
-                                            if (choice?.id) setLibrarySort(choice.id);
-                                        }}
-                                        className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
-                                    >
-                                        <span className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
-                                        <span className="truncate">{t('sort')}</span>
-                                        <span className="text-xs text-slate-500">{currentSortLabel}</span>
-                                    </button>
                                 </div>
                             </div>
 
@@ -3445,7 +3459,7 @@
                         <main className="flex-1 px-5 pt-2 pb-28 max-w-xl mx-auto w-full space-y-4">
                             {!(libraryView === 'collections' && activeCollection) && (
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto">
+                                    <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto w-full">
                                         {libraryViewOptions.map(option => (
                                             <button
                                                 key={option.id}
@@ -3453,26 +3467,33 @@
                                                     setLibraryView(option.id);
                                                     if (option.id !== 'collections') setActiveCollectionId(null);
                                                 }}
-                                                className={`flex-1 min-w-[110px] flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-[13px] font-semibold transition ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
+                                                className={`flex-1 min-w-[110px] flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-[13px] font-semibold transition flex-shrink-0 ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
                                             >
                                                 <div className={`w-7 h-7 rounded-md flex items-center justify-center ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
                                                     {option.icon}
                                                 </div>
-                                                <span className="truncate">{option.label}</span>
+                                                {libraryView === option.id ? (
+                                                    <span className="truncate">{option.label}</span>
+                                                ) : (
+                                                    <span className="sr-only">{option.label}</span>
+                                                )}
                                             </button>
                                         ))}
+                                        <button
+                                            onClick={handleSortClick}
+                                            className="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
+                                        >
+                                            <span className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
+                                            {showSortLabel ? (
+                                                <>
+                                                    <span className="truncate">{t('sort')}</span>
+                                                    <span className="text-xs text-slate-500 whitespace-nowrap">{currentSortLabel}</span>
+                                                </>
+                                            ) : (
+                                                <span className="sr-only">{`${t('sort')} ${currentSortLabel}`}</span>
+                                            )}
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={async () => {
-                                            const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
-                                            if (choice?.id) setLibrarySort(choice.id);
-                                        }}
-                                        className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
-                                    >
-                                        <span className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
-                                        <span className="truncate">{t('sort')}</span>
-                                        <span className="text-xs text-slate-500">{currentSortLabel}</span>
-                                    </button>
                                 </div>
                             )}
 
