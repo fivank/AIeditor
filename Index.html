@@ -790,6 +790,27 @@
             }
         };
 
+        const isImageUrl = (text) => {
+            try {
+                const url = new URL(text.trim());
+                const pathname = url.pathname.split('?')[0];
+                return /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(pathname);
+            } catch (e) {
+                return false;
+            }
+        };
+
+        const getFileNameFromUrl = (text) => {
+            try {
+                const url = new URL(text.trim());
+                const segments = url.pathname.split('/').filter(Boolean);
+                const lastSegment = segments.pop();
+                return decodeURIComponent(lastSegment || url.hostname.replace(/^www\./, ''));
+            } catch (e) {
+                return text;
+            }
+        };
+
         const shortenUrl = (url) => {
             try {
                 const u = new URL(url);
@@ -818,6 +839,12 @@
 
         const fetchLinkMetadata = async (rawUrl) => {
             const url = new URL(rawUrl.trim());
+            const displayUrl = shortenUrl(url.href);
+            if (isImageUrl(url.href)) {
+                const title = getFileNameFromUrl(url.href);
+                return { title, thumbnail: url.href, displayUrl, isImage: true, imageUrl: url.href };
+            }
+
             let title = '';
             let thumbnail = getYoutubeThumbnail(url);
             try {
@@ -839,9 +866,8 @@
                 thumbnail = favIcon;
             }
 
-            const displayUrl = shortenUrl(url.href);
             const fallbackTitle = title?.trim() || url.hostname.replace(/^www\./, '');
-            return { title: fallbackTitle, thumbnail, displayUrl };
+            return { title: fallbackTitle, thumbnail, displayUrl, isImage: false };
         };
 
         const buildLinkNote = async (rawUrl) => {
@@ -1358,6 +1384,7 @@
             const { onEdit, onMoveUp, onMoveDown } = actions;
             const showMoveControls = moveModeActive && (onMoveUp || onMoveDown);
             const isLinkNote = note?.type === 'link' && note?.url;
+            const isImageLinkNote = isLinkNote && note?.meta?.isImage;
             const linkHost = (() => {
                 try { return new URL(note.url).hostname.replace(/^www\./, ''); } catch (e) { return note.url || ''; }
             })();
@@ -1400,6 +1427,18 @@
                 );
             };
 
+            const renderImageCard = () => {
+                const imageSrc = note?.meta?.imageUrl || note?.url;
+                return (
+                    <div className="relative w-full h-52 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                        <img src={imageSrc} alt={noteName} className="w-full h-full object-cover" />
+                        <div className="absolute bottom-2 right-2 text-[10px] bg-black/60 text-white px-2 py-1 rounded-full">
+                            {shortenUrl(note.url || '')}
+                        </div>
+                    </div>
+                );
+            };
+
             return (
                 <div
                     {...moveHandlers}
@@ -1422,23 +1461,25 @@
                         onCardClick?.(e);
                     }}
                 >
-                    {isLinkNote
-                        ? renderLinkCard()
-                        : collapsed
-                            ? (
-                                <div className="space-y-1">
-                                    <p className="text-sm font-bold text-slate-900 leading-tight">{noteName}</p>
-                                    {previewText && (
-                                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{previewText}</p>
-                                    )}
-                                </div>
-                            )
-                            : (
-                                <div className="space-y-2">
-                                    <p className="text-base font-bold text-slate-900 leading-tight">{noteName}</p>
-                                    <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
-                                </div>
-                            )
+                    {isImageLinkNote
+                        ? renderImageCard()
+                        : isLinkNote
+                            ? renderLinkCard()
+                            : collapsed
+                                ? (
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-bold text-slate-900 leading-tight">{noteName}</p>
+                                        {previewText && (
+                                            <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{previewText}</p>
+                                        )}
+                                    </div>
+                                )
+                                : (
+                                    <div className="space-y-2">
+                                        <p className="text-base font-bold text-slate-900 leading-tight">{noteName}</p>
+                                        <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
+                                    </div>
+                                )
                     }
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -3714,6 +3755,8 @@
                                         const isSelected = selectedChapterIds.includes(chap.id);
                                         const showMoveControls = chapterSelectionMode && primaryChapterId === chap.id;
                                         const chapterNumber = idx + 1;
+                                        const imageNote = chap.notes.find(n => n.type === 'link' && n.meta?.isImage);
+                                        const chapterImage = imageNote?.meta?.thumbnail || imageNote?.meta?.imageUrl || imageNote?.url;
                                         return (
                                         <div
                                             key={chap.id}
@@ -3749,6 +3792,12 @@
                                                 </h3>
                                                 <p className="text-xs text-slate-400">{t('chapterLabel', chapterNumber)}</p>
                                             </div>
+
+                                            {chapterImage && (
+                                                <div className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                                                    <img src={chapterImage} alt={chap.title} className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
 
                                             <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
                                                 {chap.notes.length} notas
