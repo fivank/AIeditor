@@ -317,6 +317,140 @@
             Cloud: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a5 5 0 1 1 .9-9.9A7 7 0 0 1 21 12a4 4 0 0 1-3.5 7Z"/></svg>
         };
 
+        const LANGUAGES = [
+            { code: 'en', label: 'English', flag: '🇺🇸' },
+            { code: 'es', label: 'Español', flag: '🇪🇸' }
+        ];
+
+        const translations = {
+            en: {
+                common: {
+                    appName: 'VoiceNotes',
+                    menu: 'Menu',
+                    close: 'Close',
+                    cancel: 'Cancel',
+                    save: 'Save',
+                    loading: 'Processing with AI...',
+                    apply: 'Apply',
+                    move: 'Move'
+                },
+                menu: {
+                    firebaseReady: 'Firebase ready',
+                    firebaseNotReady: 'Firebase not initialized',
+                    aiSettings: 'AI Settings',
+                    speechSettings: 'Speech-to-Text',
+                    login: 'Log In',
+                    logout: 'Log Out',
+                    language: 'Language'
+                },
+                languagePicker: {
+                    title: 'Language',
+                    description: 'Choose the language for the interface',
+                    current: 'Current language'
+                },
+                loadingOverlay: {
+                    message: 'Processing with AI...'
+                },
+                header: {
+                    back: 'Back'
+                },
+                home: {
+                    list: 'List',
+                    grid: 'Grid',
+                    collections: 'Collections',
+                    listDescription: 'Detailed view',
+                    gridDescription: 'Compact view',
+                    collectionsDescription: 'Group and organize',
+                    sortLatest: 'Last updated',
+                    sortOldest: 'Oldest (created)',
+                    sortNewest: 'Newest (created)',
+                    sortName: 'Name (A-Z)',
+                    collectionMove: 'Move',
+                    chaptersNotes: '{chapters} ch · {notes} notes'
+                },
+                settings: {
+                    save: 'Save settings',
+                    cancel: 'Cancel'
+                },
+                speech: {
+                    save: 'Save preferences',
+                    cancel: 'Cancel'
+                }
+            },
+            es: {
+                common: {
+                    appName: 'VoiceNotes',
+                    menu: 'Menú',
+                    close: 'Cerrar',
+                    cancel: 'Cancelar',
+                    save: 'Guardar',
+                    loading: 'Procesando con IA...',
+                    apply: 'Aplicar',
+                    move: 'Mover'
+                },
+                menu: {
+                    firebaseReady: 'Firebase listo',
+                    firebaseNotReady: 'Firebase no inicializado',
+                    aiSettings: 'Configuración IA',
+                    speechSettings: 'Speech-to-Text',
+                    login: 'Iniciar sesión',
+                    logout: 'Cerrar sesión',
+                    language: 'Idioma'
+                },
+                languagePicker: {
+                    title: 'Idioma',
+                    description: 'Elige el idioma de la interfaz',
+                    current: 'Idioma actual'
+                },
+                loadingOverlay: {
+                    message: 'Procesando con IA...'
+                },
+                header: {
+                    back: 'Atrás'
+                },
+                home: {
+                    list: 'Lista',
+                    grid: 'Grid',
+                    collections: 'Colecciones',
+                    listDescription: 'Vista detallada',
+                    gridDescription: 'Vista compacta',
+                    collectionsDescription: 'Agrupa y organiza',
+                    sortLatest: 'Últimos modificados',
+                    sortOldest: 'Más antiguos (creados)',
+                    sortNewest: 'Más nuevos (creados)',
+                    sortName: 'Nombre (A-Z)',
+                    collectionMove: 'Mover',
+                    chaptersNotes: '{chapters} cap · {notes} notas'
+                },
+                settings: {
+                    save: 'Guardar configuraciones',
+                    cancel: 'Cancelar'
+                },
+                speech: {
+                    save: 'Guardar preferencias',
+                    cancel: 'Cancelar'
+                }
+            }
+        };
+
+        const LOCAL_LANGUAGE_KEY = 'voiceNotes_language';
+
+        const formatTemplate = (template, values = {}) => {
+            if (typeof template !== 'string') return '';
+            return template.replace(/\{(\w+)\}/g, (_, key) => (values[key] !== undefined ? values[key] : `{${key}}`));
+        };
+
+        const getTranslation = (lang, key) => {
+            const parts = key.split('.');
+            let current = translations[lang] || translations.en;
+            for (const part of parts) {
+                current = current?.[part];
+                if (current === undefined) break;
+            }
+            if (typeof current === 'string') return current;
+            return null;
+        };
+
         // --- CONFIGURACIÓN INICIAL ---
         const DEFAULT_API_KEY = "";
         const DEFAULT_MODEL = "gemini-2.0-flash-exp";
@@ -1359,6 +1493,45 @@
             );
         };
 
+        const LanguageMenu = ({ open, onClose, onSelect, currentLanguage, translate }) => {
+            if (!open) return null;
+            return (
+                <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
+                    <div className="absolute top-4 right-4 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-start justify-between gap-2">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-800">{translate('languagePicker.title')}</p>
+                                <p className="text-xs text-slate-500">{translate('languagePicker.description')}</p>
+                            </div>
+                            <button onClick={onClose} className="icon-btn text-slate-400 hover:text-slate-700">✕</button>
+                        </div>
+                        <div className="space-y-2">
+                            {LANGUAGES.map((lang) => {
+                                const isActive = lang.code === currentLanguage?.code;
+                                return (
+                                    <button
+                                        key={lang.code}
+                                        onClick={() => onSelect?.(lang.code)}
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border transition ${isActive ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl" aria-hidden="true">{lang.flag}</span>
+                                            <span className="font-semibold text-sm">{lang.label}</span>
+                                        </div>
+                                        {isActive && (
+                                            <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-indigo-200 text-indigo-700">
+                                                {translate('languagePicker.current')}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const HamburgerMenu = ({
             open,
             onClose,
@@ -1370,7 +1543,10 @@
             status,
             message,
             firebaseReady,
-            firebaseError
+            firebaseError,
+            onLanguage,
+            currentLanguage,
+            translate
         }) => {
             if (!open) return null;
             const statusColor = status === 'success' ? 'text-green-700 bg-green-50 border-green-200' : status === 'error' ? 'text-red-700 bg-red-50 border-red-200' : 'text-blue-700 bg-blue-50 border-blue-200';
@@ -1379,8 +1555,8 @@
                     <div className="absolute top-3 right-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-start justify-between gap-2">
                             <div>
-                                <p className="text-sm font-semibold text-slate-800">Menu</p>
-                                <p className="text-xs text-slate-500">Firebase {firebaseReady ? 'ready' : 'not initialized'}</p>
+                                <p className="text-sm font-semibold text-slate-800">{translate('common.menu')}</p>
+                                <p className="text-xs text-slate-500">Firebase {firebaseReady ? translate('menu.firebaseReady') : translate('menu.firebaseNotReady')}</p>
                                 {firebaseError && <p className="text-[11px] text-red-600">{firebaseError}</p>}
                                 {authUser && <p className="text-[11px] text-slate-500">{authUser.email}</p>}
                             </div>
@@ -1389,15 +1565,22 @@
 
                         <div className="space-y-2">
                             <button onClick={onSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-slate-50 hover:bg-slate-100">
-                                <span className="text-sm font-medium text-slate-800">AI Settings</span>
+                                <span className="text-sm font-medium text-slate-800">{translate('menu.aiSettings')}</span>
                                 <Icons.Settings />
                             </button>
                             <button onClick={onSpeechSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-violet-50 hover:bg-violet-100">
-                                <span className="text-sm font-medium text-violet-800">Speech-to-Text</span>
+                                <span className="text-sm font-medium text-violet-800">{translate('menu.speechSettings')}</span>
                                 <Icons.Mic />
                             </button>
+                            <button onClick={onLanguage} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-lg" aria-hidden="true">{currentLanguage?.flag}</span>
+                                    <span>{translate('menu.language')}</span>
+                                </div>
+                                <span className="text-sm text-amber-700 font-semibold">{currentLanguage?.label}</span>
+                            </button>
                             <button onClick={authUser ? onLogout : onLogin} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold">
-                                <span>{authUser ? 'Log Out' : 'Log In'}</span>
+                                <span>{authUser ? translate('menu.logout') : translate('menu.login')}</span>
                                 <Icons.Cloud />
                             </button>
                         </div>
@@ -1476,12 +1659,14 @@
             const [noteModal, setNoteModal] = useState({ open: false, target: null });
             const [noteDraft, setNoteDraft] = useState('<p></p>');
             const [noteTitleDraft, setNoteTitleDraft] = useState('');
+            const [language, setLanguage] = useState('en');
             const recognitionRef = useRef(null);
             const [recordingTarget, setRecordingTarget] = useState(null);
             const [isRecording, setIsRecording] = useState(false);
             const [micSupportError, setMicSupportError] = useState(null);
             const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
             const [menuOpen, setMenuOpen] = useState(false);
+            const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
             const [speechConfigOpen, setSpeechConfigOpen] = useState(false);
             const [firebaseReady, setFirebaseReady] = useState(false);
             const [firebaseError, setFirebaseError] = useState(null);
@@ -1494,6 +1679,11 @@
             const dbRef = useRef(null);
             const autoSaveTimeoutRef = useRef(null);
             const [immediateSaveCounter, setImmediateSaveCounter] = useState(0);
+            const currentLanguage = useMemo(() => LANGUAGES.find((lang) => lang.code === language) || LANGUAGES[0], [language]);
+            const t = useCallback((key, values = {}) => {
+                const template = getTranslation(language, key) || getTranslation('en', key) || key;
+                return formatTemplate(template, values);
+            }, [language]);
 
             const speechEngines = useMemo(() => detectSpeechEngines(), []);
             const availableCollections = useMemo(() => ensureCollectionsWithDefault(collections), [collections]);
@@ -1582,6 +1772,7 @@
                 const savedBooks = localStorage.getItem('voiceNotes_books');
                 const savedSettings = localStorage.getItem('voiceNotes_settings');
                 const savedCollections = localStorage.getItem(LOCAL_COLLECTIONS_KEY);
+                const savedLanguage = localStorage.getItem(LOCAL_LANGUAGE_KEY);
                 const savedLibraryView = localStorage.getItem(LOCAL_LIBRARY_VIEW_KEY);
                 const savedCollectionViewMode = localStorage.getItem(LOCAL_COLLECTION_VIEW_KEY);
                 const savedActiveCollectionId = localStorage.getItem(LOCAL_ACTIVE_COLLECTION_KEY);
@@ -1595,6 +1786,9 @@
                 if (savedCollections) {
                     const parsed = JSON.parse(savedCollections);
                     setCollections(ensureCollectionsWithDefault(parsed));
+                }
+                if (savedLanguage && LANGUAGES.some((lang) => lang.code === savedLanguage)) {
+                    setLanguage(savedLanguage);
                 }
                 if (savedSettings) {
                     const parsed = JSON.parse(savedSettings);
@@ -1631,6 +1825,10 @@
             useEffect(() => { localStorage.setItem(LOCAL_COLLECTION_VIEW_KEY, collectionViewMode); }, [collectionViewMode]);
             useEffect(() => { localStorage.setItem(LOCAL_ACTIVE_COLLECTION_KEY, activeCollectionId || ''); }, [activeCollectionId]);
             useEffect(() => { localStorage.setItem(LOCAL_LIBRARY_SORT_KEY, librarySort); }, [librarySort]);
+            useEffect(() => {
+                localStorage.setItem(LOCAL_LANGUAGE_KEY, language);
+                document.documentElement.lang = language;
+            }, [language]);
             useEffect(() => {
                 if (!dataLoaded) return;
                 localStorage.setItem(LOCAL_USAGE_KEY, String(Date.now()));
@@ -2373,12 +2571,19 @@
                 : selectedChapterIds[selectedChapterIds.length - 1];
             const primaryChapter = activeBook?.chapters.find(c => c.id === primaryChapterId);
 
+            const handleLanguageSelect = (code) => {
+                if (!LANGUAGES.some((lang) => lang.code === code)) return;
+                setLanguage(code);
+                setLanguageMenuOpen(false);
+            };
+
             const menuPortal = (
                 <HamburgerMenu
                     open={menuOpen}
                     onClose={() => setMenuOpen(false)}
                     onSettings={() => { setMenuOpen(false); goSettings(); }}
                     onSpeechSettings={() => { setMenuOpen(false); setSpeechConfigOpen(true); }}
+                    onLanguage={() => { setMenuOpen(false); setLanguageMenuOpen(true); }}
                     onLogin={() => { setMenuOpen(false); handleFirebaseLogin(); }}
                     onLogout={() => { setMenuOpen(false); handleFirebaseLogout(); }}
                     authUser={authUser}
@@ -2386,10 +2591,21 @@
                     message={cloudMessage}
                     firebaseReady={firebaseReady}
                     firebaseError={firebaseError}
+                    currentLanguage={currentLanguage}
+                    translate={t}
                 />
             );
 
             const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
+            const languagePortal = (
+                <LanguageMenu
+                    open={languageMenuOpen}
+                    onClose={() => setLanguageMenuOpen(false)}
+                    onSelect={handleLanguageSelect}
+                    currentLanguage={currentLanguage}
+                    translate={t}
+                />
+            );
             const speechConfigPortal = (
                 <SpeechToTextConfig
                     open={speechConfigOpen}
@@ -2411,14 +2627,14 @@
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
                         <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center">
                             <div className="loader mb-4"></div>
-                            <p className="text-gray-700 font-medium">Processing with AI...</p>
+                            <p className="text-gray-700 font-medium">{t('loadingOverlay.message')}</p>
                         </div>
                     </div>
                 );
             }
 
             // Header
-            const Header = ({ title, subtitle = 'VoiceNotes', onBack, accentClass = 'text-slate-900', showMenu = false, rightContent = null }) => (
+            const Header = ({ title, subtitle = t('common.appName'), onBack, accentClass = 'text-slate-900', showMenu = false, rightContent = null }) => (
                 <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)]/95 backdrop-blur border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3 min-w-0">
                         {onBack && (
@@ -2574,6 +2790,7 @@
                     {menuPortal}
                     {pickerPortal}
                     {speechConfigPortal}
+                    {languagePortal}
                     </>
                 );
             }
@@ -2691,16 +2908,16 @@
 
             if (view === 'home') {
                 const libraryViewOptions = [
-                    { id: 'list', label: 'Lista', description: 'Vista detallada', icon: <Icons.Menu /> },
-                    { id: 'grid', label: 'Grid', description: 'Vista compacta', icon: <Icons.Grid /> },
-                    { id: 'collections', label: 'Colecciones', description: 'Agrupa y organiza', icon: <Icons.Folder /> },
+                    { id: 'list', label: t('home.list'), description: t('home.listDescription'), icon: <Icons.Menu /> },
+                    { id: 'grid', label: t('home.grid'), description: t('home.gridDescription'), icon: <Icons.Grid /> },
+                    { id: 'collections', label: t('home.collections'), description: t('home.collectionsDescription'), icon: <Icons.Folder /> },
                 ];
 
                 const sortOptions = [
-                    { id: 'latest', label: 'Últimos modificados' },
-                    { id: 'oldest', label: 'Más antiguos (creados)' },
-                    { id: 'newest', label: 'Más nuevos (creados)' },
-                    { id: 'name', label: 'Nombre (A-Z)' },
+                    { id: 'latest', label: t('home.sortLatest') },
+                    { id: 'oldest', label: t('home.sortOldest') },
+                    { id: 'newest', label: t('home.sortNewest') },
+                    { id: 'name', label: t('home.sortName') },
                 ];
 
                 const activeCollection = activeCollectionId
@@ -2721,7 +2938,7 @@
                             }}
                             className="text-indigo-600 font-semibold"
                         >
-                            Mover
+                            {t('home.collectionMove')}
                         </button>
                     </div>
                 );
@@ -2779,7 +2996,7 @@
                                                     <h3 className="font-semibold text-slate-900 text-[15px] truncate">
                                                         {book.title}
                                                     </h3>
-                                                    <p className="text-[12px] text-slate-500 truncate">{book.chapters.length} cap · {totalNotes} notas</p>
+                                                    <p className="text-[12px] text-slate-500 truncate">{t('home.chaptersNotes', { chapters: book.chapters.length, notes: totalNotes })}</p>
                                                 </button>
                                                 {showMoveControls && (
                                                     <div className="flex-shrink-0 flex items-center">
@@ -3141,6 +3358,7 @@
                     {menuPortal}
                     {pickerPortal}
                     {speechConfigPortal}
+                    {languagePortal}
                     </>
                 );
             }
@@ -3355,6 +3573,7 @@
                 {menuPortal}
                 {pickerPortal}
                 {speechConfigPortal}
+                {languagePortal}
                 </>
             );
         }
@@ -3374,6 +3593,7 @@
                     {menuPortal}
                     {pickerPortal}
                     {speechConfigPortal}
+                    {languagePortal}
                     </>
                 );
             }
