@@ -234,6 +234,11 @@
         }
 
         /* Estilos del editor y visualización de notas */
+        .editor-content,
+        .editor-content * {
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
         .editor-content h1 {
             font-size: 22px;
             font-weight: 800;
@@ -1150,7 +1155,7 @@
                                 <div className="space-y-1">
                                     <p className="text-sm font-bold text-slate-900 leading-tight">{noteName}</p>
                                     {previewText && (
-                                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{previewText}</p>
+                                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{previewText}</p>
                                     )}
                                 </div>
                             )
