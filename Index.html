@@ -317,6 +317,150 @@
             Cloud: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a5 5 0 1 1 .9-9.9A7 7 0 0 1 21 12a4 4 0 0 1-3.5 7Z"/></svg>
         };
 
+        const SUPPORTED_LANGUAGES = [
+            { code: 'en', label: 'English', flag: '🇺🇸' },
+            { code: 'es', label: 'Español', flag: '🇪🇸' }
+        ];
+
+        const translations = {
+            en: {
+                appName: 'VoiceNotes',
+                library: 'Library',
+                booksCount: (count) => `${count} ${count === 1 ? 'book' : 'books'}`,
+                menu: 'Menu',
+                firebaseReady: 'Firebase ready',
+                firebaseNotReady: 'Firebase not initialized',
+                aiSettings: 'AI Settings',
+                speechToText: 'Speech-to-Text',
+                logIn: 'Log In',
+                logOut: 'Log Out',
+                statusProcessing: 'Processing...',
+                statusSuccess: 'Success',
+                statusAlert: 'Alert',
+                language: 'Language',
+                selectLanguage: 'Select language',
+                settingsTitle: 'Settings',
+                connection: 'Connection',
+                secureConfig: 'Secure configuration',
+                speechModalTitle: 'Speech settings',
+                speechModalDescription: 'Choose your preferred dictation engine and allowed languages.',
+                engineUnavailable: 'Unavailable on this device',
+                preferredEngineLabel: 'Preferred engine',
+                aiAssist: 'AI-assisted notes',
+                aiAssistDescription: 'Enables the app to improve raw dictation with AI suggestions.',
+                languagesTitle: (engineLabel) => `Languages for ${engineLabel}`,
+                languagesDescription: 'Enable the languages allowed for Text-to-Speech and dictation.',
+                selectedCount: (count) => `${count} selected`,
+                savePreferences: 'Save preferences',
+                cancel: 'Cancel',
+                loading: 'Processing with AI...',
+                subtitleDefault: 'VoiceNotes',
+                homeSubtitle: 'VoiceNotes',
+                settingsGemini: 'Gemini API',
+                geminiHelper: 'Secure setup',
+                geminiKey: 'Gemini API Key',
+                placeholderKey: 'AIzaSy...',
+                promptMerge: 'Merge notes prompt',
+                promptStyle: 'Rewrite with style prompt',
+                promptGenerate: 'Generate note prompt',
+                testConnection: 'Test connection',
+                connectionSuccess: 'Connection successful!',
+                connectionFailed: 'Connection failed',
+                saveSettings: 'Save settings',
+                back: 'Back',
+                firebaseSection: 'Cloud Sync',
+                firebaseLogin: 'Sign In',
+                firebaseLogout: 'Sign Out',
+                firebaseConnect: 'Connect to Firebase',
+                firebaseDisconnect: 'Disconnect',
+                firebaseUnavailable: 'Firebase SDK not available.',
+                libraryViewList: 'List view',
+                libraryViewGrid: 'Grid view',
+                collectionsView: 'Collections',
+                sortLatest: 'Last updated',
+                sortOldest: 'Oldest first',
+                sortNewest: 'Newest',
+                sortAlpha: 'A-Z',
+                noNotes: 'No notes yet',
+                homeBooksSubtitle: (count) => `${count} ${count === 1 ? 'book' : 'books'}`,
+                settingsSaved: 'Preferences saved',
+                spanish: 'Spanish',
+                english: 'English',
+                speechPreferred: 'Preferred engine',
+                speechLanguagesHint: 'We save your capture preferences so you can choose how to dictate on your devices.',
+                chooseLanguage: 'Choose a language',
+                languageSaved: 'Language updated'
+            },
+            es: {
+                appName: 'VoiceNotes',
+                library: 'Biblioteca',
+                booksCount: (count) => `${count} ${count === 1 ? 'libro' : 'libros'}`,
+                menu: 'Menu',
+                firebaseReady: 'Firebase listo',
+                firebaseNotReady: 'Firebase no inicializado',
+                aiSettings: 'Configuración de IA',
+                speechToText: 'Texto a voz',
+                logIn: 'Iniciar sesión',
+                logOut: 'Cerrar sesión',
+                statusProcessing: 'Procesando...',
+                statusSuccess: 'Éxito',
+                statusAlert: 'Alerta',
+                language: 'Idioma',
+                selectLanguage: 'Seleccionar idioma',
+                settingsTitle: 'Configuración',
+                connection: 'Conexión',
+                secureConfig: 'Configuración segura',
+                speechModalTitle: 'Preferencias de voz',
+                speechModalDescription: 'Elige tu motor de dictado preferido y los idiomas permitidos.',
+                engineUnavailable: 'No disponible en este dispositivo',
+                preferredEngineLabel: 'Motor preferido',
+                aiAssist: 'Notas asistidas por IA',
+                aiAssistDescription: 'Activa que la app mejore el dictado bruto con sugerencias de IA.',
+                languagesTitle: (engineLabel) => `Idiomas para ${engineLabel}`,
+                languagesDescription: 'Activa los idiomas que quieres permitir en Text-to-Speech y dictado.',
+                selectedCount: (count) => `${count} seleccionados`,
+                savePreferences: 'Guardar preferencias',
+                cancel: 'Cancelar',
+                loading: 'Procesando con IA...',
+                subtitleDefault: 'VoiceNotes',
+                homeSubtitle: 'VoiceNotes',
+                settingsGemini: 'Gemini API',
+                geminiHelper: 'Configuración segura',
+                geminiKey: 'Gemini API Key',
+                placeholderKey: 'AIzaSy...',
+                promptMerge: 'Prompt para fusionar notas',
+                promptStyle: 'Prompt para reescribir con estilo',
+                promptGenerate: 'Prompt para generar nota',
+                testConnection: 'Probar conexión',
+                connectionSuccess: '¡Conexión Exitosa!',
+                connectionFailed: 'Conexión fallida',
+                saveSettings: 'Guardar configuración',
+                back: 'Volver',
+                firebaseSection: 'Sincronización en la nube',
+                firebaseLogin: 'Iniciar sesión',
+                firebaseLogout: 'Cerrar sesión',
+                firebaseConnect: 'Conectar con Firebase',
+                firebaseDisconnect: 'Desconectar',
+                firebaseUnavailable: 'Firebase SDK no está disponible.',
+                libraryViewList: 'Vista de lista',
+                libraryViewGrid: 'Vista de cuadrícula',
+                collectionsView: 'Colecciones',
+                sortLatest: 'Más reciente',
+                sortOldest: 'Más antiguo',
+                sortNewest: 'Más nuevo',
+                sortAlpha: 'A-Z',
+                noNotes: 'Sin notas todavía',
+                homeBooksSubtitle: (count) => `${count} ${count === 1 ? 'libro' : 'libros'}`,
+                settingsSaved: 'Preferencias guardadas',
+                spanish: 'Español',
+                english: 'Inglés',
+                speechPreferred: 'Motor preferido',
+                speechLanguagesHint: 'Guardamos tu preferencia de captura de voz para que elijas cómo dictar en tus dispositivos.',
+                chooseLanguage: 'Elige un idioma',
+                languageSaved: 'Idioma actualizado'
+            }
+        };
+
         // --- CONFIGURACIÓN INICIAL ---
         const DEFAULT_API_KEY = "";
         const DEFAULT_MODEL = "gemini-2.0-flash-exp";
@@ -346,6 +490,7 @@
         const LOCAL_COLLECTION_VIEW_KEY = 'voiceNotes_collectionViewMode';
         const LOCAL_ACTIVE_COLLECTION_KEY = 'voiceNotes_activeCollectionId';
         const LOCAL_LIBRARY_SORT_KEY = 'voiceNotes_librarySort';
+        const LOCAL_LANGUAGE_KEY = 'voiceNotes_language';
         const LOCAL_RECENCY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
         const AUTO_FIRESTORE_SAVE_DELAY = 2 * 60 * 1000; // 2 minutos
 
@@ -1178,13 +1323,13 @@
             );
         };
 
-        const OptionPicker = ({ state, onSelect, onClose }) => {
+        const OptionPicker = ({ state, onSelect, onClose, t }) => {
             if (!state.open) return null;
             return (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
                     <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border p-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-3">
-                            <p className="text-sm font-semibold text-slate-800">{state.title || 'Select an option'}</p>
+                            <p className="text-sm font-semibold text-slate-800">{state.title || t('selectLanguage')}</p>
                             <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
                         </div>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -1203,7 +1348,7 @@
             );
         };
 
-        const AiCornerButton = ({ onClick, title = 'Acciones con IA' }) => (
+        const AiCornerButton = ({ onClick, title }) => (
             <button
                 onClick={onClick}
                 className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-[0_14px_36px_rgba(59,130,246,0.45)] border border-indigo-200 hover:scale-105 active:scale-95 flex items-center justify-center transition"
@@ -1221,7 +1366,8 @@
             selectedEngine,
             aiAssistEnabled,
             languagePreferences,
-            onSave
+            onSave,
+            t
         }) => {
             const [draftEngine, setDraftEngine] = React.useState(selectedEngine);
             const [draftAiAssist, setDraftAiAssist] = React.useState(aiAssistEnabled);
@@ -1268,8 +1414,8 @@
                         <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-100 p-5 flex flex-col max-h-[90vh]">
                             <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100 sticky top-0 bg-white">
                                 <div>
-                                    <p className="text-sm font-semibold text-slate-800">Speech-to-Text</p>
-                                    <p className="text-xs text-slate-500">Elige tu motor, revisa idiomas soportados y guarda los cambios.</p>
+                                    <p className="text-sm font-semibold text-slate-800">{t('speechToText')}</p>
+                                    <p className="text-xs text-slate-500">{t('speechModalDescription')}</p>
                                 </div>
                                 <button onClick={onClose} className="icon-btn text-slate-400 hover:text-slate-700">✕</button>
                             </div>
@@ -1297,7 +1443,7 @@
                                             </div>
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className={`text-[11px] px-2 py-1 rounded-full border ${engine.available ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
-                                                    {engine.available ? 'Disponible' : 'No detectado'}
+                                                    {engine.available ? t('statusSuccess') : t('engineUnavailable')}
                                                 </span>
                                                 {draftEngine === engine.id && <Icons.Check />}
                                             </div>
@@ -1310,11 +1456,11 @@
                                         <Icons.Wand />
                                     </div>
                                     <div className="flex-1">
-                                        <p className="font-semibold text-slate-800 text-sm">Asistencia AI</p>
-                                        <p className="text-xs text-slate-600">Pulir automáticamente las transcripciones usando tu modelo configurado.</p>
+                                        <p className="font-semibold text-slate-800 text-sm">{t('aiAssist')}</p>
+                                        <p className="text-xs text-slate-600">{t('aiAssistDescription')}</p>
                                         <label className="mt-3 inline-flex items-center gap-2">
                                             <input type="checkbox" checked={draftAiAssist} onChange={(e) => setDraftAiAssist(e.target.checked)} />
-                                            <span className="text-sm text-slate-700">Activar post-procesamiento AI</span>
+                                            <span className="text-sm text-slate-700">{t('aiAssist')}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -1323,10 +1469,10 @@
                                     <div className="p-4 rounded-xl border border-slate-200 bg-white">
                                         <div className="flex items-start justify-between gap-2">
                                             <div>
-                                                <p className="font-semibold text-slate-800 text-sm">Idiomas para {activeEngine.label}</p>
-                                                <p className="text-xs text-slate-500">Activa los idiomas que quieres permitir en Text-to-Speech y dictado.</p>
+                                                <p className="font-semibold text-slate-800 text-sm">{t('languagesTitle', activeEngine.label)}</p>
+                                                <p className="text-xs text-slate-500">{t('languagesDescription')}</p>
                                             </div>
-                                            <span className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{activeLanguages.length} seleccionados</span>
+                                            <span className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{t('selectedCount', activeLanguages.length)}</span>
                                         </div>
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             {activeEngine.languages.map((lang) => {
@@ -1346,12 +1492,12 @@
                                     </div>
                                 )}
 
-                                <p className="text-[11px] text-slate-500 leading-relaxed">Guardamos tu preferencia de captura de voz (navegador, Android, teclado u otras opciones detectadas) para que puedas decidir cómo dictar cuando uses esta app en tu teléfono.</p>
+                                <p className="text-[11px] text-slate-500 leading-relaxed">{t('speechLanguagesHint')}</p>
                             </div>
 
                             <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-slate-200 sticky bottom-0 bg-white">
-                                <button onClick={handleSave} className="w-full py-3 rounded-xl bg-indigo-600 text-white font-semibold shadow-md hover:bg-indigo-700 transition">Guardar preferencias</button>
-                                <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium bg-slate-50 hover:bg-slate-100">Cancelar</button>
+                                <button onClick={handleSave} className="w-full py-3 rounded-xl bg-indigo-600 text-white font-semibold shadow-md hover:bg-indigo-700 transition">{t('savePreferences')}</button>
+                                <button onClick={onClose} className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium bg-slate-50 hover:bg-slate-100">{t('cancel')}</button>
                             </div>
                         </div>
                     </div>
@@ -1370,17 +1516,23 @@
             status,
             message,
             firebaseReady,
-            firebaseError
+            firebaseError,
+            onLanguageChange,
+            language,
+            languages,
+            t
         }) => {
             if (!open) return null;
+            const [showLanguageMenu, setShowLanguageMenu] = React.useState(false);
+            const activeLanguage = languages.find((l) => l.code === language) || languages[0];
             const statusColor = status === 'success' ? 'text-green-700 bg-green-50 border-green-200' : status === 'error' ? 'text-red-700 bg-red-50 border-red-200' : 'text-blue-700 bg-blue-50 border-blue-200';
             return (
                 <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
                     <div className="absolute top-3 right-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-start justify-between gap-2">
                             <div>
-                                <p className="text-sm font-semibold text-slate-800">Menu</p>
-                                <p className="text-xs text-slate-500">Firebase {firebaseReady ? 'ready' : 'not initialized'}</p>
+                                <p className="text-sm font-semibold text-slate-800">{t('menu')}</p>
+                                <p className="text-xs text-slate-500">Firebase {firebaseReady ? t('firebaseReady') : t('firebaseNotReady')}</p>
                                 {firebaseError && <p className="text-[11px] text-red-600">{firebaseError}</p>}
                                 {authUser && <p className="text-[11px] text-slate-500">{authUser.email}</p>}
                             </div>
@@ -1389,15 +1541,47 @@
 
                         <div className="space-y-2">
                             <button onClick={onSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-slate-50 hover:bg-slate-100">
-                                <span className="text-sm font-medium text-slate-800">AI Settings</span>
+                                <span className="text-sm font-medium text-slate-800">{t('aiSettings')}</span>
                                 <Icons.Settings />
                             </button>
                             <button onClick={onSpeechSettings} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-violet-50 hover:bg-violet-100">
-                                <span className="text-sm font-medium text-violet-800">Speech-to-Text</span>
+                                <span className="text-sm font-medium text-violet-800">{t('speechToText')}</span>
                                 <Icons.Mic />
                             </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowLanguageMenu((prev) => !prev)}
+                                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-amber-50 hover:bg-amber-100"
+                                >
+                                    <span className="text-sm font-medium text-slate-800 flex items-center gap-2">
+                                        <span className="text-lg leading-none">{activeLanguage?.flag}</span>
+                                        {t('language')}
+                                    </span>
+                                    <Icons.Sort />
+                                </button>
+                                {showLanguageMenu && (
+                                    <div className="absolute right-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-2 z-10">
+                                        <p className="text-xs text-slate-500 font-semibold">{t('selectLanguage')}</p>
+                                        <div className="flex flex-col gap-2">
+                                            {languages.map((lang) => (
+                                                <button
+                                                    key={lang.code}
+                                                    onClick={() => { onLanguageChange?.(lang.code); setShowLanguageMenu(false); }}
+                                                    className={`flex items-center justify-between px-3 py-2 rounded-lg border transition ${lang.code === language ? 'border-indigo-300 bg-indigo-50 text-indigo-800' : 'border-slate-200 hover:border-indigo-200'}`}
+                                                >
+                                                    <span className="flex items-center gap-2 text-sm font-medium">
+                                                        <span className="text-lg leading-none">{lang.flag}</span>
+                                                        {lang.label}
+                                                    </span>
+                                                    {lang.code === language && <Icons.Check />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <button onClick={authUser ? onLogout : onLogin} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold">
-                                <span>{authUser ? 'Log Out' : 'Log In'}</span>
+                                <span>{authUser ? t('logOut') : t('logIn')}</span>
                                 <Icons.Cloud />
                             </button>
                         </div>
@@ -1494,9 +1678,23 @@
             const dbRef = useRef(null);
             const autoSaveTimeoutRef = useRef(null);
             const [immediateSaveCounter, setImmediateSaveCounter] = useState(0);
+            const [language, setLanguage] = useState(() => {
+                const stored = localStorage.getItem(LOCAL_LANGUAGE_KEY);
+                if (stored && SUPPORTED_LANGUAGES.some(l => l.code === stored)) return stored;
+                const browserLang = navigator.language?.toLowerCase?.() || '';
+                return browserLang.startsWith('es') ? 'es' : 'en';
+            });
 
             const speechEngines = useMemo(() => detectSpeechEngines(), []);
             const availableCollections = useMemo(() => ensureCollectionsWithDefault(collections), [collections]);
+            const currentLanguage = useMemo(() => SUPPORTED_LANGUAGES.find((l) => l.code === language) || SUPPORTED_LANGUAGES[0], [language]);
+            const t = useCallback((key, params) => {
+                const value = translations[language]?.[key] ?? translations.es[key] ?? key;
+                if (typeof value === 'function') {
+                    return value(params);
+                }
+                return value;
+            }, [language]);
 
             const getCollectionName = useCallback((collectionId) => {
                 const found = availableCollections.find(c => c.id === collectionId);
@@ -1631,6 +1829,10 @@
             useEffect(() => { localStorage.setItem(LOCAL_COLLECTION_VIEW_KEY, collectionViewMode); }, [collectionViewMode]);
             useEffect(() => { localStorage.setItem(LOCAL_ACTIVE_COLLECTION_KEY, activeCollectionId || ''); }, [activeCollectionId]);
             useEffect(() => { localStorage.setItem(LOCAL_LIBRARY_SORT_KEY, librarySort); }, [librarySort]);
+            useEffect(() => {
+                document.documentElement.lang = language;
+                localStorage.setItem(LOCAL_LANGUAGE_KEY, language);
+            }, [language]);
             useEffect(() => {
                 if (!dataLoaded) return;
                 localStorage.setItem(LOCAL_USAGE_KEY, String(Date.now()));
@@ -2325,6 +2527,16 @@
                 }));
             };
 
+            const handleLanguageChange = (code) => {
+                setLanguage(code);
+                setCloudStatus('success');
+                setCloudMessage(t('languageSaved'));
+                setTimeout(() => {
+                    setCloudStatus(null);
+                    setCloudMessage('');
+                }, 1500);
+            };
+
             const presentAiActions = useCallback(async (options, title = 'Acciones con IA') => {
                 if (!options || options.length === 0) return;
                 const choice = await openPickerWithOptions(options, title);
@@ -2386,10 +2598,14 @@
                     message={cloudMessage}
                     firebaseReady={firebaseReady}
                     firebaseError={firebaseError}
+                    onLanguageChange={(code) => { handleLanguageChange(code); setMenuOpen(false); }}
+                    language={language}
+                    languages={SUPPORTED_LANGUAGES}
+                    t={t}
                 />
             );
 
-            const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} />;
+            const pickerPortal = <OptionPicker state={picker} onSelect={handlePickOption} onClose={() => handlePickOption(null)} t={t} />;
             const speechConfigPortal = (
                 <SpeechToTextConfig
                     open={speechConfigOpen}
@@ -2398,6 +2614,7 @@
                     selectedEngine={settings.speechToText?.preferredEngine}
                     aiAssistEnabled={settings.speechToText?.aiAssistEnabled}
                     languagePreferences={settings.speechToText?.languagePreferences}
+                    t={t}
                     onSave={(config) => {
                         handleSaveSpeechSettings(config);
                         setSpeechConfigOpen(false);
@@ -2411,14 +2628,14 @@
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
                         <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center">
                             <div className="loader mb-4"></div>
-                            <p className="text-gray-700 font-medium">Processing with AI...</p>
+                            <p className="text-gray-700 font-medium">{t('loading')}</p>
                         </div>
                     </div>
                 );
             }
 
             // Header
-            const Header = ({ title, subtitle = 'VoiceNotes', onBack, accentClass = 'text-slate-900', showMenu = false, rightContent = null }) => (
+            const Header = ({ title, subtitle = t('subtitleDefault'), onBack, accentClass = 'text-slate-900', showMenu = false, rightContent = null }) => (
                 <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)]/95 backdrop-blur border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3 min-w-0">
                         {onBack && (
@@ -2451,8 +2668,8 @@
             const HomeHeader = ({ bookCount }) => (
                 <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)] px-5 pt-5 pb-4 flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
-                        <h1 className="text-2xl font-bold text-slate-900 leading-tight">Biblioteca</h1>
-                        <p className="text-sm text-slate-500">{bookCount} {bookCount === 1 ? 'libro' : 'libros'}</p>
+                        <h1 className="text-2xl font-bold text-slate-900 leading-tight">{t('library')}</h1>
+                        <p className="text-sm text-slate-500">{t('booksCount', bookCount)}</p>
                     </div>
                     <button
                         onClick={() => setMenuOpen(true)}
@@ -2481,7 +2698,7 @@
                 return (
                     <>
                     <div className="min-h-screen app-surface">
-                        <Header title="Configuración" onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
+                        <Header title={t('settingsTitle')} onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
                         <div className="p-4 max-w-2xl mx-auto">
                             <div className="content-shell p-5 md:p-6 space-y-6">
 
