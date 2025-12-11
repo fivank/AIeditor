@@ -733,7 +733,7 @@
             return { moveModeId, getItemProps, exitMoveMode, activateMoveMode };
         };
 
-        const NoteEditorModal = ({ isOpen, title, value, onChange, onSave, onClose }) => {
+        const NoteEditorModal = ({ isOpen, title, value, nameValue, onNameChange, onChange, onSave, onClose }) => {
             const editorRef = useRef(null);
             const [fontFamily, setFontFamily] = useState('Calibri');
             const [fontSize, setFontSize] = useState(16);
@@ -910,6 +910,14 @@
                             <button onClick={onSave} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 text-sm">Guardar</button>
                         </div>
                     </div>
+                    <div className="px-4 py-3 bg-white border-b">
+                        <input
+                            value={nameValue || ''}
+                            onChange={(e) => onNameChange?.(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-200 focus:outline-none text-sm font-semibold text-slate-900"
+                            placeholder="Nombre de la nota"
+                        />
+                    </div>
                     <div className="px-3 py-2 bg-slate-50 border-b">
                         <div className="overflow-x-auto pb-2">
                             <div
@@ -1032,11 +1040,24 @@
             </div>
         );
 
-        const getNotePreview = (htmlContent, limit = 140) => {
+        const getPlainTextFromHtml = (htmlContent) => {
             const temp = document.createElement('div');
             temp.innerHTML = htmlContent || '';
-            const text = (temp.textContent || temp.innerText || '').trim();
-            return text.length > limit ? `${text.slice(0, limit).trim()}...` : text;
+            return (temp.textContent || temp.innerText || '').trim();
+        };
+
+        const extractNoteName = (htmlContent) => {
+            const text = getPlainTextFromHtml(htmlContent);
+            const firstLine = text.split(/\n/).map(line => line.trim()).find(Boolean);
+            return firstLine || 'Nueva nota';
+        };
+
+        const getNoteBodyPreview = (note, limit = 140) => {
+            const text = getPlainTextFromHtml(note?.content);
+            const name = note?.name || extractNoteName(note?.content);
+            const body = text.startsWith(name) ? text.slice(name.length).trimStart() : text;
+            if (!body) return '';
+            return body.length > limit ? `${body.slice(0, limit).trim()}...` : body;
         };
 
         const NoteChip = ({ note, actions = {}, selectionMode = false, isSelected = false, onCardClick, moveHandlers = {}, moveModeActive = false, collapsed = false, previewLength = 140 }) => {
@@ -1046,8 +1067,9 @@
             const linkHost = (() => {
                 try { return new URL(note.url).hostname.replace(/^www\./, ''); } catch (e) { return note.url || ''; }
             })();
+            const noteName = note?.name || extractNoteName(note?.content);
             const previewText = collapsed
-                ? (isLinkNote ? (note?.meta?.title || shortenUrl(note.url || '')) : getNotePreview(note.content, previewLength))
+                ? (isLinkNote ? (note?.meta?.title || shortenUrl(note.url || '')) : getNoteBodyPreview(note, previewLength))
                 : null;
 
             const handleLinkOpen = () => {
@@ -1109,8 +1131,20 @@
                     {isLinkNote
                         ? renderLinkCard()
                         : collapsed
-                            ? <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{previewText}</p>
-                            : <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
+                            ? (
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold text-slate-900 leading-tight">{noteName}</p>
+                                    {previewText && (
+                                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{previewText}</p>
+                                    )}
+                                </div>
+                            )
+                            : (
+                                <div className="space-y-2">
+                                    <p className="text-base font-bold text-slate-900 leading-tight">{noteName}</p>
+                                    <div className="text-sm text-gray-800 prose prose-slate max-w-none leading-relaxed editor-content" dangerouslySetInnerHTML={{ __html: note.content }} />
+                                </div>
+                            )
                     }
                     <div className="mt-2 flex justify-between items-center text-[10px] text-gray-400">
                         <span>{new Date(note.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -1420,6 +1454,7 @@
             const [activeSelectedChapterId, setActiveSelectedChapterId] = useState(null);
             const [noteModal, setNoteModal] = useState({ open: false, target: null });
             const [noteDraft, setNoteDraft] = useState('<p></p>');
+            const [noteTitleDraft, setNoteTitleDraft] = useState('');
             const recognitionRef = useRef(null);
             const [recordingTarget, setRecordingTarget] = useState(null);
             const [isRecording, setIsRecording] = useState(false);
@@ -1734,10 +1769,16 @@
                 });
             };
 
-            const addNote = (bookId, chapterId, content) => {
-                if (!content || !content.trim()) return;
+            const buildNoteObject = (content, name) => {
                 const cleanContent = normalizeContent(content);
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, { id: generateId(), content: cleanContent, timestamp: Date.now() }] } : c) } : b));
+                const finalName = (name && name.trim()) || extractNoteName(cleanContent);
+                return { id: generateId(), name: finalName, content: cleanContent, timestamp: Date.now() };
+            };
+
+            const addNote = (bookId, chapterId, content, name) => {
+                if (!content || !content.trim()) return;
+                const note = buildNoteObject(content, name);
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c) } : b));
                 requestImmediateFirestoreSave();
             };
 
@@ -1750,18 +1791,16 @@
                 requestImmediateFirestoreSave();
             };
 
-            const addBookNote = (bookId, content) => {
+            const addBookNote = (bookId, content, name) => {
                 if (!content || !content.trim()) return;
-                const cleanContent = normalizeContent(content);
-                const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
+                const note = buildNoteObject(content, name);
                 updateBookTempNotes(bookId, (notes) => [...notes, note]);
                 requestImmediateFirestoreSave();
             };
 
-            const addRootNote = (content) => {
+            const addRootNote = (content, name) => {
                 if (!content || !content.trim()) return;
-                const cleanContent = normalizeContent(content);
-                const note = { id: generateId(), content: cleanContent, timestamp: Date.now() };
+                const note = buildNoteObject(content, name);
 
                 setBooks(prevBooks => {
                     let updated = [...prevBooks];
@@ -1884,9 +1923,10 @@
                 if (source.type === 'root' && mode === 'move' && destination.type !== 'root') setRootNotes(notes => notes.filter(n => n.id !== noteId));
                 requestImmediateFirestoreSave();
             };
-            const editNote = (bookId, chapterId, noteId, content) => {
+            const editNote = (bookId, chapterId, noteId, content, name) => {
                 const cleanContent = normalizeContent(content);
-                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: c.notes.map(n => n.id === noteId ? { ...n, content: cleanContent } : n) } : c) } : b));
+                const finalName = (name && name.trim()) || extractNoteName(cleanContent);
+                setBooks(books.map(b => b.id === bookId ? { ...b, chapters: b.chapters.map(c => c.id === chapterId ? { ...c, notes: c.notes.map(n => n.id === noteId ? { ...n, content: cleanContent, name: finalName } : n) } : c) } : b));
                 requestImmediateFirestoreSave();
             };
             const updateNotes = (bookId, chapterId, newNotes) => {
@@ -2176,15 +2216,18 @@
             };
 
             const openNoteModal = (target) => {
-                setNoteDraft(target?.initialContent || '<p></p>');
+                const initialContent = target?.initialContent || '<p></p>';
+                setNoteDraft(initialContent);
+                setNoteTitleDraft(target?.initialName || extractNoteName(initialContent));
                 setNoteModal({ open: true, target });
             };
-            const closeNoteModal = () => { setNoteDraft('<p></p>'); setNoteModal({ open: false, target: null }); };
+            const closeNoteModal = () => { setNoteDraft('<p></p>'); setNoteTitleDraft(''); setNoteModal({ open: false, target: null }); };
             const handleSaveTypedNote = () => {
                 const content = normalizeContent(noteDraft);
                 const target = noteModal.target;
                 if (!target?.onSave) return;
-                target.onSave(content);
+                const name = (noteTitleDraft && noteTitleDraft.trim()) || extractNoteName(content);
+                target.onSave(content, name);
                 closeNoteModal();
             };
 
@@ -2214,6 +2257,7 @@
 
             const activeBook = books.find(b => b.id === activeBookId);
             const activeChapter = activeBook?.chapters.find(c => c.id === activeChapterId);
+            const activeChapterNumber = activeBook ? activeBook.chapters.findIndex(c => c.id === activeChapterId) + 1 : null;
 
             const pushAsLast = (list, id) => {
                 const filtered = list.filter(item => item !== id);
@@ -2935,7 +2979,8 @@
                                                             onEdit: () => openNoteModal({
                                                                 title: 'Editar nota',
                                                                 initialContent: note.content,
-                                                                onSave: (html) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                                initialName: note.name,
+                                                                onSave: (html, name) => setRootNotes((notes) => notes.map(n => n.id === note.id ? { ...n, content: html, name } : n))
                                                             }),
                                                             onMoveUp: () => reorderRootNote(note.id, -1),
                                                             onMoveDown: () => reorderRootNote(note.id, 1)
@@ -2965,7 +3010,7 @@
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                             {isRecording && recordingTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
                             <div className="flex items-center gap-3">
-                                <button onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html) => addRootNote(html) })} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
+                                <button onClick={() => openNoteModal({ title: 'Nueva nota rápida', onSave: (html, name) => addRootNote(html, name) })} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
                                     <Icons.Pencil />
                                 </button>
                                 <button
@@ -2982,6 +3027,8 @@
                             isOpen={noteModal.open}
                             title={noteModal.target?.title || 'Nueva nota'}
                             value={noteDraft}
+                            nameValue={noteTitleDraft}
+                            onNameChange={setNoteTitleDraft}
                             onChange={setNoteDraft}
                             onSave={handleSaveTypedNote}
                             onClose={closeNoteModal}
@@ -3007,7 +3054,7 @@
                             const chapterText = chapter.notes.map(n => n.content).join("\n");
                             const finalPrompt = settings.prompts.style.replace('{STYLE}', styleDesc);
                             const newText = await callGemini(settings.apiKey, settings.model, finalPrompt, chapterText);
-                            chapter.notes = [{ id: generateId(), content: normalizeContent(newText), timestamp: Date.now() }];
+                            chapter.notes = [buildNoteObject(newText)];
                         }
                         updateBookChapters(activeBook.id, newChapters);
                         alert("¡Libro reescrito!");
@@ -3024,10 +3071,10 @@
                         const finalPrompt = `${settings.prompts.generate}\n\nPetición: ${promptText}`;
                         const newText = await callGemini(settings.apiKey, settings.model, finalPrompt, bookContent);
                         const newChapterId = generateId();
-                        const newNoteId = generateId();
+                        const newNote = buildNoteObject(newText);
                         setBooks(books.map(b => b.id === activeBook.id ? {
                             ...b,
-                            chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, notes: [{ id: newNoteId, content: normalizeContent(newText), timestamp: Date.now() }] }]
+                            chapters: [...b.chapters, { id: newChapterId, title: `Generado ${new Date().toLocaleTimeString()}`, notes: [newNote] }]
                         } : b));
                         alert("Nueva nota generada y guardada en un capítulo nuevo.");
                     } catch (e) { alert("Error: " + e.message); } finally { setLoading(false); }
@@ -3070,10 +3117,11 @@
 
                                 {activeBook.chapters.length === 0 && <div className="text-center py-10 text-gray-400"><p>Libro vacío.</p></div>}
                                 <div className="space-y-3">
-                                    {activeBook.chapters.map((chap) => {
+                                    {activeBook.chapters.map((chap, idx) => {
                                         const moveProps = chaptersMoveMode.getItemProps(chap.id);
                                         const isSelected = selectedChapterIds.includes(chap.id);
                                         const showMoveControls = chapterSelectionMode && primaryChapterId === chap.id;
+                                        const chapterNumber = idx + 1;
                                         return (
                                         <div
                                             key={chap.id}
@@ -3100,14 +3148,14 @@
                                                 }}
                                                 className="flex-shrink-0 w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner"
                                             >
-                                                <Icons.Folder />
+                                                <span className="text-xl font-extrabold text-indigo-600 leading-none">{chapterNumber}.</span>
                                             </button>
 
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-semibold text-slate-900 text-base truncate">
                                                     {chap.title}
                                                 </h3>
-                                                <p className="text-xs text-slate-400">Capítulo</p>
+                                                <p className="text-xs text-slate-400">Capítulo {chapterNumber}</p>
                                             </div>
 
                                             <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
@@ -3157,7 +3205,8 @@
                                                         onEdit: () => openNoteModal({
                                                             title: 'Editar nota',
                                                             initialContent: note.content,
-                                                            onSave: (html) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html } : n))
+                                                            initialName: note.name,
+                                                            onSave: (html, name) => updateBookNotes(activeBook.id, activeBook.notes.map(n => n.id === note.id ? { ...n, content: html, name } : n))
                                                         }),
                                                         onMoveUp: () => reorderBookNote(activeBook.id, note.id, -1),
                                                         onMoveDown: () => reorderBookNote(activeBook.id, note.id, 1)
@@ -3174,7 +3223,7 @@
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                             {isRecording && recordingTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
                             <div className="flex items-center gap-3">
-                                <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html) => addBookNote(activeBook.id, html) })} className="w-12 h-12 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota del libro">
+                                <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html, name) => addBookNote(activeBook.id, html, name) })} className="w-12 h-12 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota del libro">
                                     <Icons.Pencil />
                                 </button>
                                 <button
@@ -3191,6 +3240,8 @@
                             isOpen={noteModal.open}
                             title={noteModal.target?.title || 'Nota'}
                             value={noteDraft}
+                            nameValue={noteTitleDraft}
+                            onNameChange={setNoteTitleDraft}
                             onChange={setNoteDraft}
                             onSave={handleSaveTypedNote}
                             onClose={closeNoteModal}
@@ -3207,8 +3258,8 @@
         if (view === 'chapter' && activeChapter) {
                 return (
                     <>
-                    <NoteManager bookId={activeBookId} chapter={activeChapter} onBack={() => goBook(activeBookId)}
-                        onAddNote={(text) => addNote(activeBookId, activeChapter.id, text)}
+                    <NoteManager bookId={activeBookId} chapter={activeChapter} chapterNumber={activeChapterNumber} onBack={() => goBook(activeBookId)}
+                        onAddNote={(text, name) => addNote(activeBookId, activeChapter.id, text, name)}
                         onAddLinkNote={(note) => addLinkNote(activeBookId, activeChapter.id, note)}
                         onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
                         editNote={editNote}
@@ -3226,11 +3277,12 @@
         }
 
         // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions }) {
+        function NoteManager({ bookId, chapter, chapterNumber, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions }) {
             const [isRecording, setIsRecording] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             const [selectionMode, setSelectionMode] = useState(false);
             const [noteDraft, setNoteDraft] = useState('<p></p>');
+            const [noteNameDraft, setNoteNameDraft] = useState('');
             const [noteModalOpen, setNoteModalOpen] = useState(false);
             const [editingNoteId, setEditingNoteId] = useState(null);
             const recognitionRef = useRef(null);
@@ -3285,14 +3337,21 @@
                 noteMoveMode.activateMoveMode(id);
             };
 
-            const openNoteModal = (note = null) => { setNoteDraft(note?.content || '<p></p>'); setEditingNoteId(note?.id || null); setNoteModalOpen(true); };
-            const closeNoteModal = () => { setNoteDraft('<p></p>'); setEditingNoteId(null); setNoteModalOpen(false); };
+            const openNoteModal = (note = null) => {
+                const initialContent = note?.content || '<p></p>';
+                setNoteDraft(initialContent);
+                setNoteNameDraft(note?.name || extractNoteName(initialContent));
+                setEditingNoteId(note?.id || null);
+                setNoteModalOpen(true);
+            };
+            const closeNoteModal = () => { setNoteDraft('<p></p>'); setNoteNameDraft(''); setEditingNoteId(null); setNoteModalOpen(false); };
             const saveTypedNote = () => {
                 if (!noteDraft.trim()) return;
+                const name = (noteNameDraft && noteNameDraft.trim()) || extractNoteName(noteDraft);
                 if (editingNoteId) {
-                    editNote(bookId, chapter.id, editingNoteId, noteDraft);
+                    editNote(bookId, chapter.id, editingNoteId, noteDraft, name);
                 } else {
-                    onAddNote(noteDraft);
+                    onAddNote(noteDraft, name);
                 }
                 closeNoteModal();
             };
@@ -3339,7 +3398,8 @@
                     if (type === 'generate') promptText = `${settings.prompts.generate}\n\nPetición: ${extraPrompt}`;
                     const result = await callGemini(settings.apiKey, settings.model, promptText, text);
 
-                    const newNote = { id: generateId(), content: normalizeContent(result), timestamp: Date.now() };
+                    const cleanResult = normalizeContent(result);
+                    const newNote = { id: generateId(), name: extractNoteName(cleanResult), content: cleanResult, timestamp: Date.now() };
                     if (scope === 'selection') {
                         const remaining = chapter.notes.filter(n => !selectedIds.includes(n.id));
                         onUpdateNotes([...remaining, newNote]);
@@ -3385,7 +3445,8 @@
                     .map(note => `<div>${note.content}</div>`)
                     .join('');
 
-                const newNote = { id: generateId(), content: concatenatedContent, timestamp: Date.now() };
+                const cleanContent = normalizeContent(concatenatedContent);
+                const newNote = { id: generateId(), name: extractNoteName(cleanContent), content: cleanContent, timestamp: Date.now() };
 
                 const mergedNotes = [];
                 let inserted = false;
@@ -3462,7 +3523,7 @@
                                     <Icons.ChevronLeft />
                                 </button>
                                 <div className="overflow-hidden">
-                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-semibold">Capítulo</p>
+                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-semibold">Capítulo {chapterNumber || ''}</p>
                                     <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">{chapter.title}</h1>
                                     <p className="text-xs text-slate-500 truncate">{selectedIds.length} seleccionadas</p>
                                 </div>
@@ -3550,6 +3611,8 @@
                         isOpen={noteModalOpen}
                         title={editingNoteId ? 'Editar nota' : 'Añadir nota escrita'}
                         value={noteDraft}
+                        nameValue={noteNameDraft}
+                        onNameChange={setNoteNameDraft}
                         onChange={setNoteDraft}
                         onSave={saveTypedNote}
                         onClose={closeNoteModal}
