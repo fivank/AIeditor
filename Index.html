@@ -608,9 +608,27 @@
             appId: "1:924785765286:web:42b733d5914b095bbf7d67"
         };
 
+        const normalizeTimestamp = (value, fallback = Date.now()) => {
+            if (value === undefined || value === null) return fallback;
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string') {
+                const parsed = Number(value);
+                return Number.isNaN(parsed) ? fallback : parsed;
+            }
+            if (typeof value === 'object') {
+                if (typeof value.toMillis === 'function') return value.toMillis();
+                if (typeof value.seconds === 'number') {
+                    const millis = value.seconds * 1000;
+                    const nanos = typeof value.nanoseconds === 'number' ? value.nanoseconds : 0;
+                    return millis + Math.round(nanos / 1e6);
+                }
+            }
+            return fallback;
+        };
+
         const ensureBookTimestamps = (book, now = Date.now()) => {
-            const createdAt = book.createdAt || book.timestamp || now;
-            const updatedAt = book.updatedAt || createdAt;
+            const createdAt = normalizeTimestamp(book.createdAt || book.timestamp, now);
+            const updatedAt = normalizeTimestamp(book.updatedAt, createdAt);
             return { ...book, createdAt, updatedAt };
         };
 
@@ -1834,8 +1852,8 @@
 
             const sortBookList = useCallback((list = []) => {
                 const sorted = [...list];
-                const getCreated = (book) => book.createdAt || 0;
-                const getUpdated = (book) => book.updatedAt || getCreated(book);
+                const getCreated = (book) => normalizeTimestamp(book.createdAt || book.timestamp, 0);
+                const getUpdated = (book) => normalizeTimestamp(book.updatedAt, getCreated(book));
                 sorted.sort((a, b) => {
                     if (librarySort === 'latest') return getUpdated(b) - getUpdated(a);
                     if (librarySort === 'oldest') return getCreated(a) - getCreated(b);
