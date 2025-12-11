@@ -2838,23 +2838,25 @@
                         )}
 
                         <main className="flex-1 px-5 pt-2 pb-28 max-w-xl mx-auto w-full space-y-4">
-                            <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto">
-                                {libraryViewOptions.map(option => (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => {
-                                            setLibraryView(option.id);
-                                            if (option.id !== 'collections') setActiveCollectionId(null);
-                                        }}
-                                        className={`flex-1 min-w-[140px] flex items-center gap-2 px-2.5 py-2 rounded-lg border text-sm font-semibold transition ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
-                                    >
-                                        <div className={`w-8 h-8 rounded-md flex items-center justify-center ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
-                                            {option.icon}
-                                        </div>
-                                        <span className="truncate">{option.label}</span>
-                                    </button>
-                                ))}
-                            </div>
+                            {!(libraryView === 'collections' && activeCollection) && (
+                                <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto">
+                                    {libraryViewOptions.map(option => (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => {
+                                                setLibraryView(option.id);
+                                                if (option.id !== 'collections') setActiveCollectionId(null);
+                                            }}
+                                            className={`flex-1 min-w-[140px] flex items-center gap-2 px-2.5 py-2 rounded-lg border text-sm font-semibold transition ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-md flex items-center justify-center ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
+                                                {option.icon}
+                                            </div>
+                                            <span className="truncate">{option.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
                             {libraryView !== 'collections' && bookSelectionMode && (
                                 <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-50 space-y-3">
