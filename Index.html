@@ -3692,7 +3692,8 @@
                         settings={settings} speechEngines={speechEngines} setLoading={setLoading}
                         chooseDestination={chooseDestination}
                         relocateNote={relocateNote}
-                        presentAiActions={presentAiActions} />
+                        presentAiActions={presentAiActions}
+                        t={t} />
                     {menuPortal}
                     {pickerPortal}
                     {speechConfigPortal}
@@ -3703,7 +3704,7 @@
         }
 
         // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, chapterNumber, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions }) {
+        function NoteManager({ bookId, chapter, chapterNumber, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions, t }) {
             const [isRecording, setIsRecording] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             const [selectionMode, setSelectionMode] = useState(false);
