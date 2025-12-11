@@ -1833,6 +1833,53 @@
                 return text.length > 110 ? `${text.slice(0, 110)}…` : text;
             }, [t]);
 
+            const getBookCreatedAt = useCallback((book) => normalizeTimestamp(book.createdAt || book.timestamp, 0), []);
+
+            const getBookUpdatedAt = useCallback((book) => normalizeTimestamp(book.updatedAt, getBookCreatedAt(book)), [getBookCreatedAt]);
+
+            const getCollectionTimestamps = useCallback((collection) => {
+                const booksInCollection = books.filter(b => (b.collectionId || DEFAULT_COLLECTION.id) === collection.id);
+                const createdCandidates = booksInCollection.map(getBookCreatedAt);
+                const updatedCandidates = booksInCollection.map(getBookUpdatedAt);
+                const createdAt = normalizeTimestamp(
+                    collection.createdAt,
+                    createdCandidates.length > 0 ? Math.min(...createdCandidates) : 0
+                );
+                const updatedAt = normalizeTimestamp(
+                    collection.updatedAt,
+                    updatedCandidates.length > 0 ? Math.max(...updatedCandidates) : createdAt
+                );
+
+                return { createdAt, updatedAt };
+            }, [books, getBookCreatedAt, getBookUpdatedAt]);
+
+            const sortCollectionsList = useCallback((list = []) => {
+                const sorted = [...list];
+                sorted.sort((a, b) => {
+                    const aTimes = getCollectionTimestamps(a);
+                    const bTimes = getCollectionTimestamps(b);
+
+                    if (librarySort === 'latest') return bTimes.updatedAt - aTimes.updatedAt;
+                    if (librarySort === 'oldest') return aTimes.createdAt - bTimes.createdAt;
+                    if (librarySort === 'newest') return bTimes.createdAt - aTimes.createdAt;
+                    return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+                });
+                return sorted;
+            }, [getCollectionTimestamps, librarySort]);
+
+            const sortBookList = useCallback((list = []) => {
+                const sorted = [...list];
+                sorted.sort((a, b) => {
+                    if (librarySort === 'latest') return getBookUpdatedAt(b) - getBookUpdatedAt(a);
+                    if (librarySort === 'oldest') return getBookCreatedAt(a) - getBookCreatedAt(b);
+                    if (librarySort === 'newest') return getBookCreatedAt(b) - getBookCreatedAt(a);
+                    return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
+                });
+                return sorted;
+            }, [getBookCreatedAt, getBookUpdatedAt, librarySort]);
+
+            const sortedBooks = useMemo(() => sortBookList(books), [books, sortBookList]);
+
             const booksByCollection = useMemo(() => {
                 const grouped = availableCollections.map(col => ({
                     ...col,
@@ -1847,23 +1894,8 @@
                     }
                 }
 
-                return grouped;
-            }, [availableCollections, books]);
-
-            const sortBookList = useCallback((list = []) => {
-                const sorted = [...list];
-                const getCreated = (book) => normalizeTimestamp(book.createdAt || book.timestamp, 0);
-                const getUpdated = (book) => normalizeTimestamp(book.updatedAt, getCreated(book));
-                sorted.sort((a, b) => {
-                    if (librarySort === 'latest') return getUpdated(b) - getUpdated(a);
-                    if (librarySort === 'oldest') return getCreated(a) - getCreated(b);
-                    if (librarySort === 'newest') return getCreated(b) - getCreated(a);
-                    return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
-                });
-                return sorted;
-            }, [librarySort]);
-
-            const sortedBooks = useMemo(() => sortBookList(books), [books, sortBookList]);
+                return sortCollectionsList(grouped);
+            }, [availableCollections, books, sortBookList, sortCollectionsList]);
 
             const requestImmediateFirestoreSave = useCallback(() => {
                 if (autoSaveTimeoutRef.current) {
@@ -2050,7 +2082,8 @@
                 if (!trimmed) return;
                 const exists = availableCollections.some(c => c.name.toLowerCase() === trimmed.toLowerCase());
                 if (exists) return alert('Ya existe una colección con ese nombre.');
-                const newCollection = { id: generateId(), name: trimmed, description: 'Colección personalizada' };
+                const now = Date.now();
+                const newCollection = { id: generateId(), name: trimmed, description: 'Colección personalizada', createdAt: now, updatedAt: now };
                 setCollections(prev => ensureCollectionsWithDefault([...prev, newCollection]));
                 requestImmediateFirestoreSave();
             };
@@ -3258,19 +3291,32 @@
                                     <h3 className="text-base font-semibold text-slate-900 leading-tight">{activeCollection.name}</h3>
                                     <p className="text-xs text-slate-500">{collectionBooks.length} {collectionBooks.length === 1 ? t('booksCount', 1) : t('booksCount', collectionBooks.length)}</p>
                                 </div>
-                                <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-full p-1 overflow-x-auto w-full sm:w-auto">
-                                    {collectionViewOptions.map((option) => (
-                                        <button
-                                            key={option.id}
-                                            onClick={() => setCollectionViewMode(option.id)}
-                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold flex-shrink-0 ${collectionViewMode === option.id ? 'bg-white shadow text-indigo-700 border border-indigo-100' : 'text-slate-600'}`}
-                                        >
-                                            <span className={`w-8 h-8 rounded-full flex items-center justify-center ${collectionViewMode === option.id ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-slate-500 border border-slate-200'}`}>
-                                                {option.icon}
-                                            </span>
-                                            {option.label}
-                                        </button>
-                                    ))}
+                                <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
+                                    <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-full p-1 overflow-x-auto w-full sm:w-auto">
+                                        {collectionViewOptions.map((option) => (
+                                            <button
+                                                key={option.id}
+                                                onClick={() => setCollectionViewMode(option.id)}
+                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold flex-shrink-0 ${collectionViewMode === option.id ? 'bg-white shadow text-indigo-700 border border-indigo-100' : 'text-slate-600'}`}
+                                            >
+                                                <span className={`w-8 h-8 rounded-full flex items-center justify-center ${collectionViewMode === option.id ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                                                    {option.icon}
+                                                </span>
+                                                {option.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
+                                            if (choice?.id) setLibrarySort(choice.id);
+                                        }}
+                                        className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
+                                    >
+                                        <span className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
+                                        <span className="truncate">{t('sort')}</span>
+                                        <span className="text-xs text-slate-500">{currentSortLabel}</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -3329,19 +3375,17 @@
                                             </button>
                                         ))}
                                     </div>
-                                    {libraryView !== 'collections' && (
-                                        <button
-                                            onClick={async () => {
-                                                const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
-                                                if (choice?.id) setLibrarySort(choice.id);
-                                            }}
-                                            className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
-                                        >
-                                            <span className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
-                                            <span className="truncate">{t('sort')}</span>
-                                            <span className="text-xs text-slate-500">{currentSortLabel}</span>
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={async () => {
+                                            const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
+                                            if (choice?.id) setLibrarySort(choice.id);
+                                        }}
+                                        className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
+                                    >
+                                        <span className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
+                                        <span className="truncate">{t('sort')}</span>
+                                        <span className="text-xs text-slate-500">{currentSortLabel}</span>
+                                    </button>
                                 </div>
                             )}
 
