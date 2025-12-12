@@ -934,6 +934,22 @@
                 timestamp: Date.now()
             };
         };
+
+        const getNotePreviewImage = (note) => {
+            if (!note || note.type !== 'link') return null;
+            if (note.meta?.isImage) {
+                return note.meta?.thumbnail || note.meta?.imageUrl || note.url || null;
+            }
+            return note.meta?.thumbnail || null;
+        };
+
+        const findFirstNotePreviewImage = (notes = []) => {
+            for (const note of notes || []) {
+                const preview = getNotePreviewImage(note);
+                if (preview) return preview;
+            }
+            return null;
+        };
         const buildDestinations = (books, source) => {
             const options = [];
 
@@ -1928,12 +1944,12 @@
             const getBookCoverImage = useCallback((book) => {
                 const chapters = book?.chapters || [];
                 for (const chapter of chapters) {
-                    const imageNote = (chapter.notes || []).find((note) => note.type === 'link' && note.meta?.isImage);
-                    if (imageNote) {
-                        return imageNote.meta?.thumbnail || imageNote.meta?.imageUrl || imageNote.url || null;
-                    }
+                    const preview = findFirstNotePreviewImage(chapter.notes);
+                    if (preview) return preview;
                 }
-                return null;
+
+                const directPreview = findFirstNotePreviewImage(book?.notes);
+                return directPreview || null;
             }, []);
 
             const getBookPreview = useCallback((book) => {
@@ -3880,8 +3896,7 @@
                                         const isSelected = selectedChapterIds.includes(chap.id);
                                         const showMoveControls = chapterSelectionMode && primaryChapterId === chap.id;
                                         const chapterNumber = idx + 1;
-                                        const imageNote = chap.notes.find(n => n.type === 'link' && n.meta?.isImage);
-                                        const chapterImage = imageNote?.meta?.thumbnail || imageNote?.meta?.imageUrl || imageNote?.url;
+                                        const chapterImage = findFirstNotePreviewImage(chap.notes);
                                         return (
                                         <div
                                             key={chap.id}
