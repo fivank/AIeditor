@@ -3206,6 +3206,14 @@
                     { id: 'name', label: t('sortAlpha') },
                 ];
 
+                const formatDateShort = (timestamp) => {
+                    const date = new Date(timestamp);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = String(date.getFullYear()).slice(-2);
+                    return `${day}/${month}/${year}`;
+                };
+
                 const handleSortClick = async () => {
                     const choice = await openPickerWithOptions(sortOptions.map(option => ({ label: option.label, id: option.id })), t('sortBy'));
                     if (choice?.id) setLibrarySort(choice.id);
@@ -3257,7 +3265,7 @@
                                     }}
                                     className={`relative overflow-hidden rounded-xl border ${isSelected ? 'ring-2 ring-indigo-200 bg-indigo-50/50 border-indigo-100' : 'border-slate-100 bg-white'} shadow-[0_8px_18px_rgba(15,23,42,0.07)] hover:shadow-[0_12px_24px_rgba(15,23,42,0.1)] transition card-tap`}
                                 >
-                                    <div className="flex items-center gap-3 p-3">
+                                    <div className="flex items-start gap-3 p-3">
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -3267,7 +3275,7 @@
                                                     goBook(book.id);
                                                 }
                                             }}
-                                            className="flex-shrink-0 w-10 h-10 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 flex items-center justify-center shadow-inner overflow-hidden"
+                                            className="flex-shrink-0 w-12 h-20 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 flex items-center justify-center shadow-inner overflow-hidden"
                                         >
                                             {coverImage ? (
                                                 <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
@@ -3286,18 +3294,18 @@
                                                         } else {
                                                             goBook(book.id);
                                                         }
-                                                    }}
-                                                    className="text-left flex-1"
-                                                >
-                                                    <h3 className="font-semibold text-slate-900 text-[15px] truncate">
-                                                        {book.title}
-                                                    </h3>
-                                                    <p className="text-[12px] text-slate-500 truncate">{book.chapters.length} cap · {totalNotes} notas</p>
-                                                </button>
-                                                {showMoveControls && (
-                                                    <div className="flex-shrink-0 flex items-center">
-                                                        <MoveControls
-                                                            onMoveUp={() => reorderBook(book.id, -1)}
+                                                }}
+                                                className="text-left flex-1"
+                                            >
+                                                <h3 className="font-semibold text-slate-900 text-[15px] truncate">
+                                                    {book.title}
+                                                </h3>
+                                                <p className="text-[12px] text-slate-500 truncate">{book.chapters.length} cap · {totalNotes} notas</p>
+                                            </button>
+                                            {showMoveControls && (
+                                                <div className="flex-shrink-0 flex items-center">
+                                                    <MoveControls
+                                                        onMoveUp={() => reorderBook(book.id, -1)}
                                                             onMoveDown={() => reorderBook(book.id, 1)}
                                                             accentClass="text-blue-800"
                                                         />
@@ -3307,6 +3315,7 @@
 
                                             <div className="flex items-center justify-between gap-2 text-[11px] text-slate-600">
                                                 <CollectionBadge book={book} />
+                                                <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">{formatDateShort(book.createdAt)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -3321,7 +3330,6 @@
                         {bookList.map((book) => {
                             const moveProps = booksMoveMode.getItemProps(book.id);
                             const isSelected = selectedBookIds.includes(book.id);
-                            const totalNotes = (book.notes?.length || 0) + book.chapters.reduce((sum, c) => sum + (c.notes?.length || 0), 0);
                             const coverImage = getBookCoverImage(book);
                             return (
                                 <div
@@ -3336,32 +3344,28 @@
                                             goBook(book.id);
                                         }
                                     }}
-                                    className={`rounded-2xl border ${isSelected ? 'ring-2 ring-indigo-200 bg-indigo-50/60 border-indigo-100' : 'border-slate-100 bg-white'} shadow-[0_10px_24px_rgba(15,23,42,0.08)] p-3 space-y-2 card-tap transition hover:-translate-y-0.5`}
+                                    className={`rounded-2xl border ${isSelected ? 'ring-2 ring-indigo-200 bg-indigo-50/60 border-indigo-100' : 'border-slate-100 bg-white'} shadow-[0_10px_24px_rgba(15,23,42,0.08)] p-3 space-y-3 card-tap transition hover:-translate-y-0.5`}
                                 >
-                                    <div className="flex items-start gap-3">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (bookSelectionMode) {
-                                                    toggleBookSelection(book.id);
-                                                } else {
-                                                    goBook(book.id);
-                                                }
-                                            }}
-                                            className="flex-shrink-0 w-10 h-10 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 flex items-center justify-center shadow-inner overflow-hidden"
-                                        >
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (bookSelectionMode) {
+                                                toggleBookSelection(book.id);
+                                            } else {
+                                                goBook(book.id);
+                                            }
+                                        }}
+                                        className="w-full flex flex-col items-center gap-2"
+                                    >
+                                        <div className="w-24 h-16 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 flex items-center justify-center shadow-inner overflow-hidden">
                                             {coverImage ? (
                                                 <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
                                             ) : (
                                                 <Icons.Book />
                                             )}
-                                        </button>
-                                        <div className="flex-1 min-w-0 space-y-0.5">
-                                            <p className="font-semibold text-slate-900 text-sm leading-tight truncate">{book.title}</p>
-                                            <p className="text-[11px] text-slate-500 truncate">{t('chaptersLabel', book.chapters.length)} · {t('totalNotesLabel', totalNotes)}</p>
                                         </div>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 h-10 overflow-hidden">{getBookPreview(book)}</p>
+                                        <p className="font-semibold text-slate-900 text-sm leading-tight text-center line-clamp-2">{book.title}</p>
+                                    </button>
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200 truncate">
                                             {getCollectionName(book.collectionId)}
