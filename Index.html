@@ -429,6 +429,9 @@
                 concatenate: 'Concatenate',
                 addLinkFromClipboard: 'Add link from clipboard',
                 addTypedNote: 'Add typed note',
+                readChapter: 'Reading view',
+                readingMode: 'Reading mode',
+                backToChapter: 'Back to chapter',
                 backToLibrary: 'Back to library',
                 collectionLabel: 'Collection',
                 activeCollectionLabel: 'Active collection',
@@ -552,6 +555,9 @@
                 concatenate: 'Concatenar',
                 addLinkFromClipboard: 'Añadir enlace desde portapapeles',
                 addTypedNote: 'Añadir nota escrita',
+                readChapter: 'Modo lectura',
+                readingMode: 'Vista de lectura',
+                backToChapter: 'Volver al capítulo',
                 backToLibrary: 'Volver a la biblioteca',
                 collectionLabel: 'Colección',
                 activeCollectionLabel: 'Colección activa',
@@ -3945,9 +3951,16 @@
             const [noteNameDraft, setNoteNameDraft] = useState('');
             const [noteModalOpen, setNoteModalOpen] = useState(false);
             const [editingNoteId, setEditingNoteId] = useState(null);
+            const [isReadingMode, setIsReadingMode] = useState(false);
             const recognitionRef = useRef(null);
             const [supportError, setSupportError] = useState(null);
             const [linkLoading, setLinkLoading] = useState(false);
+
+            const readingHtml = useMemo(() => {
+                return (chapter.notes || [])
+                    .map((note) => note?.content || '')
+                    .join('<div class="h-8"></div>') || '<p></p>';
+            }, [chapter.notes]);
 
             const reorderNotesByIndex = useCallback((from, to) => {
                 onUpdateNotes(moveItem(chapter.notes, from, to));
@@ -4170,6 +4183,32 @@
 
             const hasSingleNoteSelected = selectedIds.length === 1;
 
+            if (isReadingMode) {
+                return (
+                    <div className="fixed inset-0 z-50 bg-white flex flex-col">
+                        <header className="safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-sm flex items-center gap-3">
+                            <button
+                                onClick={() => setIsReadingMode(false)}
+                                className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
+                                aria-label={t('backToChapter')}
+                            >
+                                <Icons.ChevronLeft />
+                            </button>
+                            <div className="min-w-0">
+                                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-semibold">{t('readingMode')}</p>
+                                <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">{chapter.title}</h1>
+                            </div>
+                        </header>
+                        <div className="flex-1 overflow-y-auto px-5 py-6 max-w-3xl w-full mx-auto">
+                            <div
+                                className="editor-content prose prose-slate max-w-none"
+                                dangerouslySetInnerHTML={{ __html: readingHtml }}
+                            />
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen flex flex-col app-surface">
                     <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)]/95 backdrop-blur border-b border-slate-100 px-4 py-3 shadow-sm">
@@ -4246,6 +4285,13 @@
                     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                         {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
                         <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => { setSelectionMode(false); setSelectedIds([]); setIsReadingMode(true); }}
+                                className="w-12 h-12 rounded-full bg-white border border-indigo-200 text-indigo-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition"
+                                title={t('readChapter')}
+                            >
+                                <Icons.Book />
+                            </button>
                             <button
                                 onClick={handleAddLinkFromClipboard}
                                 disabled={linkLoading}
