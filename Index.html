@@ -830,6 +830,51 @@
             }
         };
 
+        const buildReadingLinkMarkup = (note) => {
+            const isImage = note?.meta?.isImage;
+            const title = note?.meta?.title || shortenUrl(note?.url || '');
+            const displayUrl = note?.meta?.displayUrl || note?.url || '';
+            const thumbnail = note?.meta?.thumbnail || note?.meta?.imageUrl;
+
+            if (isImage) {
+                const imageSrc = note?.meta?.imageUrl || note?.url || note?.meta?.thumbnail;
+                const imageName = note?.meta?.title || getFileNameFromUrl(imageSrc || displayUrl);
+                if (!imageSrc) return '';
+                return `
+                    <div class="reading-note reading-note-image space-y-2">
+                        <p class="text-base font-semibold text-slate-900 leading-tight">${escapeHtml(imageName)}</p>
+                        <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                            <img src="${imageSrc}" alt="${escapeHtml(imageName)}" class="w-full h-auto max-h-[460px] object-contain" />
+                        </div>
+                    </div>
+                `;
+            }
+
+            const thumbnailBlock = thumbnail
+                ? `<div class="mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50"><img src="${thumbnail}" alt="${escapeHtml(title)}" class="w-full h-auto object-cover" /></div>`
+                : '';
+
+            return `
+                <div class="reading-note reading-note-link space-y-1">
+                    <p class="text-base font-semibold text-slate-900 leading-tight">${escapeHtml(title)}</p>
+                    <p class="text-sm text-indigo-700 break-words">${escapeHtml(displayUrl)}</p>
+                    ${thumbnailBlock}
+                </div>
+            `;
+        };
+
+        const buildNotesReadingHtml = (notes = []) => {
+            const readingPieces = (notes || [])
+                .map((note) => {
+                    if (!note) return '';
+                    if (note.type === 'link' && note.url) return buildReadingLinkMarkup(note);
+                    return note?.content || '';
+                })
+                .filter(Boolean);
+
+            return readingPieces.join('<div class="h-8"></div>') || '<p></p>';
+        };
+
         const getYoutubeThumbnail = (url) => {
             const host = url.hostname.replace(/^www\./, '');
             if (host === 'youtu.be') {
@@ -1842,6 +1887,7 @@
             const [recordingTarget, setRecordingTarget] = useState(null);
             const [isRecording, setIsRecording] = useState(false);
             const [micSupportError, setMicSupportError] = useState(null);
+            const [isBookReadingMode, setIsBookReadingMode] = useState(false);
             const [picker, setPicker] = useState({ open: false, options: [], title: '', resolve: null });
             const [menuOpen, setMenuOpen] = useState(false);
             const [speechConfigOpen, setSpeechConfigOpen] = useState(false);
@@ -2050,6 +2096,7 @@
             useEffect(() => { localStorage.setItem(LOCAL_COLLECTION_VIEW_KEY, collectionViewMode); }, [collectionViewMode]);
             useEffect(() => { localStorage.setItem(LOCAL_ACTIVE_COLLECTION_KEY, activeCollectionId || ''); }, [activeCollectionId]);
             useEffect(() => { localStorage.setItem(LOCAL_LIBRARY_SORT_KEY, librarySort); }, [librarySort]);
+            useEffect(() => { setIsBookReadingMode(false); }, [activeBookId]);
             useEffect(() => {
                 document.documentElement.lang = language;
                 localStorage.setItem(LOCAL_LANGUAGE_KEY, language);
@@ -2838,6 +2885,30 @@
                 ? activeSelectedChapterId
                 : selectedChapterIds[selectedChapterIds.length - 1];
             const primaryChapter = activeBook?.chapters.find(c => c.id === primaryChapterId);
+
+            const bookReadingHtml = useMemo(() => {
+                if (!activeBook) return '<p></p>';
+                const chapters = activeBook.chapters || [];
+                const chapterSections = chapters
+                    .map((chapter, idx) => {
+                        if (!chapter) return '';
+                        const chapterLabel = escapeHtml(t('chapterLabel', idx + 1));
+                        const chapterTitle = escapeHtml(chapter.title || t('chapterLabel', idx + 1));
+                        const notesHtml = buildNotesReadingHtml(chapter.notes);
+                        return `
+                            <section class="space-y-3">
+                                <div class="space-y-1">
+                                    <p class="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-semibold">${chapterLabel}</p>
+                                    <h2 class="text-2xl font-bold text-slate-900 leading-tight">${chapterTitle}</h2>
+                                </div>
+                                <div class="space-y-3">${notesHtml}</div>
+                            </section>
+                        `;
+                    })
+                    .filter(Boolean);
+
+                return chapterSections.join('<div class="h-10"></div>') || '<p></p>';
+            }, [activeBook, t]);
 
             const menuPortal = (
                 <HamburgerMenu
@@ -3749,6 +3820,32 @@
                     presentAiActions(options, t('bookAiActions'));
                 };
 
+                if (isBookReadingMode) {
+                    return (
+                        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+                            <header className="safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-sm flex items-center gap-3">
+                                <button
+                                    onClick={() => setIsBookReadingMode(false)}
+                                    className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
+                                    aria-label={t('back')}
+                                >
+                                    <Icons.ChevronLeft />
+                                </button>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-semibold">{t('readingMode')}</p>
+                                    <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">{activeBook.title}</h1>
+                                </div>
+                            </header>
+                            <div className="flex-1 overflow-y-auto px-5 py-6 max-w-3xl w-full mx-auto">
+                                <div
+                                    className="editor-content prose prose-slate max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: bookReadingHtml }}
+                                />
+                            </div>
+                        </div>
+                    );
+                }
+
                 return (
                     <>
                     <div className="min-h-screen flex flex-col app-surface">
@@ -3888,6 +3985,13 @@
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
                             {isRecording && recordingTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
                             <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setIsBookReadingMode(true)}
+                                    className="w-12 h-12 rounded-full bg-white border border-indigo-200 text-indigo-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition"
+                                    title={t('readChapter')}
+                                >
+                                    <Icons.Book />
+                                </button>
                                 <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html, name) => addBookNote(activeBook.id, html, name) })} className="w-12 h-12 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota del libro">
                                     <Icons.Pencil />
                                 </button>
@@ -3956,50 +4060,7 @@
             const [supportError, setSupportError] = useState(null);
             const [linkLoading, setLinkLoading] = useState(false);
 
-            const readingHtml = useMemo(() => {
-                const buildLinkMarkup = (note) => {
-                    const isImage = note?.meta?.isImage;
-                    const title = note?.meta?.title || shortenUrl(note?.url || '');
-                    const displayUrl = note?.meta?.displayUrl || note?.url || '';
-                    const thumbnail = note?.meta?.thumbnail || note?.meta?.imageUrl;
-
-                    if (isImage) {
-                        const imageSrc = note?.meta?.imageUrl || note?.url || note?.meta?.thumbnail;
-                        const imageName = note?.meta?.title || getFileNameFromUrl(imageSrc || displayUrl);
-                        if (!imageSrc) return '';
-                        return `
-                            <div class="reading-note reading-note-image space-y-2">
-                                <p class="text-base font-semibold text-slate-900 leading-tight">${escapeHtml(imageName)}</p>
-                                <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                                    <img src="${imageSrc}" alt="${escapeHtml(imageName)}" class="w-full h-auto max-h-[460px] object-contain" />
-                                </div>
-                            </div>
-                        `;
-                    }
-
-                    const thumbnailBlock = thumbnail
-                        ? `<div class="mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50"><img src="${thumbnail}" alt="${escapeHtml(title)}" class="w-full h-auto object-cover" /></div>`
-                        : '';
-
-                    return `
-                        <div class="reading-note reading-note-link space-y-1">
-                            <p class="text-base font-semibold text-slate-900 leading-tight">${escapeHtml(title)}</p>
-                            <p class="text-sm text-indigo-700 break-words">${escapeHtml(displayUrl)}</p>
-                            ${thumbnailBlock}
-                        </div>
-                    `;
-                };
-
-                const readingPieces = (chapter.notes || [])
-                    .map((note) => {
-                        if (!note) return '';
-                        if (note.type === 'link' && note.url) return buildLinkMarkup(note);
-                        return note?.content || '';
-                    })
-                    .filter(Boolean);
-
-                return readingPieces.join('<div class="h-8"></div>') || '<p></p>';
-            }, [chapter.notes]);
+            const readingHtml = useMemo(() => buildNotesReadingHtml(chapter.notes), [chapter.notes]);
 
             const reorderNotesByIndex = useCallback((from, to) => {
                 onUpdateNotes(moveItem(chapter.notes, from, to));
