@@ -2577,7 +2577,13 @@
             const goHome = () => { resetMoveModes(); setView('home'); setActiveBookId(null); setActiveChapterId(null); };
             const goBook = (id) => { resetMoveModes(); setActiveBookId(id); setView('book'); };
             const goChapter = (id) => { resetMoveModes(); setActiveChapterId(id); setView('chapter'); };
-            const goSettings = () => setView('settings');
+            const goSettings = () => {
+                resetMoveModes();
+                setActiveBookId(null);
+                setActiveChapterId(null);
+                setMenuOpen(false);
+                setView('settings');
+            };
 
         const buildCloudPayload = () => ({
             books,
@@ -3039,7 +3045,11 @@
                 return (
                     <>
                     <div className="min-h-screen app-surface">
-                        <Header title={t('settingsTitle')} onBack={() => view === 'home' ? null : window.history.back() || goHome()} />
+                        <Header
+                            title={t('settingsTitle')}
+                            onBack={goHome}
+                            showMenu
+                        />
                         <div className="p-4 max-w-2xl mx-auto">
                             <div className="content-shell p-5 md:p-6 space-y-6">
 
