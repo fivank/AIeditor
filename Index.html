@@ -591,6 +591,12 @@
             aiAssistEnabled: true,
             languagePreferences: {}
         };
+        const normalizeSettings = (incoming = {}) => ({
+            apiKey: (incoming.apiKey || '').trim(),
+            model: (incoming.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
+            prompts: { ...DEFAULT_PROMPTS, ...(incoming.prompts || {}) },
+            speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(incoming.speechToText || {}) }
+        });
         const DEFAULT_COLLECTION = {
             id: 'uncollected',
             name: 'Sin colección',
@@ -1837,10 +1843,13 @@
 
         // --- API GEMINI ---
         async function callGemini(apiKey, model, prompt, content) {
-            if (!apiKey || apiKey.length < 10) throw new Error("Falta la API Key.");
+            const apiKeyTrimmed = (apiKey || '').trim();
+            const modelToUse = (model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+
+            if (!apiKeyTrimmed || apiKeyTrimmed.length < 10) throw new Error("Falta la API Key.");
 
             // Usar el modelo configurado
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKeyTrimmed}`;
             const fullText = `${prompt}\n\n--- CONTENIDO ---\n${content}`;
             const payload = { contents: [{ parts: [{ text: fullText }] }] };
 
@@ -1855,7 +1864,7 @@
 
                 if (!response.ok) {
                     if (data.error?.code === 404) {
-                        throw new Error(`Modelo '${model}' no encontrado. Revisa el nombre en Configuración.`);
+                        throw new Error(`Modelo '${modelToUse}' no encontrado. Revisa el nombre en Configuración.`);
                     }
                     throw new Error(data.error?.message || 'Error desconocido en la API');
                 }
@@ -1872,12 +1881,12 @@
             const [books, setBooks] = useState([]);
             const [collections, setCollections] = useState([DEFAULT_COLLECTION]);
             const [rootNotes, setRootNotes] = useState([]);
-            const [settings, setSettings] = useState({
+            const [settings, setSettings] = useState(() => normalizeSettings({
                 apiKey: DEFAULT_API_KEY,
                 model: DEFAULT_MODEL,
-                prompts: { ...DEFAULT_PROMPTS },
-                speechToText: { ...DEFAULT_SPEECH_CONFIG }
-            });
+                prompts: DEFAULT_PROMPTS,
+                speechToText: DEFAULT_SPEECH_CONFIG
+            }));
             const [dataLoaded, setDataLoaded] = useState(false);
             const [view, setView] = useState('home');
             const [libraryView, setLibraryView] = useState('list');
@@ -2080,12 +2089,7 @@
                 }
                 if (savedSettings) {
                     const parsed = JSON.parse(savedSettings);
-                    setSettings({
-                        apiKey: parsed.apiKey || DEFAULT_API_KEY,
-                        model: parsed.model || DEFAULT_MODEL,
-                        prompts: { ...DEFAULT_PROMPTS, ...(parsed.prompts || {}) },
-                        speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(parsed.speechToText || {}) }
-                    });
+                    setSettings(normalizeSettings(parsed));
                 }
                 if (savedLibraryView) setLibraryView(savedLibraryView);
                 if (savedCollectionViewMode) setCollectionViewMode(savedCollectionViewMode);
@@ -2688,12 +2692,7 @@
                     const data = snap.data();
                     setBooks(normalizeBooksData(data.books || []));
                     setRootNotes(data.rootNotes || []);
-                    setSettings({
-                        apiKey: data.settings?.apiKey || DEFAULT_API_KEY,
-                        model: data.settings?.model || DEFAULT_MODEL,
-                        prompts: { ...DEFAULT_PROMPTS, ...(data.settings?.prompts || {}) },
-                        speechToText: { ...DEFAULT_SPEECH_CONFIG, ...(data.settings?.speechToText || {}) }
-                    });
+                    setSettings(normalizeSettings(data.settings || {}));
                     setCollections(ensureCollectionsWithDefault(data.collections || [DEFAULT_COLLECTION]));
                     setView(data.view || 'home');
                     setLibraryView(data.libraryView || 'list');
@@ -3055,7 +3054,7 @@
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
-                                        <input type="text" value={settings.apiKey} onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
+                                        <input type="text" value={settings.apiKey} onChange={(e) => setSettings((prev) => normalizeSettings({ ...prev, apiKey: e.target.value }))}
                                             className="w-full p-3 border rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner" placeholder="AIzaSy..." />
                                     </div>
 
@@ -3065,7 +3064,7 @@
                                             <div className="flex gap-2">
                                                 <select
                                                     value={settings.model}
-                                                    onChange={(e) => setSettings({...settings, model: e.target.value})}
+                                                    onChange={(e) => setSettings((prev) => normalizeSettings({ ...prev, model: e.target.value }))}
                                                     className="w-full p-3 border rounded-lg bg-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner"
                                                 >
                                                     <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Predeterminado)</option>
@@ -3078,7 +3077,7 @@
                                             <input
                                                 type="text"
                                                 value={settings.model}
-                                                onChange={(e) => setSettings({...settings, model: e.target.value})}
+                                                onChange={(e) => setSettings((prev) => normalizeSettings({ ...prev, model: e.target.value }))}
                                                 placeholder="Nombre manual del modelo..."
                                                 className="w-full mt-2 p-2.5 border border-dashed rounded-md text-xs text-gray-500 bg-white shadow-inner"
                                             />
