@@ -243,42 +243,6 @@
             box-shadow: 0 22px 48px rgba(15, 23, 42, 0.2);
             backdrop-filter: blur(14px);
         }
-
-        .compact-choice-bar {
-            display: flex;
-            gap: 0.25rem;
-            overflow-x: auto;
-            width: 100%;
-            padding: 0.25rem;
-            border-radius: 0.9rem;
-            border: 1px solid #e5e7eb;
-            background: rgba(255, 255, 255, 0.94);
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-        }
-
-        .compact-choice-btn {
-            flex-shrink: 0;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            min-width: 5.9rem;
-            padding: 0.3rem 0.45rem;
-            border-radius: 0.65rem;
-            border: 1px solid #f1f5f9;
-            font-size: 0.72rem;
-            font-weight: 700;
-            line-height: 1.05;
-            transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .compact-choice-btn-icon {
-            width: 1.55rem;
-            height: 1.55rem;
-            border-radius: 0.5rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
         }
 
         /* Estilos del editor y visualización de notas */
@@ -3085,14 +3049,14 @@
             );
 
             const HomeHeader = ({ bookCount }) => (
-                <header className="safe-top sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm px-3 py-1.5 flex items-center justify-between">
-                    <div className="flex flex-col min-w-0 leading-none">
-                        <h1 className="text-[13px] font-extrabold text-slate-950 leading-none tracking-[0.045em] truncate">{t('library')}</h1>
-                        <p className="text-[11px] leading-tight text-slate-500 mt-0.5">{t('booksCount', bookCount)}</p>
+                <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)] px-4 pt-3 pb-2 flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                        <h1 className="text-base font-extrabold text-slate-900 leading-tight tracking-[0.08em] truncate">{t('library')}</h1>
+                        <p className="text-sm text-slate-500">{t('booksCount', bookCount)}</p>
                     </div>
                     <button
                         onClick={() => setMenuOpen(true)}
-                        className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 flex items-center justify-center"
+                        className="w-9 h-9 rounded-full bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 flex items-center justify-center"
                         aria-label="Abrir menú"
                     >
                         <Icons.Menu />
@@ -3595,16 +3559,16 @@
                     ];
 
                     return (
-                        <div className="space-y-2.5">
+                        <div className="space-y-4">
                             <div className="flex items-center justify-end gap-3 flex-wrap">
-                                <div className="compact-choice-bar sm:w-auto">
+                                <div className="flex items-center gap-2 bg-white border border-slate-100 rounded-xl shadow-sm p-1 overflow-x-auto w-full sm:w-auto">
                                     {collectionViewOptions.map((option) => (
                                         <button
                                             key={option.id}
                                             onClick={() => setCollectionViewMode(option.id)}
-                                            className={`compact-choice-btn ${collectionViewMode === option.id ? 'bg-indigo-50/80 text-indigo-700 shadow-inner border-indigo-200' : 'text-slate-600 bg-slate-50 hover:border-indigo-100 hover:text-indigo-700'}`}
+                                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm font-semibold flex-shrink-0 min-w-[140px] border ${collectionViewMode === option.id ? 'bg-indigo-50/80 text-indigo-700 shadow-inner border-indigo-200' : 'text-slate-600 border-slate-100 bg-slate-50 hover:border-indigo-100 hover:text-indigo-700'}`}
                                         >
-                                            <span className={`compact-choice-btn-icon ${collectionViewMode === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
+                                            <span className={`w-8 h-8 rounded-md flex items-center justify-center ${collectionViewMode === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
                                                 {option.icon}
                                             </span>
                                             <span className="truncate">{option.label}</span>
@@ -3612,9 +3576,9 @@
                                     ))}
                                     <button
                                         onClick={handleSortClick}
-                                        className="compact-choice-btn border-slate-200 bg-white text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
+                                        className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700 min-w-[140px]"
                                     >
-                                        <span className="compact-choice-btn-icon rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"><Icons.Sort /></span>
+                                        <span className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
                                         <div className="flex flex-col items-start leading-tight">
                                             <span className="truncate">{t('sort')}</span>
                                             <span className="text-xs text-slate-500 whitespace-nowrap">{currentSortLabel}</span>
@@ -3658,10 +3622,10 @@
                             <HomeHeader bookCount={books.length} />
                         )}
 
-                        <main className="flex-1 px-3 pt-1.5 pb-24 max-w-xl mx-auto w-full space-y-2.5">
+                        <main className="flex-1 px-5 pt-2 pb-28 max-w-xl mx-auto w-full space-y-4">
                             {!(libraryView === 'collections' && activeCollection) && (
-                                <div className="flex flex-wrap items-center gap-1">
-                                    <div className="compact-choice-bar">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-1 flex gap-2 overflow-x-auto w-full">
                                         {libraryViewOptions.map(option => (
                                             <button
                                                 key={option.id}
@@ -3669,9 +3633,9 @@
                                                     setLibraryView(option.id);
                                                     if (option.id !== 'collections') setActiveCollectionId(null);
                                                 }}
-                                                className={`compact-choice-btn ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
+                                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[13px] font-semibold transition flex-shrink-0 min-w-[140px] ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
                                             >
-                                                <div className={`compact-choice-btn-icon ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
+                                                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
                                                     {option.icon}
                                                 </div>
                                                 <span className="truncate">{option.label}</span>
@@ -3679,9 +3643,9 @@
                                         ))}
                                         <button
                                             onClick={handleSortClick}
-                                            className="compact-choice-btn border-slate-200 bg-white text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700"
+                                            className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700 min-w-[140px]"
                                         >
-                                            <span className="compact-choice-btn-icon bg-indigo-50 text-indigo-700 border border-indigo-100"><Icons.Sort /></span>
+                                            <span className="w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
                                             <div className="flex flex-col items-start leading-tight">
                                                 <span className="truncate">{t('sort')}</span>
                                                 <span className="text-xs text-slate-500 whitespace-nowrap">{currentSortLabel}</span>
@@ -3926,7 +3890,7 @@
                             rightContent={<AiCornerButton onClick={openBookAiMenu} title={t('bookAiActions')} />}
                         />
                         <main className="flex-1 px-4 pt-5 pb-28 max-w-md mx-auto w-full">
-                            <div className="space-y-2.5">
+                            <div className="space-y-4">
                                 {chapterSelectionMode && (
                                     <div className="p-3 bg-white rounded-xl shadow border border-violet-100 space-y-2">
                                         <div className="flex items-center justify-between gap-2 flex-wrap">
