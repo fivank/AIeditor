@@ -4093,12 +4093,20 @@
         }
 
         if (view === 'chapter' && activeChapter) {
+                const chapterIndex = activeBook?.chapters?.findIndex((chap) => chap.id === activeChapter.id) ?? -1;
+                const nextChapter = chapterIndex >= 0 ? activeBook.chapters[chapterIndex + 1] : null;
+                const normalizeStreetTitle = (title) => (title || '').trim().toLowerCase();
+                const shouldAutoAdvanceFromFlop =
+                    normalizeStreetTitle(activeChapter.title) === 'flop' &&
+                    normalizeStreetTitle(nextChapter?.title) === 'turn';
+
                 return (
                     <>
                     <NoteManager bookId={activeBookId} chapter={activeChapter} chapterNumber={activeChapterNumber} onBack={() => goBook(activeBookId)}
                         onAddNote={(text, name) => addNote(activeBookId, activeChapter.id, text, name)}
                         onAddLinkNote={(note) => addLinkNote(activeBookId, activeChapter.id, note)}
                         onUpdateNotes={(newNotes) => updateNotes(activeBookId, activeChapter.id, newNotes)}
+                        onAutoAdvance={shouldAutoAdvanceFromFlop ? () => goChapter(nextChapter.id) : null}
                         editNote={editNote}
                         settings={settings} speechEngines={speechEngines} setLoading={setLoading}
                         chooseDestination={chooseDestination}
@@ -4115,7 +4123,7 @@
         }
 
         // --- NOTE MANAGER (Optimized) ---
-        function NoteManager({ bookId, chapter, chapterNumber, onBack, onAddNote, onAddLinkNote, onUpdateNotes, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions, t }) {
+        function NoteManager({ bookId, chapter, chapterNumber, onBack, onAddNote, onAddLinkNote, onUpdateNotes, onAutoAdvance, editNote, settings, speechEngines, setLoading, chooseDestination, relocateNote, presentAiActions, t }) {
             const [isRecording, setIsRecording] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             const [selectionMode, setSelectionMode] = useState(false);
@@ -4164,7 +4172,7 @@
                 recognition.lang = language;
                 recognition.continuous = false;
                 recognition.onstart = () => setIsRecording(true);
-                recognition.onresult = (event) => { if(event.results[0][0].transcript) onAddNote(event.results[0][0].transcript); };
+                recognition.onresult = (event) => { if(event.results[0][0].transcript) addNoteAndAdvance(event.results[0][0].transcript); };
                 recognition.onerror = (event) => { console.error(event); setIsRecording(false); if(event.error === 'not-allowed') alert("Microphone permission denied."); };
                 recognition.onend = () => setIsRecording(false);
                 recognition.start();
@@ -4176,6 +4184,18 @@
             const handleSelectClick = (id) => {
                 toggleSelect(id);
                 noteMoveMode.activateMoveMode(id);
+            };
+            const advanceAfterEntry = () => {
+                if (!onAutoAdvance) return;
+                window.setTimeout(onAutoAdvance, 120);
+            };
+            const addNoteAndAdvance = (content, name) => {
+                onAddNote(content, name);
+                advanceAfterEntry();
+            };
+            const addLinkNoteAndAdvance = (note) => {
+                onAddLinkNote?.(note);
+                advanceAfterEntry();
             };
 
             const openNoteModal = (note = null) => {
@@ -4192,7 +4212,7 @@
                 if (editingNoteId) {
                     editNote(bookId, chapter.id, editingNoteId, noteDraft, name);
                 } else {
-                    onAddNote(noteDraft, name);
+                    addNoteAndAdvance(noteDraft, name);
                 }
                 closeNoteModal();
             };
@@ -4206,7 +4226,7 @@
                     setLinkLoading(true);
                     const clipboardText = await navigator.clipboard.readText();
                     const linkNote = await buildLinkNote(clipboardText);
-                    onAddLinkNote?.(linkNote);
+                    addLinkNoteAndAdvance(linkNote);
                     setSelectionMode(false);
                     setSelectedIds([]);
                 } catch (e) {
