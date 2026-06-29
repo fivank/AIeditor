@@ -348,7 +348,7 @@
         const translations = {
             en: {
                 appName: 'VoiceNotes',
-                library: 'Library',
+                library: 'QUICK HAND NOTES',
                 booksCount: (count) => `${count} ${count === 1 ? 'book' : 'books'}`,
                 menu: 'Menu',
                 firebaseReady: 'Firebase ready',
@@ -477,7 +477,7 @@
             },
             es: {
                 appName: 'VoiceNotes',
-                library: 'Biblioteca',
+                library: 'QUICK HAND NOTES',
                 booksCount: (count) => `${count} ${count === 1 ? 'libro' : 'libros'}`,
                 menu: 'Menu',
                 firebaseReady: 'Firebase listo',
@@ -1622,7 +1622,7 @@
         const AiCornerButton = ({ onClick, title }) => (
             <button
                 onClick={onClick}
-                className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-[0_14px_36px_rgba(59,130,246,0.45)] border border-indigo-200 hover:scale-105 active:scale-95 flex items-center justify-center transition"
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-[0_14px_36px_rgba(59,130,246,0.45)] border border-indigo-200 hover:scale-105 active:scale-95 flex items-center justify-center transition"
                 aria-label={title}
                 title={title}
             >
@@ -1752,7 +1752,7 @@
                                                     <button
                                                         key={lang.code}
                                                         onClick={() => toggleLanguage(activeEngine.id, lang.code)}
-                                                        className={`px-3 py-1.5 rounded-full border text-sm flex items-center gap-2 transition ${selected ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200'}`}
+                                                        className={`px-2.5 py-1 rounded-full border text-sm flex items-center gap-2 transition ${selected ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200'}`}
                                                     >
                                                         <input type="checkbox" checked={selected} readOnly />
                                                         <span className="text-xs font-medium">{lang.label}</span>
@@ -1847,7 +1847,7 @@
                                                 <button
                                                     key={lang.code}
                                                     onClick={() => { onLanguageChange?.(lang.code); setShowLanguageMenu(false); }}
-                                                    className={`flex items-center justify-between px-3 py-2 rounded-lg border transition ${lang.code === language ? 'border-indigo-300 bg-indigo-50 text-indigo-800' : 'border-slate-200 hover:border-indigo-200'}`}
+                                                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition ${lang.code === language ? 'border-indigo-300 bg-indigo-50 text-indigo-800' : 'border-slate-200 hover:border-indigo-200'}`}
                                                 >
                                                     <span className="flex items-center gap-2 text-sm font-medium">
                                                         <span className="text-lg leading-none">{lang.flag}</span>
@@ -3019,19 +3019,19 @@
 
             // Header
             const Header = ({ title, subtitle = t('subtitleDefault'), onBack, accentClass = 'text-slate-900', showMenu = false, rightContent = null }) => (
-                <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)]/95 backdrop-blur border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm">
+                <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)]/95 backdrop-blur border-b border-slate-100 px-3 py-2 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3 min-w-0">
                         {onBack && (
                             <button
                                 onClick={onBack}
-                                className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
+                                className="w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
                             >
                                 <Icons.ChevronLeft />
                             </button>
                         )}
                         <div className="min-w-0">
                             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.16em]">{subtitle}</p>
-                            <h1 className={`text-lg font-bold truncate leading-tight ${accentClass}`}>
+                            <h1 className={`text-base font-bold truncate leading-tight ${accentClass}`}>
                                 {title}
                             </h1>
                         </div>
@@ -3039,7 +3039,7 @@
                     {rightContent ? rightContent : showMenu && (
                         <button
                             onClick={() => setMenuOpen(true)}
-                            className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
+                            className="w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
                             aria-label="Abrir menú"
                         >
                             <Icons.Menu />
@@ -3049,14 +3049,14 @@
             );
 
             const HomeHeader = ({ bookCount }) => (
-                <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)] px-5 pt-5 pb-4 flex items-center justify-between">
-                    <div className="flex flex-col gap-0.5">
-                        <h1 className="text-2xl font-bold text-slate-900 leading-tight">{t('library')}</h1>
+                <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)] px-4 pt-3 pb-2 flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                        <h1 className="text-base font-extrabold text-slate-900 leading-tight tracking-[0.08em] truncate">{t('library')}</h1>
                         <p className="text-sm text-slate-500">{t('booksCount', bookCount)}</p>
                     </div>
                     <button
                         onClick={() => setMenuOpen(true)}
-                        className="w-11 h-11 rounded-full bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 flex items-center justify-center"
+                        className="w-9 h-9 rounded-full bg-white border border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 flex items-center justify-center"
                         aria-label="Abrir menú"
                     >
                         <Icons.Menu />
@@ -3566,7 +3566,7 @@
                                         <button
                                             key={option.id}
                                             onClick={() => setCollectionViewMode(option.id)}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold flex-shrink-0 min-w-[140px] border ${collectionViewMode === option.id ? 'bg-indigo-50/80 text-indigo-700 shadow-inner border-indigo-200' : 'text-slate-600 border-slate-100 bg-slate-50 hover:border-indigo-100 hover:text-indigo-700'}`}
+                                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm font-semibold flex-shrink-0 min-w-[140px] border ${collectionViewMode === option.id ? 'bg-indigo-50/80 text-indigo-700 shadow-inner border-indigo-200' : 'text-slate-600 border-slate-100 bg-slate-50 hover:border-indigo-100 hover:text-indigo-700'}`}
                                         >
                                             <span className={`w-8 h-8 rounded-md flex items-center justify-center ${collectionViewMode === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
                                                 {option.icon}
@@ -3576,7 +3576,7 @@
                                     ))}
                                     <button
                                         onClick={handleSortClick}
-                                        className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700 min-w-[140px]"
+                                        className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700 min-w-[140px]"
                                     >
                                         <span className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
                                         <div className="flex flex-col items-start leading-tight">
@@ -3633,7 +3633,7 @@
                                                     setLibraryView(option.id);
                                                     if (option.id !== 'collections') setActiveCollectionId(null);
                                                 }}
-                                                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[13px] font-semibold transition flex-shrink-0 min-w-[140px] ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
+                                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[13px] font-semibold transition flex-shrink-0 min-w-[140px] ${libraryView === option.id ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 shadow-inner' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100 hover:text-indigo-700'}`}
                                             >
                                                 <div className={`w-8 h-8 rounded-md flex items-center justify-center ${libraryView === option.id ? 'bg-white text-indigo-700' : 'bg-white/70 text-slate-500'} shadow-inner`}>
                                                     {option.icon}
@@ -3643,7 +3643,7 @@
                                         ))}
                                         <button
                                             onClick={handleSortClick}
-                                            className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700 min-w-[140px]"
+                                            className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-indigo-200 hover:text-indigo-700 min-w-[140px]"
                                         >
                                             <span className="w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center"><Icons.Sort /></span>
                                             <div className="flex flex-col items-start leading-tight">
@@ -3659,11 +3659,11 @@
                                 <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-50 space-y-3">
                                     <div className="flex items-center justify-between gap-2 flex-wrap">
                                         <span className="text-sm font-semibold text-indigo-800">{t('selectedItems', selectedBookIds.length)}</span>
-                                        <button onClick={cancelBookSelection} className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium">{t('cancel')}</button>
+                                        <button onClick={cancelBookSelection} className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">{t('cancel')}</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
-                                        <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
+                                        <button disabled={!primaryBookId} onClick={handleRenameBook} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${primaryBookId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
+                                        <button disabled={selectedBookIds.length === 0} onClick={handleBookBulkDelete} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${selectedBookIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
                                     </div>
                                 </div>
                             )}
@@ -3672,11 +3672,11 @@
                                 <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-50 space-y-3">
                                     <div className="flex items-center justify-between gap-2 flex-wrap">
                                         <span className="text-sm font-semibold text-indigo-800">{t('selectedItems', activeSelectedCollectionId ? 1 : 0)}</span>
-                                        <button onClick={cancelCollectionSelection} className="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium">{t('cancel')}</button>
+                                        <button onClick={cancelCollectionSelection} className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">{t('cancel')}</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        <button disabled={!activeSelectedCollectionId} onClick={handleRenameCollection} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${activeSelectedCollectionId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
-                                        <button disabled={!activeSelectedCollectionId} onClick={handleDeleteCollection} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${activeSelectedCollectionId ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
+                                        <button disabled={!activeSelectedCollectionId} onClick={handleRenameCollection} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${activeSelectedCollectionId ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
+                                        <button disabled={!activeSelectedCollectionId} onClick={handleDeleteCollection} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${activeSelectedCollectionId ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
                                     </div>
                                 </div>
                             )}
@@ -3771,16 +3771,16 @@
                             )}
                         </main>
 
-                        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-1.5">
                             {isRecording && recordingTarget?.type === 'root' && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">{t('listening')}</p>}
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => openNoteModal({ title: t('quickNote'), onSave: (html, name) => addRootNote(html, name) })} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title={t('writeNote')}>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => openNoteModal({ title: t('quickNote'), onSave: (html, name) => addRootNote(html, name) })} className="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title={t('writeNote')}>
                                     <Icons.Pencil />
                                 </button>
                                 <button
                                     onClick={() => toggleDictation({ type: 'root' })}
                                     disabled={!!micSupportError}
-                                    className={`w-14 h-14 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording && recordingTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100 hover:from-gray-400 hover:to-gray-400' : ''}`}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording && recordingTarget?.type === 'root' ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100 hover:from-gray-400 hover:to-gray-400' : ''}`}
                                 >
                                     {isRecording && recordingTarget?.type === 'root' ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic />}
                                 </button>
@@ -3859,7 +3859,7 @@
                             <header className="safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-sm flex items-center gap-3">
                                 <button
                                     onClick={() => setIsBookReadingMode(false)}
-                                    className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
+                                    className="w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
                                     aria-label={t('back')}
                                 >
                                     <Icons.ChevronLeft />
@@ -3895,13 +3895,13 @@
                                     <div className="p-3 bg-white rounded-xl shadow border border-violet-100 space-y-2">
                                         <div className="flex items-center justify-between gap-2 flex-wrap">
                                             <span className="text-sm font-semibold text-violet-800">{t('selectedItems', selectedChapterIds.length)}</span>
-                                            <button onClick={cancelChapterSelection} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">{t('cancel')}</button>
+                                            <button onClick={cancelChapterSelection} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">{t('cancel')}</button>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
-                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('move')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('moveToBook')}</button>
-                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('copy')} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('copyToBook')}</button>
-                                            <button disabled={!primaryChapterId} onClick={handleRenameChapter} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-100 text-violet-900 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
-                                            <button disabled={selectedChapterIds.length === 0} onClick={handleChapterBulkDelete} className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${selectedChapterIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
+                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('move')} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${primaryChapterId ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('moveToBook')}</button>
+                                            <button disabled={!primaryChapterId} onClick={() => handleChapterMoveOrCopy('copy')} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${primaryChapterId ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('copyToBook')}</button>
+                                            <button disabled={!primaryChapterId} onClick={handleRenameChapter} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${primaryChapterId ? 'bg-violet-100 text-violet-900 border-violet-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('rename')}</button>
+                                            <button disabled={selectedChapterIds.length === 0} onClick={handleChapterBulkDelete} className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${selectedChapterIds.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}>{t('delete')}</button>
                                         </div>
                                     </div>
                                 )}
@@ -4014,23 +4014,23 @@
                             </div>
                         </main>
 
-                        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-1.5">
                             {isRecording && recordingTarget?.bookId === activeBook.id && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setIsBookReadingMode(true)}
-                                    className="w-12 h-12 rounded-full bg-white border border-indigo-200 text-indigo-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition"
+                                    className="w-10 h-10 rounded-full bg-white border border-indigo-200 text-indigo-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition"
                                     title={t('readChapter')}
                                 >
                                     <Icons.Book />
                                 </button>
-                                <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html, name) => addBookNote(activeBook.id, html, name) })} className="w-12 h-12 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota del libro">
+                                <button onClick={() => openNoteModal({ title: 'Nueva nota del libro', onSave: (html, name) => addBookNote(activeBook.id, html, name) })} className="w-10 h-10 rounded-full bg-white text-indigo-700 border border-indigo-100 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota del libro">
                                     <Icons.Pencil />
                                 </button>
                                 <button
                                     onClick={() => toggleDictation({ type: 'book', bookId: activeBook.id })}
                                     disabled={!!micSupportError}
-                                    className={`w-14 h-14 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording && recordingTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100' : ''}`}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording && recordingTarget?.bookId === activeBook.id ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${micSupportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100' : ''}`}
                                 >
                                     {isRecording && recordingTarget?.bookId === activeBook.id ? <div className="w-6 h-6 bg-white rounded-sm" /> : <Icons.Mic />}
                                 </button>
@@ -4321,7 +4321,7 @@
                         <header className="safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-sm flex items-center gap-3">
                             <button
                                 onClick={() => setIsReadingMode(false)}
-                                className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
+                                className="w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition"
                                 aria-label={t('backToChapter')}
                             >
                                 <Icons.ChevronLeft />
@@ -4346,7 +4346,7 @@
                     <header className="safe-top sticky top-0 z-20 bg-[var(--color-bg)]/95 backdrop-blur border-b border-slate-100 px-4 py-3 shadow-sm">
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
-                                <button onClick={onBack} className="w-10 h-10 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition" aria-label={t('back')}>
+                                <button onClick={onBack} className="w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-600 hover:text-indigo-700 shadow-sm flex items-center justify-center transition" aria-label={t('back')}>
                                     <Icons.ChevronLeft />
                                 </button>
                                 <div className="overflow-hidden">
@@ -4359,24 +4359,24 @@
                         </div>
                     </header>
 
-                    <main className="flex-1 p-4 pb-32 w-full max-w-2xl mx-auto">
-                        <div className="space-y-4">
+                    <main className="flex-1 p-3 pb-28 w-full max-w-2xl mx-auto">
+                        <div className="space-y-2">
                             {selectionMode && selectedIds.length > 0 && (
                                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                    <button onClick={deleteSelectedNotes} className="whitespace-nowrap text-xs flex items-center gap-1 bg-red-50 text-red-700 px-3 py-2 rounded-lg border border-red-200 font-semibold active:scale-95 transition"><Icons.Trash className="w-3 h-3" /> Eliminar</button>
-                                    <button onClick={() => bulkRelocate('move')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg border border-indigo-200 font-semibold active:scale-95 transition"><Icons.Folder className="w-3 h-3" /> {t('move')}</button>
-                                    <button onClick={() => bulkRelocate('copy')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-semibold active:scale-95 transition"><Icons.Plus className="w-3 h-3" /> {t('duplicate')}</button>
+                                    <button onClick={deleteSelectedNotes} className="whitespace-nowrap text-xs flex items-center gap-1 bg-red-50 text-red-700 px-2.5 py-1.5 rounded-lg border border-red-200 font-semibold active:scale-95 transition"><Icons.Trash className="w-3 h-3" /> Eliminar</button>
+                                    <button onClick={() => bulkRelocate('move')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-lg border border-indigo-200 font-semibold active:scale-95 transition"><Icons.Folder className="w-3 h-3" /> {t('move')}</button>
+                                    <button onClick={() => bulkRelocate('copy')} className="whitespace-nowrap text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-1.5 rounded-lg border border-purple-200 font-semibold active:scale-95 transition"><Icons.Plus className="w-3 h-3" /> {t('duplicate')}</button>
                                     <button
                                         onClick={renameSelectedNote}
                                         disabled={!hasSingleNoteSelected}
-                                        className={`whitespace-nowrap text-xs flex items-center gap-1 px-3 py-2 rounded-lg border font-semibold active:scale-95 transition ${hasSingleNoteSelected ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                        className={`whitespace-nowrap text-xs flex items-center gap-1 px-2.5 py-1.5 rounded-lg border font-semibold active:scale-95 transition ${hasSingleNoteSelected ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'}`}
                                     >
                                         <Icons.Pencil /> {t('renameNote')}
                                     </button>
                                     {selectedIds.length > 1 && (
                                         <button
                                             onClick={concatenateSelectedNotes}
-                                            className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-800 px-3 py-2 rounded-lg border border-amber-200 font-semibold active:scale-95 transition"
+                                            className="whitespace-nowrap text-xs flex items-center gap-1 bg-amber-50 text-amber-800 px-2.5 py-1.5 rounded-lg border border-amber-200 font-semibold active:scale-95 transition"
                                         >
                                             <Icons.Merge className="w-3 h-3" /> {t('concatenate')}
                                         </button>
@@ -4386,7 +4386,7 @@
 
                             {chapter.notes.length === 0 && <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Mic className="w-12 h-12 mb-2 opacity-20" /><p>{t('writeNote')}</p></div>}
 
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 {chapter.notes.map(note => {
                                     const moveProps = noteMoveMode.getItemProps(note.id);
                                     const baseActions = {
@@ -4414,12 +4414,12 @@
                         </div>
                     </main>
 
-                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+                    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center gap-1.5">
                         {isRecording && <p className="bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap animate-pulse">Escuchando...</p>}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                             <button
                                 onClick={() => { setSelectionMode(false); setSelectedIds([]); setIsReadingMode(true); }}
-                                className="w-12 h-12 rounded-full bg-white border border-indigo-200 text-indigo-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition"
+                                className="w-10 h-10 rounded-full bg-white border border-indigo-200 text-indigo-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition"
                                 title={t('readChapter')}
                             >
                                 <Icons.Book />
@@ -4427,15 +4427,15 @@
                             <button
                                 onClick={handleAddLinkFromClipboard}
                                 disabled={linkLoading}
-                                className={`w-12 h-12 rounded-full bg-white border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition ${linkLoading ? 'opacity-80 cursor-wait' : ''}`}
+                                className={`w-10 h-10 rounded-full bg-white border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition ${linkLoading ? 'opacity-80 cursor-wait' : ''}`}
                                 title="Añadir enlace desde portapapeles"
                             >
                                 {linkLoading ? <span className="w-5 h-5 border-2 border-emerald-300 border-t-emerald-700 rounded-full animate-spin"></span> : <Icons.Link />}
                             </button>
-                            <button onClick={openNoteModal} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
+                            <button onClick={openNoteModal} className="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-lg hover:-translate-y-0.5 transition" title="Escribir nota">
                                 <Icons.Pencil />
                             </button>
-                            <button onClick={toggleRecording} disabled={!!supportError} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100' : ''}`}>
+                            <button onClick={toggleRecording} disabled={!!supportError} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-[0_14px_36px_rgba(59,130,246,0.45)] transition-all duration-300 text-white ${isRecording ? 'bg-red-500 pulse-ring scale-110' : 'bg-gradient-to-br from-indigo-500 to-blue-600 hover:scale-105'} ${supportError ? 'bg-gray-400 cursor-not-allowed hover:scale-100' : ''}`}>
                                 {isRecording ? <div className="w-6 h-6 bg-white rounded-sm shadow-sm" /> : <Icons.Mic className="text-white" />}
                             </button>
                         </div>
