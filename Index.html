@@ -7,9 +7,6 @@
     <meta name="theme-color" content="#f7f9fc">
     <meta name="supported-color-schemes" content="light">
     <title>VoiceNotes AI Manager</title>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -58,11 +55,7 @@
             color-scheme: light;
             -webkit-text-size-adjust: 100%;
             min-height: 100%;
-            min-height: 100dvh;
-            height: auto;
-            overflow-x: hidden;
-            overflow-y: scroll;
-            overscroll-behavior-y: auto;
+            overflow-y: auto;
         }
 
         body {
@@ -75,31 +68,18 @@
             -webkit-tap-highlight-color: transparent;
             position: relative;
             min-height: 100vh;
-            min-height: 100dvh;
-            height: auto;
             overflow-x: hidden;
             overflow-y: auto;
-            overscroll-behavior-y: auto;
         }
 
         #root {
             min-height: 100vh;
-            min-height: 100dvh;
-            height: auto;
-        }
-
-        .fixed.inset-0.flex.flex-col,
-        .fixed.inset-0[class*="flex"][class*="flex-col"] {
-            height: 100vh;
-            height: 100dvh;
-            min-height: 0;
         }
 
         [class~="overflow-y-auto"] {
             min-height: 0;
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: auto;
-            touch-action: pan-y;
+            overscroll-behavior: contain;
         }
 
         body::after,
@@ -412,11 +392,6 @@
                 language: 'Language',
                 selectLanguage: 'Select language',
                 settingsTitle: 'Settings',
-                appVersion: 'App version',
-                releaseDate: 'Released',
-                updateApp: 'Update',
-                updateAppHelp: 'Clears app shell caches and reloads the newest build without deleting your notes or settings.',
-                updateConfirm: 'Clear cached app files and reload the latest version?',
                 connection: 'Connection',
                 secureConfig: 'Secure configuration',
                 speechModalTitle: 'Speech settings',
@@ -546,11 +521,6 @@
                 language: 'Idioma',
                 selectLanguage: 'Seleccionar idioma',
                 settingsTitle: 'Configuración',
-                appVersion: 'Versión de la app',
-                releaseDate: 'Publicada',
-                updateApp: 'Actualizar',
-                updateAppHelp: 'Borra la caché de la app y recarga la versión más nueva sin eliminar tus notas ni ajustes.',
-                updateConfirm: '¿Borrar archivos cacheados de la app y recargar la última versión?',
                 connection: 'Conexión',
                 secureConfig: 'Configuración segura',
                 speechModalTitle: 'Preferencias de voz',
@@ -700,9 +670,6 @@
         const LOCAL_LANGUAGE_KEY = 'voiceNotes_language';
         const LOCAL_RECENCY_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
         const AUTO_FIRESTORE_SAVE_DELAY = 2 * 60 * 1000; // 2 minutos
-        const APP_VERSION = '2026.07.01.1';
-        const APP_RELEASED_AT = '2026-07-01T18:51:00Z';
-        const APP_VERSION_QUERY_KEY = 'appVersion';
 
         const firebaseConfig = {
             apiKey: "AIzaSyA-wfyW4A1x0OhlBnnPhN2xwgs8N0e_3ek",
@@ -712,26 +679,6 @@
             messagingSenderId: "924785765286",
             appId: "1:924785765286:web:42b733d5914b095bbf7d67"
         };
-
-        const ensureVersionedUrl = () => {
-            const url = new URL(window.location.href);
-            if (url.searchParams.get(APP_VERSION_QUERY_KEY) === APP_VERSION) return;
-            url.searchParams.set(APP_VERSION_QUERY_KEY, APP_VERSION);
-            window.location.replace(url.toString());
-        };
-
-        const clearAppShellCaches = async () => {
-            if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(registrations.map((registration) => registration.unregister()));
-            }
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
-            }
-        };
-
-        ensureVersionedUrl();
 
         const normalizeTimestamp = (value, fallback = Date.now()) => {
             if (value === undefined || value === null) return fallback;
@@ -1396,7 +1343,7 @@
 
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur flex flex-col min-h-0">
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur flex flex-col">
                     <div className="flex items-center justify-between px-4 py-3 bg-white shadow-md border-b">
                         <div>
                             <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Editor de nota</p>
@@ -1503,7 +1450,7 @@
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-y-auto bg-white">
+                    <div className="flex-1 overflow-y-auto bg-white">
                         <div
                             ref={editorRef}
                             contentEditable
@@ -2061,25 +2008,6 @@
                 }
                 return value;
             }, [language]);
-
-            const releasedAtLabel = useMemo(() => new Date(APP_RELEASED_AT).toLocaleString(language === 'es' ? 'es-ES' : 'en-US', {
-                year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
-            }), [language]);
-
-            const handleForceUpdate = useCallback(async () => {
-                if (!confirm(t('updateConfirm'))) return;
-                setCloudStatus('loading');
-                setCloudMessage('Clearing cached app files...');
-                try {
-                    await clearAppShellCaches();
-                } catch (error) {
-                    console.warn('Could not clear all app caches', error);
-                }
-                const url = new URL(window.location.href);
-                url.searchParams.set(APP_VERSION_QUERY_KEY, APP_VERSION);
-                url.searchParams.set('refresh', Date.now().toString());
-                window.location.replace(url.toString());
-            }, [t]);
 
             const getCollectionName = useCallback((collectionId) => {
                 const found = availableCollections.find(c => c.id === collectionId);
@@ -3184,24 +3112,6 @@
                         <div className="p-4 max-w-2xl mx-auto">
                             <div className="content-shell p-5 md:p-6 space-y-6">
 
-                                <div className="section-card p-4 md:p-5 space-y-3">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-bold">{t('appVersion')}</p>
-                                            <h3 className="font-semibold text-slate-800">v{APP_VERSION}</h3>
-                                            <p className="text-xs text-slate-500 mt-1">{t('releaseDate')}: {releasedAtLabel}</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleForceUpdate}
-                                            className="shrink-0 px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-bold shadow hover:bg-rose-700 active:scale-95"
-                                        >
-                                            {t('updateApp')}
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-slate-500 leading-relaxed">{t('updateAppHelp')}</p>
-                                </div>
-
                                 {/* Sección API */}
                                 <div className="section-card p-4 md:p-5 space-y-4">
                                     <div className="flex items-center justify-between gap-3">
@@ -3972,7 +3882,7 @@
 
                 if (isBookReadingMode) {
                     return (
-                        <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-0">
+                        <div className="fixed inset-0 z-50 bg-white flex flex-col">
                             <header className="safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-sm flex items-center gap-3">
                                 <button
                                     onClick={() => setIsBookReadingMode(false)}
@@ -3986,7 +3896,7 @@
                                     <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">{activeBook.title}</h1>
                                 </div>
                             </header>
-                            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-6 max-w-3xl w-full mx-auto">
+                            <div className="flex-1 overflow-y-auto px-5 py-6 max-w-3xl w-full mx-auto">
                                 <div
                                     className="editor-content prose prose-slate max-w-none"
                                     dangerouslySetInnerHTML={{ __html: bookReadingHtml }}
@@ -4434,7 +4344,7 @@
 
             if (isReadingMode) {
                 return (
-                    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-0">
+                    <div className="fixed inset-0 z-50 bg-white flex flex-col">
                         <header className="safe-top sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-sm flex items-center gap-3">
                             <button
                                 onClick={() => setIsReadingMode(false)}
@@ -4448,7 +4358,7 @@
                                 <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">{chapter.title}</h1>
                             </div>
                         </header>
-                        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-6 max-w-3xl w-full mx-auto">
+                        <div className="flex-1 overflow-y-auto px-5 py-6 max-w-3xl w-full mx-auto">
                             <div
                                 className="editor-content prose prose-slate max-w-none"
                                 dangerouslySetInnerHTML={{ __html: readingHtml }}
