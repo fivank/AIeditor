@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#f7f9fc">
+    <meta name="supported-color-schemes" content="light">
     <title>VoiceNotes AI Manager</title>
 
     <!-- Tailwind CSS -->
@@ -25,6 +28,7 @@
 
     <style>
         :root {
+            color-scheme: light;
             --color-bg: #f7f9fc;
             --color-card: #ffffff;
             --radius-lg: 0.9rem;
@@ -46,10 +50,17 @@
         }
 
         /* Estilos base y utilidades */
+        html {
+            background: var(--color-bg);
+            color-scheme: light;
+            -webkit-text-size-adjust: 100%;
+        }
+
         body {
             font-family: 'Roboto', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: var(--color-bg);
             color: var(--text-color);
+            color-scheme: light;
             margin: 0;
             line-height: 1.6;
             -webkit-tap-highlight-color: transparent;
@@ -163,6 +174,7 @@
                         linear-gradient(120deg, rgba(63,81,181,0.35), rgba(121,134,203,0.25)) border-box;
             border: 1px solid transparent;
             box-shadow: 0 14px 32px rgba(33, 41, 64, 0.14);
+            -webkit-backdrop-filter: blur(14px);
             backdrop-filter: blur(14px);
         }
 
@@ -187,6 +199,7 @@
             border-radius: 1.5rem;
             border: 1px solid rgba(226, 232, 240, 0.8);
             box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            -webkit-backdrop-filter: blur(8px);
             backdrop-filter: blur(8px);
         }
 
@@ -241,8 +254,8 @@
             background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(239, 246, 255, 0.9));
             border: 1px solid rgba(79, 70, 229, 0.18);
             box-shadow: 0 22px 48px rgba(15, 23, 42, 0.2);
+            -webkit-backdrop-filter: blur(14px);
             backdrop-filter: blur(14px);
-        }
         }
 
         /* Estilos del editor y visualización de notas */
